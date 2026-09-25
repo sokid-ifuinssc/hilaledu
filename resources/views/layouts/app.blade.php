@@ -938,7 +938,7 @@
                     {{-- ============================================================ --}}
                     {{-- 5. KESISWAAN & BIMBINGAN KONSELING (BK)                      --}}
                     {{-- ============================================================ --}}
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->isBk() || (auth()->user()->role === 'admin' && !auth()->user()->admin_role))
+                    @if(auth()->check() && auth()->user()->canAccessBk())
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('bk.*') ? 'active' : '' }}" 
@@ -954,7 +954,7 @@
                                 <li><a href="{{ route('bk.pelanggaran.index') }}" class="{{ request()->routeIs('bk.pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-exclamation-octagon me-1"></i> Catatan Pelanggaran</a></li>
                                 <li><a href="{{ route('bk.progres.index') }}" class="{{ request()->routeIs('bk.progres.*') ? 'active' : '' }}"><i class="bi bi-arrow-repeat me-1"></i> Progres Kasus & Bimbingan</a></li>
                                 <li><a href="{{ route('bk.poin.index') }}" class="{{ request()->routeIs('bk.poin.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Akumulasi Poin Siswa</a></li>
-                                <li><a href="{{ route('bk.kategori-pelanggaran.index') }}" class="{{ request()->routeIs('bk.kategori-pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Kategori & Jenis Pelanggaran</a></li>
+                                <li><a href="{{ route('bk.jenis-pelanggaran.index') }}" class="{{ request()->routeIs('bk.jenis-pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Data Pelanggaran</a></li>
                                 <li><a href="{{ route('bk.laporan.index') }}" class="{{ request()->routeIs('bk.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled me-1"></i> Laporan Berkala BK</a></li>
                             </ul>
                         </div>
@@ -1113,7 +1113,28 @@
                         @if(auth()->user()->isWaliKelas() || auth()->user()->isKaprog() || auth()->user()->isBk() || auth()->user()->isWakaKesiswaan() || auth()->user()->isWakaKurikulum() || auth()->user()->isPembinaOsis() || auth()->user()->isPetugasPiket())
                         <li class="sidebar-nav-item"><a href="{{ route('presensi-harian.index') }}" class="sidebar-nav-link {{ request()->routeIs('presensi-harian.*') ? 'active' : '' }}"><i class="bi bi-person-lines-fill" style="color:#0ea5e9;"></i><span>Monitoring Absensi</span></a></li>
                         @endif
-                        <li class="sidebar-nav-item"><a href="{{ route('bk.pelanggaran.index') }}" class="sidebar-nav-link {{ request()->routeIs('bk.pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-shield-check" style="color:#f87171;"></i><span>Catatan Pelanggaran (BK)</span></a></li>
+                        @if(auth()->check() && auth()->user()->canAccessBk())
+                        <li class="sidebar-nav-item">
+                            <button type="button" 
+                                    class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('bk.*') ? 'active' : '' }}" 
+                                    onclick="toggleSidebarDropdown('menuBKGuru')" 
+                                    aria-expanded="{{ request()->routeIs('bk.*') ? 'true' : 'false' }}">
+                                <i class="bi bi-shield-check" style="color:#f87171;"></i>
+                                <span>Monitoring BK</span>
+                                <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                            </button>
+                            <div class="sidebar-dropdown-menu {{ request()->routeIs('bk.*') ? 'show' : '' }}" id="menuBKGuru">
+                                <ul class="sidebar-submenu">
+                                    <li><a href="{{ route('bk.dashboard') }}" class="{{ request()->routeIs('bk.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard BK</a></li>
+                                    <li><a href="{{ route('bk.pelanggaran.index') }}" class="{{ request()->routeIs('bk.pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-exclamation-octagon me-1"></i> Catatan Pelanggaran</a></li>
+                                    <li><a href="{{ route('bk.progres.index') }}" class="{{ request()->routeIs('bk.progres.*') ? 'active' : '' }}"><i class="bi bi-arrow-repeat me-1"></i> Progres Kasus & Bimbingan</a></li>
+                                    <li><a href="{{ route('bk.poin.index') }}" class="{{ request()->routeIs('bk.poin.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Akumulasi Poin Siswa</a></li>
+                                    <li><a href="{{ route('bk.jenis-pelanggaran.index') }}" class="{{ request()->routeIs('bk.jenis-pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Data Pelanggaran</a></li>
+                                    <li><a href="{{ route('bk.laporan.index') }}" class="{{ request()->routeIs('bk.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled me-1"></i> Laporan Berkala BK</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                        @endif
                         <li class="sidebar-nav-item"><a href="{{ route('prakerin.jurnal.index') }}" class="sidebar-nav-link {{ request()->routeIs('prakerin.jurnal.*') ? 'active' : '' }}"><i class="bi bi-briefcase" style="color:#fb923c;"></i><span>Jurnal Prakerin (PKL)</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('prakerin.laporan.index') }}" class="sidebar-nav-link {{ request()->routeIs('prakerin.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph" style="color:#fb923c;"></i><span>Laporan Prakerin</span></a></li>
 
@@ -1172,6 +1193,7 @@
                                 <li><a href="{{ route('bk.pelanggaran.index') }}" class="{{ request()->routeIs('bk.pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-exclamation-octagon me-1"></i> Catatan Pelanggaran</a></li>
                                 <li><a href="{{ route('bk.progres.index') }}" class="{{ request()->routeIs('bk.progres.*') ? 'active' : '' }}"><i class="bi bi-arrow-repeat me-1"></i> Progres Kasus & Bimbingan</a></li>
                                 <li><a href="{{ route('bk.poin.index') }}" class="{{ request()->routeIs('bk.poin.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Akumulasi Poin Siswa</a></li>
+                                <li><a href="{{ route('bk.jenis-pelanggaran.index') }}" class="{{ request()->routeIs('bk.jenis-pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Data Pelanggaran</a></li>
                                 <li><a href="{{ route('bk.laporan.index') }}" class="{{ request()->routeIs('bk.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled me-1"></i> Laporan Berkala BK</a></li>
                             </ul>
                         </div>

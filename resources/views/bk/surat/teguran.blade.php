@@ -48,7 +48,7 @@
 
 <table class="info">
     <tr><td>Jenis Pelanggaran</td><td>: {{ $pelanggaran->jenisPelanggaran->nama }}</td></tr>
-    <tr><td>Kategori</td><td>: {{ $pelanggaran->jenisPelanggaran->kategori->nama }}</td></tr>
+    
     <tr><td>Poin</td><td>: -{{ $pelanggaran->poin }} poin</td></tr>
     @if($pelanggaran->keterangan)
     <tr><td>Keterangan</td><td>: {{ $pelanggaran->keterangan }}</td></tr>

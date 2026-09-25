@@ -8,8 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @page {
-            size: A4 landscape;
-            margin: 6mm;
+            size: 330mm 215mm; /* F4 Landscape Size */
+            margin: 5mm;
         }
         @media print {
             .no-print {
@@ -20,9 +20,17 @@
                 color: black !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                margin: 0;
+                padding: 0;
             }
             .page-break {
                 page-break-after: always;
+            }
+            .fit-one-page {
+                height: 100vh !important;
+                max-height: 100vh !important;
+                display: flex !important;
+                flex-direction: column !important;
             }
         }
     </style>
@@ -78,32 +86,26 @@
     </div>
 
     <!-- MAIN PRINT CONTAINER -->
-    <div class="bg-white p-2 mx-auto max-w-[1300px] text-[10px] leading-tight text-black">
+    <div class="bg-white p-1 mx-auto w-full text-[10px] leading-tight text-black fit-one-page">
 
-        <!-- KOP DOKUMEN (DENGAN LOGO MASTER SEKOLAH) -->
-        <div class="flex items-center justify-between gap-4 mb-3 border-b border-black pb-2">
-            <div class="w-14 h-14 flex-shrink-0 flex items-center justify-center">
-                <img src="{{ asset($settings['logo_sekolah'] ?? 'images/logo.png') }}" class="w-14 h-14 object-contain" alt="Logo Sekolah" onerror="this.onerror=null; this.src='{{ asset('images/logo.png') }}';">
-            </div>
+        <!-- KOP DOKUMEN (TANPA LOGO) -->
+        <div class="flex items-center justify-center gap-4 mb-2 border-b border-black pb-2 flex-shrink-0">
             <div class="text-center flex-1 space-y-0.5">
                 <h1 class="text-lg font-black tracking-wider uppercase text-black">JADWAL PELAJARAN</h1>
                 <h2 class="text-sm font-black uppercase text-black">TAHUN PELAJARAN {{ $settings['tahun_pelajaran'] ?? '2025 – 2026' }}</h2>
-                <p class="text-[9.5px] font-bold text-black">
+                <p class="text-[9px] font-bold text-black">
                     Program Keahlian : {{ $settings['program_keahlian'] ?? 'Teknik Jaringan Komputer dan Telekomunikasi, Teknik Otomotif, Akuntansi dan Keuangan Lembaga' }}
                 </p>
                 <p class="text-[9.5px] font-bold text-black">
                     Konsentrasi Keahlian : {{ $settings['konsentrasi_keahlian'] ?? 'Teknik Komputer dan Jaringan, Teknik Kendaraan Ringan, Layanan Perbankan' }}
                 </p>
             </div>
-            <div class="w-14 h-14 flex-shrink-0 flex items-center justify-center">
-                <img src="{{ asset($settings['logo_sekolah'] ?? 'images/logo.png') }}" class="w-14 h-14 object-contain" alt="Logo Sekolah" onerror="this.onerror=null; this.src='{{ asset('images/logo.png') }}';">
-            </div>
         </div>
 
         <!-- GRID 6 HARI (2 BARIS x 3 KOLOM) -->
-        <div class="space-y-3">
+        <div class="flex-1 flex flex-col justify-evenly">
             <!-- BARIS 1 -->
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-3 gap-1.5">
                 @foreach(['Senin', 'Selasa', 'Rabu'] as $hari)
                 @include('admin.jadwal.partials.day_matrix_card', [
                     'hari' => $hari, 
@@ -114,7 +116,7 @@
             </div>
 
             <!-- BARIS 2 -->
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-3 gap-1.5">
                 @foreach(['Kamis', 'Jumat', 'Sabtu'] as $hari)
                 @include('admin.jadwal.partials.day_matrix_card', [
                     'hari' => $hari, 
@@ -126,7 +128,7 @@
         </div>
 
         <!-- LEGENDA GURU RESMI & KODE MENGAJAR (DINAMIS DIBAGI 3 KOLOM) -->
-        <div class="mt-3 border-t border-black pt-2">
+        <div class="mt-1 border-t border-black pt-1 flex-shrink-0">
             <div class="grid grid-cols-3 gap-1.5 text-[8.5px]">
 
                 @php
@@ -165,7 +167,7 @@
         </div>
 
         <!-- BAGIAN PALING BAWAH: TTD KEPSEK, CATATAN JUMAT, & TTD WAKA KURIKULUM (SESUAI DATA MASTER) -->
-        <div class="mt-3 pt-2 border-t border-black grid grid-cols-12 gap-3 items-start text-[9.5px]">
+        <div class="mt-1 pt-1 border-t border-black grid grid-cols-12 gap-3 items-start text-[9.5px] flex-shrink-0">
 
             <!-- TTD KEPALA SEKOLAH (KIRI) -->
             <div class="col-span-5 text-center space-y-0.5">

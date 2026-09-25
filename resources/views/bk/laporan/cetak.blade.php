@@ -98,22 +98,7 @@
         </div>
     </div>
 
-    {{-- Statistik per Kategori --}}
-    @if($statistikKategori->isNotEmpty())
-    <p class="section-title">Rekap per Kategori</p>
-    <table>
-        <thead><tr><th>Kategori</th><th class="text-center">Jumlah</th><th class="text-center">Total Poin</th></tr></thead>
-        <tbody>
-        @foreach($statistikKategori as $kategori => $stat)
-        <tr>
-            <td>{{ $kategori }}</td>
-            <td class="text-center font-bold">{{ $stat['jumlah'] }}</td>
-            <td class="text-center">{{ $stat['poin'] }}</td>
-        </tr>
-        @endforeach
-        </tbody>
-    </table>
-    @endif
+    
 
     {{-- Rekap per Kelas (jika ada) --}}
     @if(isset($rekapPerKelas) && $rekapPerKelas->isNotEmpty())
@@ -144,7 +129,7 @@
                 <th>Nama Siswa</th>
                 <th>Kelas</th>
                 <th>Pelanggaran</th>
-                <th>Kategori</th>
+                
                 <th class="text-center">Poin</th>
                 <th>Status</th>
             </tr>
@@ -157,12 +142,12 @@
                 <td>{{ $p->siswa->nama_lengkap }}</td>
                 <td>{{ $p->siswa?->kelas?->nama ?? '-' }}</td>
                 <td>{{ $p->jenisPelanggaran->nama }}</td>
-                <td>{{ $p->jenisPelanggaran->kategori->nama }}</td>
+                
                 <td class="text-center text-red font-bold">-{{ $p->poin }}</td>
                 <td>{{ $p->status_label }}</td>
             </tr>
             @empty
-            <tr><td colspan="8" class="text-center">Tidak ada data pelanggaran</td></tr>
+            <tr><td colspan="7" class="text-center">Tidak ada data pelanggaran</td></tr>
             @endforelse
         </tbody>
     </table>

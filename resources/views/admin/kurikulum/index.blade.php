@@ -16,7 +16,7 @@
         }
     },
     editModal: false,
-    editData: { id: null, kelas: '', mata_pelajaran_id: '', mapel_nama: '', guru_user_id: '', alokasi_jam: 2, keterangan: '', kategori: '', sub_kategori: '' },
+    editData: { id: null, kelas: '', mata_pelajaran_id: '', mapel_nama: '', guru_user_id: '', alokasi_jam: 2, keterangan: '', kategori: '', sub_kategori: '', urutan: '' },
     openEdit(item) {
         this.editData = { ...item };
         this.editModal = true;
@@ -188,54 +188,19 @@
                 <h3 class="font-extrabold text-slate-900 text-sm">Filter Kurikulum & Pembagian Tugas</h3>
                 <span class="text-[11px] text-slate-400 font-medium">(Tahun {{ $tahunAjaran }} - Semester {{ $semester }})</span>
             </div>
-            @if($jurusan !== 'all' || $jenjang !== 'all' || $kelas !== 'all')
+            @if($kelas !== 'all' || !empty($search))
             <a href="{{ route('admin.kurikulum.index') }}" class="text-xs text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 transition">
                 <i class="bi-x-circle"></i> Reset Semua Filter
             </a>
             @endif
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <!-- Filter Jurusan -->
-            <div>
-                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">1. Pilih Jurusan</label>
-                <div class="flex items-center gap-1.5 flex-wrap">
-                    <a href="{{ route('admin.kurikulum.index', array_merge(request()->query(), ['jurusan' => 'all'])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $jurusan === 'all' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                        Semua
-                    </a>
-                    @foreach($jurusans as $j)
-                    <a href="{{ route('admin.kurikulum.index', array_merge(request()->query(), ['jurusan' => $j->kode])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $jurusan === $j->kode ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                        {{ $j->kode }}
-                    </a>
-                    @endforeach
-                </div>
-            </div>
-
-            <!-- Filter Jenjang / Tingkat -->
-            <div>
-                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">2. Pilih Jenjang</label>
-                <div class="flex items-center gap-1.5 flex-wrap">
-                    <a href="{{ route('admin.kurikulum.index', array_merge(request()->query(), ['jenjang' => 'all'])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $jenjang === 'all' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                        Semua
-                    </a>
-                    @foreach($jenjangList as $jg)
-                    <a href="{{ route('admin.kurikulum.index', array_merge(request()->query(), ['jenjang' => $jg])) }}" 
-                       class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $jenjang === $jg ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                        Kelas {{ $jg }}
-                    </a>
-                    @endforeach
-                </div>
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             <!-- Filter Kelas / Rombel -->
             <div>
-                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">3. Pilih Rombel Kelas</label>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">1. Pilih Rombel Kelas</label>
                 <form method="GET" action="{{ route('admin.kurikulum.index') }}" class="flex items-center gap-2">
-                    <input type="hidden" name="jurusan" value="{{ $jurusan }}">
-                    <input type="hidden" name="jenjang" value="{{ $jenjang }}">
                     <input type="hidden" name="search" value="{{ request('search') }}">
                     <select name="kelas" onchange="this.form.submit()" class="w-full text-xs font-bold p-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500">
                         <option value="all" {{ $kelas === 'all' ? 'selected' : '' }}>-- Semua Kelas / Rombel --</option>
@@ -248,10 +213,8 @@
 
             <!-- Cari Mapel -->
             <div>
-                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">4. Cari Mata Pelajaran</label>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">2. Cari Mata Pelajaran</label>
                 <form method="GET" action="{{ route('admin.kurikulum.index') }}" class="flex items-center gap-2">
-                    <input type="hidden" name="jurusan" value="{{ $jurusan }}">
-                    <input type="hidden" name="jenjang" value="{{ $jenjang }}">
                     <input type="hidden" name="kelas" value="{{ $kelas }}">
                     <div class="relative w-full">
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Ketik nama mapel..." class="w-full text-xs font-bold p-2 pl-8 bg-slate-50 border border-slate-300 rounded-xl focus:ring-emerald-500 focus:border-emerald-500">
@@ -351,6 +314,11 @@
                                     {{ $item->sub_kategori }}
                                 </span>
                                 @endif
+                                @if($item->urutan)
+                                <span class="text-[9.5px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300 font-bold" title="Urutan Cetak">
+                                    <i class="bi-sort-numeric-down"></i> Urutan: {{ $item->urutan }}
+                                </span>
+                                @endif
                             </div>
                         </td>
                         <td class="px-4 py-4">
@@ -407,7 +375,8 @@
                                             alokasi_jam: {{ $item->alokasi_jam }},
                                             keterangan: '{{ addslashes($item->keterangan ?? '') }}',
                                             kategori: '{{ addslashes($item->kategori ?? '') }}',
-                                            sub_kategori: '{{ addslashes($item->sub_kategori ?? '') }}'
+                                            sub_kategori: '{{ addslashes($item->sub_kategori ?? '') }}',
+                                            urutan: '{{ $item->urutan ?? '' }}'
                                         })" 
                                         class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition" 
                                         title="Edit Alokasi">
@@ -481,12 +450,12 @@
                     <input type="text" name="mata_pelajaran_id" list="mapel-list" required placeholder="Ketik nama Mapel baru atau pilih dari list..." class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-emerald-500 focus:border-emerald-500" autocomplete="off">
                     <datalist id="mapel-list">
                         @foreach($mapels as $m)
-                        <option value="{{ $m->id }}">
-                            {{ $m->nama }} ({{ $m->kode }}) - Default {{ $m->jam_per_minggu ?? 2 }} JP
+                        <option value="{{ $m->nama }}">
+                            {{ $m->kode }} - Default {{ $m->jam_per_minggu ?? 2 }} JP
                         </option>
                         @endforeach
                     </datalist>
-                    <p class="text-[10.5px] text-slate-400 mt-1">Pilih ID mapel dari list, atau ketik nama mapel baru untuk menambah otomatis.</p>
+                    <p class="text-[10.5px] text-slate-400 mt-1">Pilih dari list, atau ketik nama mapel baru untuk menambah otomatis.</p>
                 </div>
 
                 <!-- Pilihan Guru Pengampu -->
@@ -509,18 +478,23 @@
                             <option value="">-- Bawaan Master Mapel --</option>
                             <option value="A. KELOMPOK MATA PELAJARAN UMUM">A. KELOMPOK MATA PELAJARAN UMUM</option>
                             <option value="B. KELOMPOK MATA PELAJARAN KEJURUAN">B. KELOMPOK MATA PELAJARAN KEJURUAN</option>
-                            <option value="C. KELOMPOK MATA PELAJARAN MUATAN LOKAL">C. KELOMPOK MATA PELAJARAN MUATAN LOKAL</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block font-bold text-indigo-900 uppercase tracking-wider mb-1.5 text-[10px]">Sub Kategori (Khusus Kejuruan)</label>
+                        <label class="block font-bold text-indigo-900 uppercase tracking-wider mb-1.5 text-[10px]">Sub Kategori</label>
                         <select name="sub_kategori" class="w-full p-2.5 bg-white border border-indigo-200 rounded-xl font-semibold text-slate-700 text-xs focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="">-- Tidak Ada / Default --</option>
+                            <option value="Umum">Umum</option>
+                            <option value="Muatan Lokal">Muatan Lokal</option>
                             <option value="Dasar-dasar Program Keahlian">1. Dasar-dasar Program Keahlian</option>
                             <option value="Mata Pelajaran [Konsentrasi Keahlian]***">2. Mata Pelajaran [Konsentrasi Keahlian]</option>
                             <option value="Mata Pelajaran Pilihan****">3. Mata Pelajaran Pilihan</option>
                             <option value="Projek Kreatif dan Kewirausahaan">4. Projek Kreatif dan Kewirausahaan</option>
                         </select>
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                        <label class="block font-bold text-indigo-900 uppercase tracking-wider mb-1.5 text-[10px]">Urutan Cetak <span class="text-[9px] font-normal">(Opsional)</span></label>
+                        <input type="number" name="urutan" placeholder="Cth: 1, 2, 3..." class="w-full p-2.5 bg-white border border-indigo-200 rounded-xl font-semibold text-slate-700 text-xs focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                     <div class="col-span-1 sm:col-span-2 text-[10px] text-indigo-600 leading-tight">
                         <i class="bi-info-circle-fill"></i> Pilihan di atas akan menentukan di mana mapel ini ditampilkan saat mencetak <b>Struktur Kurikulum Resmi</b>. Jika kosong, sistem otomatis mengikuti setelan Master Mapel.
@@ -591,14 +565,12 @@
                 <!-- Pilihan Mata Pelajaran -->
                 <div>
                     <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mata Pelajaran <span class="text-rose-500">*</span></label>
-                    <input type="text" name="mata_pelajaran_id" x-model="editData.mata_pelajaran_id" list="mapel-edit-list" required placeholder="Ketik nama Mapel baru atau pilih dari list..." class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-blue-500 focus:border-blue-500" autocomplete="off">
-                    <datalist id="mapel-edit-list">
+                    <select name="mata_pelajaran_id" x-model="editData.mata_pelajaran_id" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Pilih Mata Pelajaran --</option>
                         @foreach($mapels as $m)
-                        <option value="{{ $m->id }}">
-                            {{ $m->nama }} ({{ $m->kode }}) - Default {{ $m->jam_per_minggu ?? 2 }} JP
-                        </option>
+                        <option value="{{ $m->id }}">{{ $m->nama }} ({{ $m->kode }})</option>
                         @endforeach
-                    </datalist>
+                    </select>
                 </div>
 
                 <!-- Pilihan Guru Pengampu -->
@@ -620,18 +592,23 @@
                             <option value="">-- Bawaan Master Mapel --</option>
                             <option value="A. KELOMPOK MATA PELAJARAN UMUM">A. KELOMPOK MATA PELAJARAN UMUM</option>
                             <option value="B. KELOMPOK MATA PELAJARAN KEJURUAN">B. KELOMPOK MATA PELAJARAN KEJURUAN</option>
-                            <option value="C. KELOMPOK MATA PELAJARAN MUATAN LOKAL">C. KELOMPOK MATA PELAJARAN MUATAN LOKAL</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block font-bold text-blue-900 uppercase tracking-wider mb-1.5 text-[10px]">Sub Kategori (Khusus Kejuruan)</label>
+                        <label class="block font-bold text-blue-900 uppercase tracking-wider mb-1.5 text-[10px]">Sub Kategori</label>
                         <select name="sub_kategori" x-model="editData.sub_kategori" class="w-full p-2.5 bg-white border border-blue-200 rounded-xl font-semibold text-slate-700 text-xs focus:ring-blue-500 focus:border-blue-500">
                             <option value="">-- Tidak Ada / Default --</option>
+                            <option value="Umum">Umum</option>
+                            <option value="Muatan Lokal">Muatan Lokal</option>
                             <option value="Dasar-dasar Program Keahlian">1. Dasar-dasar Program Keahlian</option>
                             <option value="Mata Pelajaran [Konsentrasi Keahlian]***">2. Mata Pelajaran [Konsentrasi Keahlian]</option>
                             <option value="Mata Pelajaran Pilihan****">3. Mata Pelajaran Pilihan</option>
                             <option value="Projek Kreatif dan Kewirausahaan">4. Projek Kreatif dan Kewirausahaan</option>
                         </select>
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                        <label class="block font-bold text-blue-900 uppercase tracking-wider mb-1.5 text-[10px]">Urutan Cetak <span class="text-[9px] font-normal">(Opsional)</span></label>
+                        <input type="number" name="urutan" x-model="editData.urutan" placeholder="Cth: 1, 2, 3..." class="w-full p-2.5 bg-white border border-blue-200 rounded-xl font-semibold text-slate-700 text-xs focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="col-span-1 sm:col-span-2 text-[10px] text-blue-600 leading-tight">
                         <i class="bi-info-circle-fill"></i> Mengatur letak tabel saat dicetak. Kosongkan jika ingin mengikuti pengaturan Master Mapel.
@@ -834,18 +811,23 @@
                         <select name="kategori" class="w-full px-3.5 py-2.5 bg-white border border-indigo-200 rounded-xl font-semibold text-slate-700 text-xs focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="A. KELOMPOK MATA PELAJARAN UMUM">A. KELOMPOK MATA PELAJARAN UMUM</option>
                             <option value="B. KELOMPOK MATA PELAJARAN KEJURUAN">B. KELOMPOK MATA PELAJARAN KEJURUAN</option>
-                            <option value="C. KELOMPOK MATA PELAJARAN MUATAN LOKAL">C. KELOMPOK MATA PELAJARAN MUATAN LOKAL</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block font-bold text-indigo-900 uppercase tracking-wider mb-1 text-[10px]">Sub Kategori (Khusus Kejuruan)</label>
+                        <label class="block font-bold text-indigo-900 uppercase tracking-wider mb-1 text-[10px]">Sub Kategori</label>
                         <select name="sub_kategori" class="w-full px-3.5 py-2.5 bg-white border border-indigo-200 rounded-xl font-semibold text-slate-700 text-xs focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="">-- Tidak Ada / Default --</option>
+                            <option value="Umum">Umum</option>
+                            <option value="Muatan Lokal">Muatan Lokal</option>
                             <option value="Dasar-dasar Program Keahlian">1. Dasar-dasar Program Keahlian</option>
                             <option value="Mata Pelajaran [Konsentrasi Keahlian]***">2. Mata Pelajaran [Konsentrasi Keahlian]</option>
                             <option value="Mata Pelajaran Pilihan****">3. Mata Pelajaran Pilihan</option>
                             <option value="Projek Kreatif dan Kewirausahaan">4. Projek Kreatif dan Kewirausahaan</option>
                         </select>
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                        <label class="block font-bold text-blue-900 uppercase tracking-wider mb-1.5 text-[10px]">Urutan Cetak <span class="text-[9px] font-normal">(Opsional)</span></label>
+                        <input type="number" name="urutan" placeholder="Cth: 1, 2, 3..." class="w-full p-2.5 bg-white border border-blue-200 rounded-xl font-semibold text-slate-700 text-xs focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
 

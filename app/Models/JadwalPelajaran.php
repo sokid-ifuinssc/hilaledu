@@ -23,6 +23,7 @@ class JadwalPelajaran extends Model
         'ruang',
         'tahun_ajaran',
         'semester',
+        'is_locked',
     ];
 
     /**

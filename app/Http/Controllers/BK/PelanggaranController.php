@@ -22,7 +22,7 @@ class PelanggaranController extends Controller
         $tahunAjarans = TahunAjaran::orderBy('tanggal_mulai', 'desc')->get();
         $filterTahun = $request->get('tahun_ajaran_id', $tahunAjaran?->id);
 
-        $query = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'pencatat', 'progresPelanggaran'])
+        $query = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'pencatat', 'progresPelanggaran'])
             ->when($filterTahun && $filterTahun !== 'semua', fn($q) => $q->where('tahun_ajaran_id', $filterTahun));
 
         if ($request->filled('search')) {
@@ -47,7 +47,7 @@ class PelanggaranController extends Controller
     public function create(Request $request)
     {
         $siswas = Siswa::with('kelas.jurusan')->aktif()->orderBy('nama_lengkap')->get();
-        $jenisPelanggarans = JenisPelanggaran::with('kategori')->orderBy('kode')->get();
+        $jenisPelanggarans = JenisPelanggaran::orderBy('nama')->get();
         $kelasList = Kelas::with('jurusan')->orderBy('nama')->get();
         $jenisTindakanOptions = ProgresPelanggaran::jenisTindakanOptions();
 
@@ -63,7 +63,7 @@ class PelanggaranController extends Controller
                 $suggestedTindakan = ProgresPelanggaran::getNextEskalasi($lastProgres->jenis_tindakan);
             }
 
-            $historiSiswa = Pelanggaran::with(['jenisPelanggaran.kategori', 'progresPelanggaran'])
+            $historiSiswa = Pelanggaran::with(['jenisPelanggaran', 'progresPelanggaran'])
                 ->where('siswa_id', $request->siswa_id)
                 ->orderBy('tanggal_pelanggaran', 'desc')
                 ->limit(10)
@@ -219,10 +219,10 @@ class PelanggaranController extends Controller
 
     public function show(Pelanggaran $pelanggaran)
     {
-        $pelanggaran->load(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'pencatat', 'progresPelanggaran']);
+        $pelanggaran->load(['siswa.kelas.jurusan', 'jenisPelanggaran', 'pencatat', 'progresPelanggaran']);
 
         // Histori semua pelanggaran siswa ini (lintas tahun ajaran)
-        $historiPelanggaran = Pelanggaran::with(['jenisPelanggaran.kategori', 'tahunAjaran', 'progresPelanggaran'])
+        $historiPelanggaran = Pelanggaran::with(['jenisPelanggaran', 'tahunAjaran', 'progresPelanggaran'])
             ->where('siswa_id', $pelanggaran->siswa_id)
             ->orderBy('tanggal_pelanggaran', 'desc')
             ->get();
@@ -233,7 +233,7 @@ class PelanggaranController extends Controller
     public function edit(Pelanggaran $pelanggaran)
     {
         $siswas = Siswa::with('kelas.jurusan')->aktif()->orderBy('nama_lengkap')->get();
-        $jenisPelanggarans = JenisPelanggaran::with('kategori')->orderBy('kode')->get();
+        $jenisPelanggarans = JenisPelanggaran::orderBy('nama')->get();
         return view('bk.pelanggaran.edit', compact('pelanggaran', 'siswas', 'jenisPelanggarans'));
     }
 
@@ -260,7 +260,7 @@ class PelanggaranController extends Controller
             return response()->json(['histori' => [], 'suggested' => null]);
         }
 
-        $histori = Pelanggaran::with(['jenisPelanggaran.kategori', 'progresPelanggaran'])
+        $histori = Pelanggaran::with(['jenisPelanggaran', 'progresPelanggaran'])
             ->where('siswa_id', $siswaId)
             ->orderBy('tanggal_pelanggaran', 'desc')
             ->limit(10)
@@ -269,7 +269,6 @@ class PelanggaranController extends Controller
                 return [
                     'tanggal' => $p->tanggal_pelanggaran->format('d/m/Y'),
                     'pelanggaran' => $p->jenisPelanggaran->nama,
-                    'kategori' => $p->jenisPelanggaran->kategori->nama ?? '-',
                     'poin' => $p->poin,
                     'jenis_tindakan' => $p->progresPelanggaran?->jenis_tindakan_label ?? '-',
                     'status' => $p->status_label,

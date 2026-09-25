@@ -50,7 +50,7 @@
 
 <table class="info">
     <tr><td>Pelanggaran</td><td>: {{ $pelanggaran->jenisPelanggaran->nama }}</td></tr>
-    <tr><td>Kategori</td><td>: {{ $pelanggaran->jenisPelanggaran->kategori->nama }}</td></tr>
+    
     <tr><td>Tanggal Kejadian</td><td>: {{ $pelanggaran->tanggal_pelanggaran->translatedFormat('d F Y') }}</td></tr>
     <tr><td>Poin Pelanggaran</td><td>: -{{ $pelanggaran->poin }} poin</td></tr>
     <tr><td>Total Pelanggaran</td><td>: {{ $totalPelanggaran }} kali</td></tr>
@@ -81,7 +81,7 @@
             <th style="border:1px solid #d1d5db; padding:5px; text-align:center;">No</th>
             <th style="border:1px solid #d1d5db; padding:5px; text-align:left;">Tanggal</th>
             <th style="border:1px solid #d1d5db; padding:5px; text-align:left;">Pelanggaran</th>
-            <th style="border:1px solid #d1d5db; padding:5px; text-align:left;">Kategori</th>
+            
             <th style="border:1px solid #d1d5db; padding:5px; text-align:center;">Poin</th>
             <th style="border:1px solid #d1d5db; padding:5px; text-align:left;">Rekomendasi</th>
             <th style="border:1px solid #d1d5db; padding:5px; text-align:left;">Tindak Lanjut</th>
@@ -93,7 +93,7 @@
             <td style="border:1px solid #d1d5db; padding:4px; text-align:center;">{{ $idx + 1 }}</td>
             <td style="border:1px solid #d1d5db; padding:4px;">{{ $hp->tanggal_pelanggaran->format('d/m/Y') }}</td>
             <td style="border:1px solid #d1d5db; padding:4px;">{{ $hp->jenisPelanggaran->nama }}</td>
-            <td style="border:1px solid #d1d5db; padding:4px;">{{ $hp->jenisPelanggaran->kategori->nama ?? '-' }}</td>
+            
             <td style="border:1px solid #d1d5db; padding:4px; text-align:center;">-{{ $hp->poin }}</td>
             <td style="border:1px solid #d1d5db; padding:4px; font-size:9pt;">
                 @if($hp->rekomendasi){{ $hp->rekomendasi->jenis_rekomendasi_label }}@endif
@@ -106,7 +106,7 @@
         </tr>
     @endforeach
         <tr style="background:#fef2f2; font-weight:bold;">
-            <td colspan="4" style="border:1px solid #d1d5db; padding:4px; text-align:right;">Total Poin Dikurangi:</td>
+            <td colspan="3" style="border:1px solid #d1d5db; padding:4px; text-align:right;">Total Poin Dikurangi:</td>
             <td style="border:1px solid #d1d5db; padding:4px; text-align:center;">-{{ $historiPelanggaran->sum('poin') }}</td>
             <td colspan="2" style="border:1px solid #d1d5db; padding:4px;"></td>
         </tr>

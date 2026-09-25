@@ -8,9 +8,9 @@
         <select name="status" class="form-select w-44" onchange="this.form.submit()"><option value="">Semua Status</option><option value="dicatat" {{ request('status') == 'dicatat' ? 'selected' : '' }}>Dicatat</option><option value="direkomendasikan" {{ request('status') == 'direkomendasikan' ? 'selected' : '' }}>Direkomendasikan</option><option value="ditindaklanjuti" {{ request('status') == 'ditindaklanjuti' ? 'selected' : '' }}>Ditindaklanjuti</option><option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option></select>
         <button type="submit" class="btn-secondary">Filter</button>
     </form>
-    <div class="table-container"><table><thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Jurusan</th><th>Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Status</th></tr></thead><tbody>
+    <div class="table-container"><table><thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Jurusan</th><th>Pelanggaran</th><th>Poin</th><th>Status</th></tr></thead><tbody>
     @forelse($pelanggarans as $p)
-    <tr><td>{{ $p->tanggal_pelanggaran->format('d/m/Y') }}</td><td class="font-medium">{{ $p->siswa->nama_lengkap }}</td><td>{{ $p->siswa?->kelas?->nama ?? '-' }}</td><td>{{ $p->siswa?->kelas?->jurusan->kode ?? '-' }}</td><td>{{ $p->jenisPelanggaran->nama }}</td><td><span class="badge" style="background-color: {{ $p->jenisPelanggaran->kategori->warna }}20; color: {{ $p->jenisPelanggaran->kategori->warna }}">{{ $p->jenisPelanggaran->kategori->nama }}</span></td><td><span class="text-red-600 font-semibold">-{{ $p->poin }}</span></td><td><span class="badge {{ $p->status_badge }}">{{ $p->status_label }}</span></td></tr>
+    <tr><td>{{ $p->tanggal_pelanggaran->format('d/m/Y') }}</td><td class="font-medium">{{ $p->siswa->nama_lengkap }}</td><td>{{ $p->siswa?->kelas?->nama ?? '-' }}</td><td>{{ $p->siswa?->kelas?->jurusan->kode ?? '-' }}</td><td>{{ $p->jenisPelanggaran->nama }}</td><td><span class="text-red-600 font-semibold">-{{ $p->poin }}</span></td><td><span class="badge {{ $p->status_badge }}">{{ $p->status_label }}</span></td></tr>
     @empty<tr><td colspan="8" class="text-center py-8 text-gray-500">Tidak ada data</td></tr>@endforelse
     </tbody></table></div><div>{{ $pelanggarans->links() }}</div>
 </div>

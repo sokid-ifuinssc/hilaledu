@@ -15,6 +15,7 @@
         $isBentrok = ($slot['is_bentrok_guru'] ?? false) || ($slot['is_bentrok_kelas'] ?? false);
         $isOver = $slot['is_over_alokasi'] ?? false;
         $isGabungan = $slot['is_gabungan'] ?? false;
+        $isLocked = $slot['is_locked'] ?? false;
         $slotKelas = $slot['kelas'] ?? ($kelasList[$c]['nama'] ?? ($kelasList[$c]['label'] ?? ''));
         $slotHari = $slot['hari'] ?? ($hari ?? '');
 
@@ -36,6 +37,9 @@
             <span class="absolute -top-0.5 -right-0.5 text-[6.5px] leading-none bg-amber-200 text-amber-950 font-black px-0.5 rounded-bl" title="Melebihi alokasi kurikulum">+{{ $slot['over_alokasi_diff'] ?? 0 }}</span>
             @elseif($isGabungan)
             <span class="absolute -top-0.5 -right-0.5 text-[6.5px] leading-none bg-teal-300 text-teal-950 font-black px-0.5 rounded-bl" title="Kuliah Umum Gabungan">🕌</span>
+            @endif
+            @if($isLocked)
+            <span class="absolute top-0.5 left-0.5 text-[7px] text-slate-700 bg-white/70 rounded px-0.5" title="Jadwal Dikunci"><i class="bi-lock-fill"></i></span>
             @endif
             <div class="font-black text-[9px] flex items-center justify-center gap-0.5">
                 <span>{{ $kode }}</span>

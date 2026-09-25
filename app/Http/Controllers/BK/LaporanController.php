@@ -27,7 +27,7 @@ class LaporanController extends Controller
         $startOfWeek = $request->filled('tanggal') ? \Carbon\Carbon::parse($request->tanggal)->startOfWeek() : now()->startOfWeek();
         $endOfWeek = $startOfWeek->copy()->endOfWeek();
 
-        $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+        $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->when($request->filled('kelas_id'), fn($q) => $q->whereHas('siswa', fn($s) => $s->where('kelas_id', $request->kelas_id)))
             ->whereBetween('tanggal_pelanggaran', [$startOfWeek, $endOfWeek])
@@ -49,7 +49,7 @@ class LaporanController extends Controller
         $bulan = $request->filled('bulan') ? (int) $request->bulan : now()->month;
         $tahun = $request->filled('tahun') ? (int) $request->tahun : now()->year;
 
-        $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+        $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->when($request->filled('kelas_id'), fn($q) => $q->whereHas('siswa', fn($s) => $s->where('kelas_id', $request->kelas_id)))
             ->whereMonth('tanggal_pelanggaran', $bulan)
@@ -75,7 +75,7 @@ class LaporanController extends Controller
         // Get pelanggaran dari awal semester sampai tanggal ujian
         $pelanggarans = collect();
         if ($tahunAjaran && $tanggalPenting) {
-            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])
                 ->where('tahun_ajaran_id', $tahunAjaran->id)
                 ->when($request->filled('kelas_id'), fn($q) => $q->whereHas('siswa', fn($s) => $s->where('kelas_id', $request->kelas_id)))
                 ->whereBetween('tanggal_pelanggaran', [$tahunAjaran->tanggal_mulai, $tanggalPenting->tanggal_mulai])
@@ -95,7 +95,7 @@ class LaporanController extends Controller
 
         $pelanggarans = collect();
         if ($tahunAjaran) {
-            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])
                 ->where('tahun_ajaran_id', $tahunAjaran->id)
                 ->when($request->filled('kelas_id'), fn($q) => $q->whereHas('siswa', fn($s) => $s->where('kelas_id', $request->kelas_id)))
                 ->orderBy('tanggal_pelanggaran', 'desc')
@@ -129,7 +129,7 @@ class LaporanController extends Controller
 
         $pelanggarans = collect();
         if ($tahunAjaran) {
-            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])
                 ->where('tahun_ajaran_id', $tahunAjaran->id)
                 ->when($request->filled('kelas_id'), fn($q) => $q->whereHas('siswa', fn($s) => $s->where('kelas_id', $request->kelas_id)))
                 ->orderBy('tanggal_pelanggaran', 'desc')
@@ -195,11 +195,11 @@ class LaporanController extends Controller
 
     private function getStatistikKategori($pelanggarans)
     {
-        return $pelanggarans->groupBy(fn($p) => $p->jenisPelanggaran->kategori->nama ?? 'Lainnya')
+        return $pelanggarans->groupBy(fn($p) => $p->jenisPelanggaran->nama ?? 'Lainnya')
             ->map(fn($items) => [
                 'jumlah' => $items->count(),
                 'poin' => $items->sum('poin'),
-                'warna' => $items->first()->jenisPelanggaran->kategori->warna ?? '#6b7280',
+                'warna' => '#f87171',
             ]);
     }
 
@@ -209,7 +209,7 @@ class LaporanController extends Controller
         $startOfWeek = $request->filled('tanggal') ? \Carbon\Carbon::parse($request->tanggal)->startOfWeek() : now()->startOfWeek();
         $endOfWeek = $startOfWeek->copy()->endOfWeek();
 
-        $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+        $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->when($request->filled('kelas_id'), fn($q) => $q->whereHas('siswa', fn($s) => $s->where('kelas_id', $request->kelas_id)))
             ->whereBetween('tanggal_pelanggaran', [$startOfWeek, $endOfWeek])
@@ -230,7 +230,7 @@ class LaporanController extends Controller
         $tahun = $request->filled('tahun') ? (int) $request->tahun : now()->year;
         $namaBulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
-        $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+        $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->when($request->filled('kelas_id'), fn($q) => $q->whereHas('siswa', fn($s) => $s->where('kelas_id', $request->kelas_id)))
             ->whereMonth('tanggal_pelanggaran', $bulan)->whereYear('tanggal_pelanggaran', $tahun)
@@ -249,7 +249,7 @@ class LaporanController extends Controller
         $tahunAjaran = TahunAjaran::aktif();
         $pelanggarans = collect();
         if ($tahunAjaran) {
-            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])
                 ->where('tahun_ajaran_id', $tahunAjaran->id)
                 ->when($request->filled('kelas_id'), fn($q) => $q->whereHas('siswa', fn($s) => $s->where('kelas_id', $request->kelas_id)))
                 ->orderBy('tanggal_pelanggaran', 'desc')->get();
@@ -275,7 +275,7 @@ class LaporanController extends Controller
         $tahunAjaran = $tahunAjaranId ? TahunAjaran::find($tahunAjaranId) : TahunAjaran::aktif();
         $pelanggarans = collect();
         if ($tahunAjaran) {
-            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+            $pelanggarans = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])
                 ->where('tahun_ajaran_id', $tahunAjaran->id)
                 ->when($request->filled('kelas_id'), fn($q) => $q->whereHas('siswa', fn($s) => $s->where('kelas_id', $request->kelas_id)))
                 ->orderBy('tanggal_pelanggaran', 'desc')->get();

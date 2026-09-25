@@ -723,15 +723,13 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // MONITORING BK (SUPERADMIN, ADMIN BK & GURU BK)
     // ==========================================
-    Route::prefix('bk')->name('bk.')->middleware('role:admin,guru_bk')->group(function () {
+    Route::prefix('bk')->name('bk.')->middleware('role:admin,guru_bk,kepala_sekolah,waka_kesiswaan,kaprog,wali_kelas')->group(function () {
         Route::get('/dashboard', [BK\DashboardController::class, 'index'])->name('dashboard');
 
         // Master Pelanggaran & Poin
-        Route::resource('kategori-pelanggaran', Admin\KategoriPelanggaranController::class)->except('show');
+        Route::get('jenis-pelanggaran/export', [Admin\JenisPelanggaranController::class, 'export'])->name('jenis-pelanggaran.export');
+        Route::post('jenis-pelanggaran/import', [Admin\JenisPelanggaranController::class, 'import'])->name('jenis-pelanggaran.import');
         Route::resource('jenis-pelanggaran', Admin\JenisPelanggaranController::class)->except('show');
-        Route::get('/kategori-pelanggaran-export', [Admin\KategoriPelanggaranController::class, 'export'])->name('kategori-pelanggaran.export');
-        Route::get('/kategori-pelanggaran-template', [Admin\KategoriPelanggaranController::class, 'downloadTemplate'])->name('kategori-pelanggaran.template');
-        Route::post('/kategori-pelanggaran-import', [Admin\KategoriPelanggaranController::class, 'import'])->name('kategori-pelanggaran.import');
         Route::get('/poin', [Admin\SiswaController::class, 'poinIndex'])->name('poin.index');
 
         // Pelanggaran Siswa
@@ -756,13 +754,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan/cetak', [BK\LaporanController::class, 'cetak'])->name('laporan.cetak');
     });
 
-    // Aliases for BK Master Pelanggaran (Dual naming support admin.* and bk.*)
     Route::as('admin.')->middleware('role:admin,guru_bk')->group(function () {
-        Route::resource('bk-kategori-pelanggaran', Admin\KategoriPelanggaranController::class, ['names' => 'kategori-pelanggaran'])->except('show');
+        Route::get('bk-jenis-pelanggaran/export', [Admin\JenisPelanggaranController::class, 'export'])->name('jenis-pelanggaran.export');
+        Route::post('bk-jenis-pelanggaran/import', [Admin\JenisPelanggaranController::class, 'import'])->name('jenis-pelanggaran.import');
         Route::resource('bk-jenis-pelanggaran', Admin\JenisPelanggaranController::class, ['names' => 'jenis-pelanggaran'])->except('show');
-        Route::get('bk-kategori-pelanggaran-export', [Admin\KategoriPelanggaranController::class, 'export'])->name('kategori-pelanggaran.export');
-        Route::get('bk-kategori-pelanggaran-template', [Admin\KategoriPelanggaranController::class, 'downloadTemplate'])->name('kategori-pelanggaran.template');
-        Route::post('bk-kategori-pelanggaran-import', [Admin\KategoriPelanggaranController::class, 'import'])->name('kategori-pelanggaran.import');
     });
 
     // ==========================================

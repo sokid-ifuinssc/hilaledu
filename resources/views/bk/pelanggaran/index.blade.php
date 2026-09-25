@@ -35,7 +35,7 @@
 
     <div class="table-container">
         <table>
-            <thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Tindakan</th><th>Status</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Pelanggaran</th><th>Poin</th><th>Tindakan</th><th>Status</th><th>Aksi</th></tr></thead>
             <tbody>
                 @forelse($pelanggarans as $p)
                 <tr>
@@ -43,7 +43,6 @@
                     <td class="font-medium">{{ $p->siswa->nama_lengkap }}</td>
                     <td>{{ $p->siswa?->kelas?->nama ?? '-' }}</td>
                     <td>{{ $p->jenisPelanggaran->nama }}</td>
-                    <td><span class="badge" style="background-color: {{ $p->jenisPelanggaran->kategori->warna }}20; color: {{ $p->jenisPelanggaran->kategori->warna }}">{{ $p->jenisPelanggaran->kategori->nama }}</span></td>
                     <td><span class="text-red-600 font-semibold">-{{ $p->poin }}</span></td>
                     <td>
                         @if($p->progresPelanggaran)
@@ -61,7 +60,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="9" class="text-center py-8 text-gray-500">Belum ada pelanggaran</td></tr>
+                <tr><td colspan="8" class="text-center py-8 text-gray-500">Belum ada pelanggaran</td></tr>
                 @endforelse
             </tbody>
         </table>

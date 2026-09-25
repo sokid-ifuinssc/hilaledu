@@ -47,13 +47,12 @@
     <div class="table-container">
         <div class="px-5 py-4 border-b border-gray-200"><h3 class="font-semibold text-gray-800">Riwayat Pelanggaran ({{ $siswa->pelanggarans->count() }})</h3></div>
         <table>
-            <thead><tr><th>Tanggal</th><th>Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Status</th></tr></thead>
+            <thead><tr><th>Tanggal</th><th>Pelanggaran</th><th>Poin</th><th>Status</th></tr></thead>
             <tbody>
                 @forelse($siswa->pelanggarans as $p)
                 <tr>
                     <td>{{ $p->tanggal_pelanggaran->format('d/m/Y') }}</td>
                     <td class="font-medium">{{ $p->jenisPelanggaran->nama }}</td>
-                    <td><span class="badge" style="background-color: {{ $p->jenisPelanggaran->kategori->warna }}20; color: {{ $p->jenisPelanggaran->kategori->warna }}">{{ $p->jenisPelanggaran->kategori->nama }}</span></td>
                     <td><span class="text-red-600 font-semibold">-{{ $p->poin }}</span></td>
                     <td><span class="badge {{ $p->status_badge }}">{{ $p->status_label }}</span></td>
                 </tr>

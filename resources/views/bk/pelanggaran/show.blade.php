@@ -17,7 +17,6 @@
             <div><p class="text-xs text-gray-500">Jurusan</p><p class="text-sm font-medium">{{ $pelanggaran->siswa?->kelas?->jurusan->kode ?? '-' }}</p></div>
             <div><p class="text-xs text-gray-500">Tanggal</p><p class="text-sm font-medium">{{ $pelanggaran->tanggal_pelanggaran->format('d M Y') }}</p></div>
             <div><p class="text-xs text-gray-500">Jenis</p><p class="text-sm font-medium">{{ $pelanggaran->jenisPelanggaran->nama }}</p></div>
-            <div><p class="text-xs text-gray-500">Kategori</p><span class="badge" style="background-color: {{ $pelanggaran->jenisPelanggaran->kategori->warna }}20; color: {{ $pelanggaran->jenisPelanggaran->kategori->warna }}">{{ $pelanggaran->jenisPelanggaran->kategori->nama }}</span></div>
             <div><p class="text-xs text-gray-500">Poin</p><p class="text-sm font-bold text-red-600">-{{ $pelanggaran->poin }}</p></div>
             <div><p class="text-xs text-gray-500">Poin Siswa Saat Ini</p><p class="text-sm font-bold {{ $pelanggaran->siswa->poin >= 70 ? 'text-green-600' : ($pelanggaran->siswa->poin >= 40 ? 'text-yellow-600' : 'text-red-600') }}">{{ $pelanggaran->siswa->poin }}/100</p></div>
             <div><p class="text-xs text-gray-500">Dicatat Oleh</p><p class="text-sm font-medium">{{ $pelanggaran->pencatat->nama_lengkap ?? '-' }}</p></div>
@@ -61,7 +60,6 @@
                     <tr class="border-b border-gray-200">
                         <th class="text-left py-2 px-2 text-xs text-gray-500">Tanggal</th>
                         <th class="text-left py-2 px-2 text-xs text-gray-500">Pelanggaran</th>
-                        <th class="text-left py-2 px-2 text-xs text-gray-500">Kategori</th>
                         <th class="text-left py-2 px-2 text-xs text-gray-500">Poin</th>
                         <th class="text-left py-2 px-2 text-xs text-gray-500">Tindakan</th>
                         <th class="text-left py-2 px-2 text-xs text-gray-500">Tahun Ajaran</th>
@@ -73,7 +71,6 @@
                     <tr class="border-b border-gray-50 {{ $hp->id == $pelanggaran->id ? 'bg-indigo-50' : '' }}">
                         <td class="py-2 px-2">{{ $hp->tanggal_pelanggaran->format('d/m/Y') }}</td>
                         <td class="py-2 px-2">{{ $hp->jenisPelanggaran->nama }}</td>
-                        <td class="py-2 px-2"><span class="badge text-xs" style="background-color: {{ $hp->jenisPelanggaran->kategori->warna ?? '#6b7280' }}20; color: {{ $hp->jenisPelanggaran->kategori->warna ?? '#6b7280' }}">{{ $hp->jenisPelanggaran->kategori->nama ?? '-' }}</span></td>
                         <td class="py-2 px-2 text-red-600 font-semibold">-{{ $hp->poin }}</td>
                         <td class="py-2 px-2">
                             @if($hp->progresPelanggaran)
@@ -119,7 +116,7 @@
     <h3><span class="help-icon" style="background: #f0fdf4; color: #16a34a;">📝</span> Informasi yang Tersedia</h3>
     <ul>
         <li><strong>Data Siswa</strong> — Nama, NIS, kelas, dan poin saat ini</li>
-        <li><strong>Detail Pelanggaran</strong> — Jenis, kategori, tanggal, poin dikurangi, keterangan</li>
+        <li><strong>Detail Pelanggaran</strong> — Jenis, tanggal, poin dikurangi, keterangan</li>
         <li><strong>Progres Penanganan</strong> — Jenis tindakan dan status progres</li>
         <li><strong>Histori</strong> — Seluruh histori pelanggaran siswa lintas tahun ajaran</li>
     </ul>

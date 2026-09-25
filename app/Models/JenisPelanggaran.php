@@ -11,19 +11,12 @@ class JenisPelanggaran extends Model
 
 
     protected $fillable = [
-        'kategori_pelanggaran_id',
-        'kode',
         'nama',
         'poin',
         'deskripsi',
     ];
 
     // Relationships
-    public function kategori()
-    {
-        return $this->belongsTo(KategoriPelanggaran::class, 'kategori_pelanggaran_id');
-    }
-
     public function pelanggarans()
     {
         return $this->hasMany(Pelanggaran::class);

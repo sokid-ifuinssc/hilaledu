@@ -4,28 +4,27 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\JenisPelanggaran;
-use App\Models\KategoriPelanggaran;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\JenisPelanggaranExport;
+use App\Imports\JenisPelanggaranImport;
 
 class JenisPelanggaranController extends Controller
 {
     public function index()
     {
-        $jenisPelanggarans = JenisPelanggaran::with('kategori')->orderBy('kode')->paginate(15);
+        $jenisPelanggarans = JenisPelanggaran::orderBy('id', 'desc')->paginate(15);
         return view('admin.jenis-pelanggaran.index', compact('jenisPelanggarans'));
     }
 
     public function create()
     {
-        $kategoris = KategoriPelanggaran::all();
-        return view('admin.jenis-pelanggaran.create', compact('kategoris'));
+        return view('admin.jenis-pelanggaran.create');
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'kategori_pelanggaran_id' => 'required|exists:kategori_pelanggarans,id',
-            'kode' => 'required|string|max:10|unique:jenis_pelanggarans',
             'nama' => 'required|string|max:255',
             'poin' => 'required|integer|min:1',
             'deskripsi' => 'nullable|string',
@@ -33,21 +32,18 @@ class JenisPelanggaranController extends Controller
 
         JenisPelanggaran::create($validated);
 
-        return redirect()->route('admin.jenis-pelanggaran.index')
-            ->with('success', 'Jenis pelanggaran berhasil ditambahkan.');
+        return redirect()->route(request()->routeIs('admin.*') ? 'admin.jenis-pelanggaran.index' : 'bk.jenis-pelanggaran.index')
+            ->with('success', 'Data pelanggaran berhasil ditambahkan.');
     }
 
     public function edit(JenisPelanggaran $jenisPelanggaran)
     {
-        $kategoris = KategoriPelanggaran::all();
-        return view('admin.jenis-pelanggaran.edit', compact('jenisPelanggaran', 'kategoris'));
+        return view('admin.jenis-pelanggaran.edit', compact('jenisPelanggaran'));
     }
 
     public function update(Request $request, JenisPelanggaran $jenisPelanggaran)
     {
         $validated = $request->validate([
-            'kategori_pelanggaran_id' => 'required|exists:kategori_pelanggarans,id',
-            'kode' => 'required|string|max:10|unique:jenis_pelanggarans,kode,' . $jenisPelanggaran->id,
             'nama' => 'required|string|max:255',
             'poin' => 'required|integer|min:1',
             'deskripsi' => 'nullable|string',
@@ -55,15 +51,34 @@ class JenisPelanggaranController extends Controller
 
         $jenisPelanggaran->update($validated);
 
-        return redirect()->route('admin.jenis-pelanggaran.index')
-            ->with('success', 'Jenis pelanggaran berhasil diperbarui.');
+        return redirect()->route(request()->routeIs('admin.*') ? 'admin.jenis-pelanggaran.index' : 'bk.jenis-pelanggaran.index')
+            ->with('success', 'Data pelanggaran berhasil diperbarui.');
     }
 
     public function destroy(JenisPelanggaran $jenisPelanggaran)
     {
         $jenisPelanggaran->delete();
 
-        return redirect()->route('admin.jenis-pelanggaran.index')
-            ->with('success', 'Jenis pelanggaran berhasil dihapus.');
+        return redirect()->route(request()->routeIs('admin.*') ? 'admin.jenis-pelanggaran.index' : 'bk.jenis-pelanggaran.index')
+            ->with('success', 'Data pelanggaran berhasil dihapus.');
+    }
+
+    public function export()
+    {
+        return Excel::download(new JenisPelanggaranExport, 'jenis_pelanggaran_' . date('YmdHis') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:2048',
+        ]);
+
+        try {
+            Excel::import(new JenisPelanggaranImport, $request->file('file'));
+            return redirect()->back()->with('success', 'Data pelanggaran berhasil diimport.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengimport data: ' . $e->getMessage());
+        }
     }
 }

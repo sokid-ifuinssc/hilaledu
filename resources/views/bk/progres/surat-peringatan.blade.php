@@ -30,7 +30,6 @@
         <p>Berdasarkan pelanggaran yang dilakukan:</p>
         <table class="text-sm">
             <tr><td class="pr-4 py-1">Jenis Pelanggaran</td><td>: {{ $pelanggaran->jenisPelanggaran->nama }}</td></tr>
-            <tr><td class="pr-4 py-1">Kategori</td><td>: {{ $pelanggaran->jenisPelanggaran->kategori->nama ?? '-' }}</td></tr>
             <tr><td class="pr-4 py-1">Tanggal</td><td>: {{ $pelanggaran->tanggal_pelanggaran->format('d F Y') }}</td></tr>
             <tr><td class="pr-4 py-1">Poin</td><td>: {{ $pelanggaran->poin }} poin</td></tr>
             <tr><td class="pr-4 py-1">Total Pelanggaran</td><td>: {{ $totalPelanggaran }} kali</td></tr>

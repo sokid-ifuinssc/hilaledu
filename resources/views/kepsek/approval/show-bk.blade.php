@@ -12,7 +12,7 @@
             <div><span class="text-gray-500">Pelanggaran:</span> <span class="font-medium">{{ $rekomendasi->pelanggaran->jenisPelanggaran->nama }}</span></div>
             <div><span class="text-gray-500">Poin:</span> <span class="font-bold text-red-600">-{{ $rekomendasi->pelanggaran->poin }}</span></div>
             <div><span class="text-gray-500">Tanggal:</span> {{ $rekomendasi->pelanggaran->tanggal_pelanggaran->format('d M Y') }}</div>
-            <div><span class="text-gray-500">Kategori:</span> {{ $rekomendasi->pelanggaran->jenisPelanggaran->kategori->nama }}</div>
+            <div><span class="text-gray-500">Jenis Pelanggaran:</span> {{ $rekomendasi->pelanggaran->jenisPelanggaran->nama }}</div>
         </div>
     </div>
 

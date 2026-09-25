@@ -480,6 +480,7 @@
                                             'kelas' => $j->kelas,
                                             'mata_pelajaran_id' => $j->mata_pelajaran_id,
                                             'guru_user_id' => $j->guru_user_id,
+                                            'is_locked' => $j->is_locked,
                                             'ruang' => $j->ruang,
                                         ]) }})"
                                         class="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition cursor-pointer" 
@@ -876,7 +877,15 @@
                     </select>
                 </div>
 
-                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500">
+                                  <!-- is_locked Checkbox -->
+                  <div class="flex items-center gap-2 mt-4 bg-yellow-50 p-3 rounded-xl border border-yellow-200 mb-2">
+                      <input type="hidden" name="is_locked" value="0">
+                      <input type="checkbox" name="is_locked" id="is_locked_tambah" value="1" class="w-5 h-5 text-yellow-600 rounded border-yellow-300 focus:ring-yellow-500">
+                      <label for="is_locked_tambah" class="font-bold text-yellow-800 text-sm cursor-pointer">Kunci Jadwal Ini (Prioritas)</label>
+                      <p class="text-[10px] text-yellow-700 ml-auto max-w-[200px] text-right">Mencegah jadwal diubah oleh fitur Acak Otomatis.</p>
+                  </div>
+
+                  <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500">
                     <i class="bi-info-circle text-slate-400 mr-1"></i>
                     <span>Tahun ajaran & semester aktif otomatis disinkronkan dari pengaturan sekolah. Ruangan tidak diperlukan.</span>
                 </div>
@@ -1177,6 +1186,14 @@
                 </div>
 
                 <!-- Tombol Aksi Modal -->
+                                <!-- is_locked Checkbox -->
+                <div class="flex items-center gap-2 mt-4 bg-yellow-50 p-3 rounded-xl border border-yellow-200">
+                    <input type="hidden" name="is_locked" value="0">
+                    <input type="checkbox" name="is_locked" id="is_locked_edit" value="1" x-model="editData.is_locked" class="w-5 h-5 text-yellow-600 rounded border-yellow-300 focus:ring-yellow-500">
+                    <label for="is_locked_edit" class="font-bold text-yellow-800 text-sm cursor-pointer">Kunci Jadwal Ini (Prioritas)</label>
+                    <p class="text-[10px] text-yellow-700 ml-auto max-w-[200px] text-right">Mencegah jadwal diubah oleh fitur Acak Otomatis.</p>
+                </div>
+
                 <div class="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
                     <button type="button" @click="editModal = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 rounded-xl transition cursor-pointer">
                         Batal

@@ -21,6 +21,14 @@
         </div>
         <div class="flex items-center gap-2.5 flex-wrap">
             @if(auth()->user() && auth()->user()->canManageAcademic())
+            <form action="{{ route('admin.jadwal.autogenerate') }}" method="POST" class="inline-block" onsubmit="return confirm('Peringatan: Ini akan MERESET seluruh jadwal yang tidak dikunci dan mengacak ulang sisa alokasi. Lanjutkan?')">
+                @csrf
+                <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs transition inline-flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+                    <i class="bi-magic"></i>
+                    <span>Acak Jadwal Otomatis</span>
+                </button>
+            </form>
+
             <a href="{{ route('admin.jadwal.index') }}" 
                class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition inline-flex items-center gap-2 border border-slate-200">
                 <i class="bi-table"></i>

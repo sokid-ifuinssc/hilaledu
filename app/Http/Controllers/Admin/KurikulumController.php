@@ -20,10 +20,19 @@ class KurikulumController extends Controller
      */
     public function index(Request $request)
     {
-        $jurusan = $request->query('jurusan', 'all');
-        $jenjang = $request->query('jenjang', 'all');
         $kelas = $request->query('kelas', 'all');
         $search = $request->query('search', '');
+        
+        $jurusan = 'all';
+        $jenjang = 'all';
+
+        if ($kelas !== 'all') {
+            $kelasObj = \App\Models\Kelas::with('jurusan')->where('nama', $kelas)->first();
+            if ($kelasObj) {
+                $jenjang = $kelasObj->tingkat ?? 'all';
+                $jurusan = $kelasObj->jurusan ? $kelasObj->jurusan->kode : 'all';
+            }
+        }
 
         $tahunAjaran = PengaturanSekolah::get('tahun_pelajaran', '2025 - 2026');
         $semester = PengaturanSekolah::get('semester', 'Ganjil');
@@ -53,8 +62,8 @@ class KurikulumController extends Controller
         $kurikulums = $query->orderByRaw("CASE jenjang WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
             ->orderBy('kelas')
             ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
+            ->orderByRaw('ISNULL(urutan), urutan ASC')
             ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 ELSE 4 END")
-            ->orderBy('urutan')
             ->orderBy('id')
             ->paginate(50)
             ->withQueryString();
@@ -70,7 +79,20 @@ class KurikulumController extends Controller
         $kelasList = Kelas::where('is_aktif', true)->orderBy('nama')->get();
         $jurusans = Jurusan::orderBy('kode')->get();
         $jenjangList = ['X', 'XI', 'XII'];
-        $mapels = MataPelajaran::where('is_aktif', true)->orderBy('nama')->get();
+        $mapelsQuery = MataPelajaran::where('is_aktif', true);
+        
+        // Jika sedang memfilter jurusan tertentu, sembunyikan Mapel Kejuruan yang sudah terikat di jurusan lain.
+        if ($jurusan && $jurusan !== 'all') {
+            $mapelsQuery->whereNotIn('id', function($q) use ($jurusan) {
+                $q->select('mata_pelajaran_id')
+                  ->from('kurikulums')
+                  ->join('mata_pelajarans', 'mata_pelajarans.id', '=', 'kurikulums.mata_pelajaran_id')
+                  ->where('mata_pelajarans.kategori', 'B. KELOMPOK MATA PELAJARAN KEJURUAN')
+                  ->where('kurikulums.jurusan', '!=', $jurusan);
+            });
+        }
+        $mapels = $mapelsQuery->orderBy('nama')->get();
+        
         $guruList = User::where('role', 'guru')->where('is_active', true)->orderBy('name')->get();
 
         return view('admin.kurikulum.index', compact(
@@ -187,6 +209,7 @@ class KurikulumController extends Controller
             'keterangan'        => 'nullable|string|max:255',
             'kategori'          => 'nullable|string|max:100',
             'sub_kategori'      => 'nullable|string|max:100',
+            'urutan'            => 'nullable|integer',
         ]);
 
         $kelasNama = trim($request->input('kelas'));
@@ -244,6 +267,7 @@ class KurikulumController extends Controller
                 'guru_user_id' => $request->input('guru_user_id'),
                 'alokasi_jam'  => (int) $request->input('alokasi_jam'),
                 'keterangan'   => $request->input('keterangan'),
+                'urutan'       => $request->filled('urutan') ? $request->input('urutan') : 99,
                 'kategori'     => $kategori,
                 'sub_kategori' => $subKategori,
                 'urutan'       => $urutan,
@@ -266,6 +290,7 @@ class KurikulumController extends Controller
             'guru_user_id'      => $request->input('guru_user_id') ?: null,
             'alokasi_jam'       => (int) $request->input('alokasi_jam'),
             'keterangan'        => $request->input('keterangan'),
+            'urutan'            => $request->filled('urutan') ? $request->input('urutan') : 99,
             'is_aktif'          => true,
         ]);
 
@@ -299,6 +324,7 @@ class KurikulumController extends Controller
             'keterangan'        => 'nullable|string|max:255',
             'kategori'          => 'nullable|string|max:100',
             'sub_kategori'      => 'nullable|string|max:100',
+            'urutan'            => 'nullable|integer',
         ]);
 
         $kelasNama = trim($request->input('kelas'));
@@ -349,6 +375,7 @@ class KurikulumController extends Controller
             'guru_user_id'      => $request->input('guru_user_id') ?: null,
             'alokasi_jam'       => (int) $request->input('alokasi_jam'),
             'keterangan'        => $request->input('keterangan'),
+            'urutan'            => $request->filled('urutan') ? $request->input('urutan') : 99,
         ]);
 
         return redirect()->back()->with('success', "Data kurikulum mata pelajaran berhasil diperbarui!");
@@ -359,16 +386,12 @@ class KurikulumController extends Controller
      */
     public function destroy(Kurikulum $kurikulum)
     {
-        $mapelId = $kurikulum->mata_pelajaran_id;
         $info = "{$kurikulum->mataPelajaran->nama} di {$kurikulum->kelas}";
         
-        // Hapus SEMUA Kurikulum yang menggunakan mapel ini (mencegah data yatim piatu)
-        Kurikulum::where('mata_pelajaran_id', $mapelId)->delete();
+        // Hapus alokasi kurikulum ini saja
+        $kurikulum->delete();
         
-        // Hapus dari Master Mapel secara langsung (unconditional)
-        \App\Models\MataPelajaran::where('id', $mapelId)->delete();
-
-        return redirect()->back()->with('success', "Alokasi {$info} dan Master Mapel terkait berhasil dihapus sepenuhnya.");
+        return redirect()->back()->with('success', "Alokasi {$info} berhasil dihapus.");
     }
 
     /**
@@ -381,16 +404,10 @@ class KurikulumController extends Controller
             return redirect()->back()->with('error', 'Tidak ada data kurikulum yang dipilih untuk dihapus.');
         }
 
-        // Ambil ID mapel dari kurikulum yang akan dihapus
-        $mapelIds = Kurikulum::whereIn('id', $ids)->pluck('mata_pelajaran_id')->unique();
+        // Hapus hanya alokasi kurikulum yang dipilih
+        Kurikulum::whereIn('id', $ids)->delete();
 
-        // Hapus SEMUA Kurikulum yang menggunakan mapel-mapel ini
-        Kurikulum::whereIn('mata_pelajaran_id', $mapelIds)->delete();
-
-        // Hapus dari Master Mapel secara langsung (unconditional)
-        \App\Models\MataPelajaran::whereIn('id', $mapelIds)->delete();
-
-        return redirect()->back()->with('success', "Berhasil menghapus data alokasi kurikulum beserta Master Mapel-nya.");
+        return redirect()->back()->with('success', "Berhasil menghapus " . count($ids) . " data alokasi kurikulum.");
     }
 
     /**
@@ -495,8 +512,8 @@ class KurikulumController extends Controller
         $kurikulums = $query->orderByRaw("CASE jenjang WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
             ->orderBy('kelas')
             ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
+            ->orderByRaw('ISNULL(urutan), urutan ASC')
             ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 ELSE 4 END")
-            ->orderBy('urutan')
             ->orderBy('id')
             ->get();
 
@@ -539,8 +556,8 @@ class KurikulumController extends Controller
         $items = $query->orderByRaw("CASE jenjang WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
             ->orderBy('kelas')
             ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
+            ->orderByRaw('ISNULL(urutan), urutan ASC')
             ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 ELSE 4 END")
-            ->orderBy('urutan')
             ->orderBy('id')
             ->get();
 
@@ -872,6 +889,7 @@ class KurikulumController extends Controller
                     'guru_user_id' => $guru?->id,
                     'alokasi_jam'  => max(1, $alokasi),
                     'keterangan'   => $ket ?: null,
+                    'urutan'       => $request->filled('urutan') ? $request->input('urutan') : 99,
                     'is_aktif'     => true,
                 ]
             );

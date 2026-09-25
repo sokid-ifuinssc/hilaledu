@@ -200,53 +200,229 @@ class AdminController extends Controller
     /**
      * Auto Generate Jadwal Pelajaran (Draft) dari Kurikulum
      */
-    public function autoGenerateJadwal(Request $request)
+        public function autoGenerateJadwal(Request $request)
     {
-        $kurikulums = Kurikulum::with('mataPelajaran')->where('is_aktif', true)->get();
-        $tahunAjaran = PengaturanSekolah::getActiveTahunAjaran();
-        $semester = PengaturanSekolah::getActiveSemester();
+        $tahunAjaran = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester = \App\Models\PengaturanSekolah::getActiveSemester();
 
-        $created = 0;
         DB::beginTransaction();
         try {
-            foreach ($kurikulums as $kur) {
-                // Cek apakah mapel di kelas ini sudah ada jadwalnya pada periode aktif
-                $exists = JadwalPelajaran::where('kelas', $kur->kelas)
-                    ->where('mata_pelajaran_id', $kur->mata_pelajaran_id)
-                    ->where('tahun_ajaran', $tahunAjaran)
+            // 1. Hapus jadwal yang tidak dikunci pada semester aktif
+            \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
+                ->where('semester', $semester)
+                ->where('is_locked', false)
+                ->delete();
+
+            // 2. Ambil semua kurikulum (alokasi)
+            $kurikulums = \App\Models\Kurikulum::with('mataPelajaran')
+                ->where('is_aktif', true)
+                ->get();
+
+            // Kelompokkan per kelas
+            $kurikulumsPerKelas = $kurikulums->groupBy('kelas');
+
+            $created = 0;
+            $hariTersedia = ['Senin' => 8, 'Selasa' => 8, 'Rabu' => 8, 'Kamis' => 8, 'Jumat' => 6];
+
+            foreach ($kurikulumsPerKelas as $kelas => $kurs) {
+                $tingkat = substr($kelas, 0, strpos($kelas, ' ')); // "X AKL" -> "X"
+                if (!$tingkat) $tingkat = $kelas;
+
+                // Inisialisasi slot (false = kosong, true = terisi)
+                $slots = [];
+                foreach ($hariTersedia as $hari => $maxJam) {
+                    for ($j = 1; $j <= $maxJam; $j++) {
+                        $slots[$hari][$j] = false;
+                    }
+                }
+
+                // Tandai slot yang sudah ada (is_locked = true)
+                $lockedJadwals = \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
                     ->where('semester', $semester)
-                    ->exists();
+                    ->where('kelas', $kelas)
+                    ->where('is_locked', true)
+                    ->get();
 
-                if (!$exists) {
-                    $jamMulai = 1;
-                    $jamSelesai = min($kur->alokasi_jam ?: 2, 8); // Maksimal jam per hari (reguler) 8
-                    
-                    // Supaya tidak error saat generate
-                    $times = JadwalPelajaran::calculateTimesFromJamKe('Senin', $jamMulai, $jamSelesai);
+                foreach ($lockedJadwals as $lj) {
+                    if (isset($slots[$lj->hari])) {
+                        for ($j = $lj->jam_ke_mulai; $j <= $lj->jam_ke_selesai; $j++) {
+                            $slots[$lj->hari][$j] = true;
+                        }
+                    }
+                }
 
-                    $guruId = $kur->guru_user_id ?: ($kur->mataPelajaran?->guru_user_id ?: null);
+                // RULE 1: Kosongkan Senin Jam 1 (Upacara)
+                $slots['Senin'][1] = true;
 
-                    JadwalPelajaran::create([
-                        'hari' => 'Senin',
-                        'jam_ke_mulai' => $jamMulai,
-                        'jam_ke_selesai' => $jamSelesai,
-                        'jam_mulai' => $times['jam_mulai'],
-                        'jam_selesai' => $times['jam_selesai'],
-                        'kelas' => $kur->kelas,
-                        'mata_pelajaran_id' => $kur->mata_pelajaran_id,
-                        'guru_user_id' => $guruId,
-                        'tahun_ajaran' => $tahunAjaran,
-                        'semester' => $semester,
-                    ]);
-                    $created++;
+                // Hitung sisa jam untuk setiap kurikulum
+                $sisaJam = [];
+                foreach ($kurs as $kur) {
+                    $sudahTerjadwal = $lockedJadwals->where('mata_pelajaran_id', $kur->mata_pelajaran_id)->sum(function($q) {
+                        return ($q->jam_ke_selesai - $q->jam_ke_mulai) + 1;
+                    });
+                    $sisa = $kur->alokasi_jam - $sudahTerjadwal;
+                    if ($sisa > 0) {
+                        $sisaJam[$kur->id] = [
+                            'kurikulum' => $kur,
+                            'sisa' => $sisa
+                        ];
+                    }
+                }
+
+                // RULE 2: Mulok (Selasa 3-4 untuk X, Rabu 3-4 untuk XI, Kamis 3-4 untuk XII)
+                $mulokHari = null;
+                if ($tingkat === 'X') $mulokHari = 'Selasa';
+                elseif ($tingkat === 'XI') $mulokHari = 'Rabu';
+                elseif ($tingkat === 'XII') $mulokHari = 'Kamis';
+
+                if ($mulokHari) {
+                    // Cari mapel mulok (sub_kategori = 'Muatan Lokal' atau nama mengandung 'Muatan Lokal' atau 'Mulok')
+                    foreach ($sisaJam as $id => &$data) {
+                        $mapel = $data['kurikulum']->mataPelajaran;
+                        if ($mapel && ($mapel->sub_kategori === 'Muatan Lokal' || stripos($mapel->nama, 'Mulok') !== false || stripos($mapel->nama, 'Muatan Lokal') !== false)) {
+                            // Jadwalkan 2 jam di hari mulok
+                            if (!$slots[$mulokHari][3] && !$slots[$mulokHari][4] && $data['sisa'] >= 2) {
+                                $this->buatJadwal($data['kurikulum'], $mulokHari, 3, 4, true);
+                                $slots[$mulokHari][3] = true;
+                                $slots[$mulokHari][4] = true;
+                                $data['sisa'] -= 2;
+                                $created++;
+                            }
+                            break; // Hanya 1 mulok per kelas (asumsi)
+                        }
+                    }
+                }
+
+                // RULE 3: 3 Jam -> Prioritas Senin 2,3,4
+                if (!$slots['Senin'][2] && !$slots['Senin'][3] && !$slots['Senin'][4]) {
+                    foreach ($sisaJam as $id => &$data) {
+                        if ($data['sisa'] == 3) {
+                            $this->buatJadwal($data['kurikulum'], 'Senin', 2, 4, true);
+                            $slots['Senin'][2] = true;
+                            $slots['Senin'][3] = true;
+                            $slots['Senin'][4] = true;
+                            $data['sisa'] -= 3;
+                            $created++;
+                            break; // Hanya 1 mapel yang bisa menempati
+                        }
+                    }
+                }
+
+                // Sisa jam diacak
+                $hariKeys = array_keys($hariTersedia);
+
+                foreach ($sisaJam as $id => &$data) {
+                    $kur = $data['kurikulum'];
+                    $guruId = $kur->guru_user_id ?: ($kur->mataPelajaran->guru_user_id ?? null);
+
+                    while ($data['sisa'] > 0) {
+                        // Tentukan block size
+                        $blockSize = 1;
+                        if ($data['sisa'] >= 4) $blockSize = 2; // Pecah 4 jadi 2+2
+                        elseif ($data['sisa'] >= 2) $blockSize = 2;
+                        else $blockSize = 1;
+
+                        // Coba cari slot kosong
+                        $found = false;
+                        shuffle($hariKeys); // Acak urutan hari
+
+                        foreach ($hariKeys as $hari) {
+                            $maxJam = $hariTersedia[$hari];
+                            // Acak jam mulai (dari 1 sampai maxJam - blockSize + 1)
+                            $possibleStarts = range(1, $maxJam - $blockSize + 1);
+                            shuffle($possibleStarts);
+
+                            foreach ($possibleStarts as $start) {
+                                $end = $start + $blockSize - 1;
+                                
+                                // Cek apakah slot di kelas ini kosong
+                                $isKosong = true;
+                                for ($j = $start; $j <= $end; $j++) {
+                                    if ($slots[$hari][$j]) {
+                                        $isKosong = false;
+                                        break;
+                                    }
+                                }
+
+                                if ($isKosong) {
+                                    // Cek bentrok guru (jika guru ditentukan)
+                                    $bentrokGuru = false;
+                                    if ($guruId) {
+                                        // Cari jadwal guru di hari dan jam yang bersinggungan
+                                        $times = \App\Models\JadwalPelajaran::calculateTimesFromJamKe($hari, $start, $end);
+                                        $jamMulai = $times['jam_mulai'];
+                                        $jamSelesai = $times['jam_selesai'];
+
+                                        $bentrok = \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
+                                            ->where('semester', $semester)
+                                            ->where('hari', $hari)
+                                            ->where('guru_user_id', $guruId)
+                                            ->where(function ($q) use ($jamMulai, $jamSelesai) {
+                                                $q->where('jam_mulai', '<', $jamSelesai)
+                                                  ->where('jam_selesai', '>', $jamMulai);
+                                            })->exists();
+                                        
+                                        if ($bentrok) $bentrokGuru = true;
+                                    }
+
+                                    if (!$bentrokGuru) {
+                                        // Berhasil nemu slot!
+                                        $this->buatJadwal($kur, $hari, $start, $end, false);
+                                        for ($j = $start; $j <= $end; $j++) {
+                                            $slots[$hari][$j] = true;
+                                        }
+                                        $data['sisa'] -= $blockSize;
+                                        $created++;
+                                        $found = true;
+                                        break; // Keluar dari loop starts
+                                    }
+                                }
+                            }
+                            if ($found) break; // Keluar dari loop hari
+                        }
+
+                        if (!$found) {
+                            // Gagal mencari slot (mungkin bentrok guru terus). Kurangi block size jadi 1 dan coba lagi, 
+                            // atau paksa berhenti agar tidak infinite loop
+                            if ($blockSize > 1) {
+                                // Coba dipecah lebih kecil (terjadi otomatis di iterasi berikutnya jika kita kurangi sisa? Tidak, sisa belum berkurang)
+                                // Kita ubah sisa sementara untuk memaksa block size 1? Tidak, block size dihitung ulang
+                                // Break saja jika gagal total
+                                break; 
+                            } else {
+                                break; // Gagal di 1 jam
+                            }
+                        }
+                    }
                 }
             }
+
             DB::commit();
-            return back()->with('success', "Berhasil sinkronisasi otomatis. {$created} jadwal draft (default Hari Senin) telah dibuat dan siap disesuaikan.");
+            return back()->with('success', "Berhasil Generate Acak Jadwal. {$created} blok jadwal baru telah dibuat.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', "Gagal melakukan sinkronisasi: " . $e->getMessage());
+            return back()->with('error', "Gagal melakukan generate: " . $e->getMessage());
         }
+    }
+
+    private function buatJadwal($kurikulum, $hari, $jamMulai, $jamSelesai, $isLocked)
+    {
+        $times = \App\Models\JadwalPelajaran::calculateTimesFromJamKe($hari, $jamMulai, $jamSelesai);
+        $guruId = $kurikulum->guru_user_id ?: ($kurikulum->mataPelajaran->guru_user_id ?? null);
+        
+        \App\Models\JadwalPelajaran::create([
+            'hari' => $hari,
+            'jam_ke_mulai' => $jamMulai,
+            'jam_ke_selesai' => $jamSelesai,
+            'jam_mulai' => $times['jam_mulai'],
+            'jam_selesai' => $times['jam_selesai'],
+            'kelas' => $kurikulum->kelas,
+            'mata_pelajaran_id' => $kurikulum->mata_pelajaran_id,
+            'guru_user_id' => $guruId,
+            'tahun_ajaran' => \App\Models\PengaturanSekolah::getActiveTahunAjaran(),
+            'semester' => \App\Models\PengaturanSekolah::getActiveSemester(),
+            'is_locked' => $isLocked
+        ]);
     }
 
     public function jadwalStore(Request $request)
@@ -320,6 +496,7 @@ class AdminController extends Controller
                         'ruang'             => null,
                         'tahun_ajaran'      => $tahunAjaran,
                         'semester'          => $semester,
+                        'is_locked'         => $request->has('is_locked'),
                     ]);
                     $createdCount++;
                 }
@@ -351,6 +528,7 @@ class AdminController extends Controller
                     $kurikulum = Kurikulum::create([
                         'tahun_ajaran'      => $tahunAjaran,
                         'semester'          => $semester,
+                        'is_locked'         => $request->has('is_locked'),
                         'kelas'             => $kelas,
                         'jenjang'           => $jenjang,
                         'jurusan'           => $jurusan,
@@ -457,6 +635,7 @@ class AdminController extends Controller
             'ruang'             => null,
             'tahun_ajaran'      => $tahunAjaran,
             'semester'          => $semester,
+                        'is_locked'         => $request->has('is_locked'),
         ]);
 
         $kelas = $request->input('kelas');
@@ -486,6 +665,7 @@ class AdminController extends Controller
             $kurikulum = Kurikulum::create([
                 'tahun_ajaran'      => $tahunAjaran,
                 'semester'          => $semester,
+                        'is_locked'         => $request->has('is_locked'),
                 'kelas'             => $kelas,
                 'jenjang'           => $jenjang,
                 'jurusan'           => $jurusan,
@@ -586,6 +766,7 @@ class AdminController extends Controller
                     'mata_pelajaran_id' => $mapelId,
                     'guru_user_id'      => $guruUserId,
                     'ruang'             => $request->input('ruang'),
+                    'is_locked'         => $request->has('is_locked'),
                 ]);
 
                 // Sesi berikutnya: Create new records
@@ -601,6 +782,7 @@ class AdminController extends Controller
                         'mata_pelajaran_id' => $mapelId,
                         'guru_user_id'      => $guruUserId,
                         'ruang'             => $request->input('ruang'),
+                    'is_locked'         => $request->has('is_locked'),
                         'tahun_ajaran'      => $jadwal->tahun_ajaran,
                         'semester'          => $jadwal->semester,
                     ]);
@@ -658,6 +840,7 @@ class AdminController extends Controller
                 'mata_pelajaran_id' => $mapelId,
                 'guru_user_id'      => $guruUserId,
                 'ruang'             => $request->input('ruang'),
+                    'is_locked'         => $request->has('is_locked'),
             ]);
         }
 

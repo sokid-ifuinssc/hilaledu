@@ -21,7 +21,7 @@
                     <select name="siswa_id" x-model="siswaId" @change="loadHistori()" class="form-select" required id="siswaSelect">
                         <option value="">Pilih Siswa</option>
                         @foreach($siswas as $s)
-                        <option value="{{ $s->id }}" data-kelas="{{ $s->kelas_id }}" {{ old('siswa_id') == $s->id ? 'selected' : '' }}>
+                        <option value="{{ $s->id }}" data-kelas="{{ $s->kelas_id }}" {{ old('siswa_id', request('siswa_id')) == $s->id ? 'selected' : '' }}>
                             {{ $s->nis }} - {{ $s->nama_lengkap }} ({{ $s->kelas?->nama ?? '-' }})
                         </option>
                         @endforeach
@@ -66,9 +66,9 @@
                     <select name="jenis_pelanggaran_id" class="form-select" required>
                         <option value="">Pilih Jenis Pelanggaran</option>
                         @foreach($jenisPelanggarans as $jp)
-                        <option value="{{ $jp->id }}" {{ old('jenis_pelanggaran_id') == $jp->id ? 'selected' : '' }}>
-                            [{{ $jp->kode }}] {{ $jp->nama }} ({{ $jp->kategori->nama }} - {{ $jp->poin }} poin)
-                        </option>
+                            <option value="{{ $jp->id }}" {{ old('jenis_pelanggaran_id') == $jp->id ? 'selected' : '' }}>
+                                {{ $jp->nama }} ({{ $jp->poin }} poin)
+                            </option>
                         @endforeach
                     </select>
                     @error('jenis_pelanggaran_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
@@ -126,11 +126,21 @@
 </div>
 
 @push('scripts')
+@php
+    $requestedSiswaId = old('siswa_id', request('siswa_id'));
+    $selectedKelasId = old('kelas_filter', request('kelas_id'));
+    if (!$selectedKelasId && $requestedSiswaId) {
+        $siswaSelected = $siswas->firstWhere('id', $requestedSiswaId);
+        if ($siswaSelected) {
+            $selectedKelasId = $siswaSelected->kelas_id;
+        }
+    }
+@endphp
 <script>
 function siswaHistori() {
     return {
-        kelasId: '{{ old('kelas_filter', '') }}',
-        siswaId: '{{ old('siswa_id', '') }}',
+        kelasId: '{{ $selectedKelasId }}',
+        siswaId: '{{ $requestedSiswaId }}',
         histori: @json($historiSiswa ?? []),
         suggestedTindakan: '{{ $suggestedTindakan ?? '' }}',
         tindakanLabels: @json(\App\Models\ProgresPelanggaran::jenisTindakanOptions()),
@@ -140,12 +150,32 @@ function siswaHistori() {
         },
 
         init() {
-            this.$watch('kelasId', (val) => {
+            const filterSiswa = (val) => {
                 const options = document.querySelectorAll('#siswaSelect option[data-kelas]');
                 options.forEach(opt => {
-                    opt.style.display = (!val || opt.dataset.kelas === val) ? '' : 'none';
+                    opt.style.display = (!val || opt.dataset.kelas == val) ? '' : 'none';
                 });
+            };
+
+            this.$watch('kelasId', (val) => {
+                filterSiswa(val);
+                if (val && this.siswaId) {
+                    const selectedOpt = document.querySelector(`#siswaSelect option[value="${this.siswaId}"]`);
+                    if (selectedOpt && selectedOpt.dataset.kelas != val) {
+                        this.siswaId = '';
+                    }
+                }
             });
+
+            // Run initial filter
+            if (this.kelasId) {
+                filterSiswa(this.kelasId);
+            }
+            
+            // Load history if siswa is selected initially
+            if (this.siswaId) {
+                this.loadHistori();
+            }
         },
 
         async loadHistori() {

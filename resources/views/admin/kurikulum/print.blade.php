@@ -158,10 +158,9 @@
             <thead class="bg-slate-100 font-black text-center text-black">
                 <tr>
                     <th class="border border-black px-2 py-1.5 w-[6%]">NO</th>
-                    <th class="border border-black px-2 py-1.5 w-[10%]">KODE</th>
-                    <th class="border border-black px-2 py-1.5 text-left w-[44%]">MATA PELAJARAN</th>
-                    <th class="border border-black px-2 py-1.5 text-left w-[28%]">GURU PENGAMPU</th>
+                    <th class="border border-black px-2 py-1.5 text-left w-[54%]">MATA PELAJARAN</th>
                     <th class="border border-black px-2 py-1.5 text-center w-[12%]">BEBAN (JP)</th>
+                    <th class="border border-black px-2 py-1.5 text-left w-[28%]">GURU PENGAMPU</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-black font-medium">
@@ -170,376 +169,154 @@
                 <!-- A. KELOMPOK MATA PELAJARAN UMUM                           -->
                 <!-- ========================================================= -->
                 <tr class="bg-slate-200 font-black text-black">
-                    <td colspan="5" class="border border-black px-3 py-1.5 text-left uppercase tracking-wide text-[11px]">
-                        A. KELOMPOK MATA PELAJARAN UMUM:
+                    <td colspan="2" class="border border-black px-3 py-1.5 text-left uppercase tracking-wide text-[11px]">A. KELOMPOK MATA PELAJARAN UMUM:
                     </td>
+                    <td class="border border-black px-2 py-1"></td>
+                    <td class="border border-black px-2 py-1"></td>
                 </tr>
 
-                @php $noA = 1; @endphp
+
+                @php 
+                    $noA = 1; 
+                    $currentSubA = null;
+                @endphp
+
                 @forelse($itemsUmum as $it)
-                <tr>
-                    <td class="border border-black px-2 py-1 text-center font-bold">{{ $noA++ }}</td>
-                    <td class="border border-black px-2 py-1 text-center font-mono font-bold">
-                        {{ $it->mataPelajaran->kode ?? '-' }}
-                    </td>
-                    <td class="border border-black px-2 py-1">
-                        <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
-                        @if($it->keterangan)
-                        <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
-                        @endif
-                    </td>
-                    <td class="border border-black px-2 py-1">
-                        @if($it->guru)
-                        <span class="font-bold text-black">{{ $it->guru?->name }}</span>
-                        @if($it->guru->nip)
-                        <span class="text-[9px] block font-mono text-slate-600">NIP: {{ $it->guru->nip }}</span>
-                        @endif
+                    @php
+                        $thisSub = trim($it->sub_kategori ?? '');
+                    @endphp
+
+                    @if($thisSub !== '' && $thisSub !== $currentSubA)
+                        <tr class="bg-slate-100 font-bold text-slate-900">
+                            <td class="border border-black px-2 py-1 text-center font-bold">{{ $noA++ }}.</td>
+                            <td class="border border-black px-2 py-1 text-left italic font-bold">{{ $thisSub }}</td>
+                            <td class="border border-black px-2 py-1"></td>
+                            <td class="border border-black px-2 py-1"></td>
+                        </tr>
+                        @php $currentSubA = $thisSub; @endphp
+                    @endif
+
+                    <tr>
+                        @if($thisSub === '')
+                            <td class="border border-black px-2 py-1 text-center font-bold">{{ $noA++ }}.</td>
+                            <td class="border border-black px-2 py-1">
                         @else
-                        <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
+                            <td class="border border-black px-2 py-1 text-center font-mono text-slate-400"></td>
+                            <td class="border border-black px-2 py-1 pl-6">
                         @endif
-                    </td>
-                    <td class="border border-black px-2 py-1 text-center font-bold">
-                        {{ $it->alokasi_jam }} JP
-                    </td>
-                </tr>
+                            <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
+                            @if($it->keterangan)
+                            <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
+                            @endif
+                        </td>
+                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }}</td>
+                        <td class="border border-black px-2 py-1">
+                            @if($it->guru)
+                            <span class="font-bold text-black">{{ $it->guru?->name }}</span>
+                            @if($it->guru->nip)
+                            <span class="text-[9px] block font-mono text-slate-600">NIP: {{ $it->guru->nip }}</span>
+                            @endif
+                            @else
+                            <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
+                            @endif
+                        </td>
+                    </tr>
                 @empty
-                <tr>
-                    <td colspan="5" class="border border-black px-4 py-2 text-center italic text-slate-500">
-                        Belum ada data mata pelajaran umum teralokasi.
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="4" class="border border-black px-4 py-2 text-center italic text-slate-500"> Belum ada data mata pelajaran umum teralokasi.
+                        </td>
+                    </tr>
                 @endforelse
+
                 <tr class="bg-slate-50 font-bold text-black">
-                    <td colspan="4" class="border border-black px-3 py-1 text-right italic">
-                        Jumlah Kelompok Mata Pelajaran Umum (A) :
-                    </td>
-                    <td class="border border-black px-2 py-1 text-center font-black">
-                        {{ $totalJpUmum }} JP
-                    </td>
+                    <td colspan="2" class="border border-black px-3 py-1 text-right italic">Jumlah Kelompok Mata Pelajaran Umum (A) :</td>
+                    <td class="border border-black px-2 py-1 text-center font-black bg-yellow-300">{{ $totalJpUmum }}</td>
+                    <td class="border border-black px-2 py-1"></td>
                 </tr>
 
                 <!-- ========================================================= -->
                 <!-- B. KELOMPOK MATA PELAJARAN KEJURUAN                       -->
                 <!-- ========================================================= -->
                 <tr class="bg-slate-200 font-black text-black">
-                    <td colspan="5" class="border border-black px-3 py-1.5 text-left uppercase tracking-wide text-[11px]">
-                        B. KELOMPOK MATA PELAJARAN KEJURUAN:
+                    <td colspan="2" class="border border-black px-3 py-1.5 text-left uppercase tracking-wide text-[11px]">B. KELOMPOK MATA PELAJARAN KEJURUAN:
                     </td>
+                    <td class="border border-black px-2 py-1"></td>
+                    <td class="border border-black px-2 py-1"></td>
                 </tr>
 
-                @if($isKelasX)
-                    {{-- STRUKTUR RESMI KELAS X (Fase E: Dasar-dasar Program Keahlian) --}}
+                @php 
+                    $noB = $noA; 
+                    $currentSubB = null;
+                @endphp
+
+                @forelse($itemsKejuruan as $it)
                     @php
-                        $subGroupedX = $itemsKejuruan->groupBy(function($item) {
-                            $sub = $item->sub_kategori ?? '';
-                            if (str_contains($sub, 'Konsentrasi')) return 'konsentrasi';
-                            if (str_contains($sub, 'Pilihan')) return 'pilihan';
-                            if (str_contains($sub, 'Dasar-dasar')) return 'dasar';
-                            return 'top_level';
-                        });
-                        $noB = 1;
+                        $thisSub = trim($it->sub_kategori ?? '');
                     @endphp
 
-                    {{-- Top Level Kejuruan (Matematika, Bahasa Inggris, Informatika, IPAS dll) --}}
-                    @forelse($subGroupedX['top_level'] ?? [] as $it)
-                    <tr>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $noB++ }}.</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono font-bold">{{ $it->mataPelajaran->kode ?? '-' }}</td>
-                        <td class="border border-black px-2 py-1">
-                            <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
-                            @if($it->keterangan)
-                            <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1">
-                            @if($it->guru)
-                            <span class="font-bold text-black">{{ $it->guru?->name }}</span>
-                            @else
-                            <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }} JP</td>
-                    </tr>
-                    @empty
-                    @endforelse
-
-                    {{-- Dasar-dasar Program Keahlian --}}
-                    @if(isset($subGroupedX['dasar']) && count($subGroupedX['dasar']) > 0)
-                    <tr class="bg-slate-100 font-bold text-slate-900">
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $noB++ }}.</td>
-                        <td colspan="4" class="border border-black px-2 py-1 text-left font-bold">
-                            Dasar-dasar Program Keahlian
-                        </td>
-                    </tr>
-                    @foreach($subGroupedX['dasar'] as $it)
-                    <tr>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400"></td>
-                        <td class="border border-black px-2 py-1 text-center font-mono font-bold">{{ $it->mataPelajaran->kode ?? '-' }}</td>
-                        <td class="border border-black px-2 py-1 pl-6">
-                            <span class="text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
-                            @if($it->keterangan)
-                            <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1">
-                            @if($it->guru)
-                            <span class="font-bold text-black">{{ $it->guru?->name }}</span>
-                            @else
-                            <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }} JP</td>
-                    </tr>
-                    @endforeach
+                    @if($thisSub !== '' && $thisSub !== $currentSubB)
+                        <tr class="bg-slate-100 font-bold text-slate-900">
+                            <td class="border border-black px-2 py-1 text-center font-bold">{{ $noB++ }}.</td>
+                            <td class="border border-black px-2 py-1 text-left italic font-bold">{{ $thisSub }}</td>
+                            <td class="border border-black px-2 py-1"></td>
+                            <td class="border border-black px-2 py-1"></td>
+                        </tr>
+                        @php $currentSubB = $thisSub; @endphp
                     @endif
 
-
-                    <tr class="bg-slate-100 font-bold text-slate-900">
-                        <td colspan="5" class="border border-black px-4 py-1 text-left italic">
-                            2. Mata Pelajaran [Konsentrasi Keahlian]***
-                        </td>
-                    </tr>
-                    @forelse($subGroupedX['konsentrasi'] ?? [] as $it)
                     <tr>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">&bull;</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono font-bold">{{ $it->mataPelajaran->kode ?? '-' }}</td>
-                        <td class="border border-black px-2 py-1 pl-6">
+                        @if($thisSub === '')
+                            <td class="border border-black px-2 py-1 text-center font-bold">{{ $noB++ }}.</td>
+                            <td class="border border-black px-2 py-1">
+                        @else
+                            <td class="border border-black px-2 py-1 text-center font-mono text-slate-400"></td>
+                            <td class="border border-black px-2 py-1 pl-6">
+                        @endif
                             <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
                             @if($it->keterangan)
                             <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
                             @endif
                         </td>
+                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }}</td>
                         <td class="border border-black px-2 py-1">
                             @if($it->guru)
                             <span class="font-bold text-black">{{ $it->guru?->name }}</span>
+                            @if($it->guru->nip)
+                            <span class="text-[9px] block font-mono text-slate-600">NIP: {{ $it->guru->nip }}</span>
+                            @endif
                             @else
                             <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
                             @endif
                         </td>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }} JP</td>
                     </tr>
-                    @empty
+                @empty
                     <tr>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">-</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">-</td>
-                        <td class="border border-black px-2 py-1 italic text-slate-500">
-                            *) Dilaksanakan pada Fase F (Kelas XI & XII) sesuai konsentrasi keahlian
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center italic text-slate-400">-</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">-</td>
-                    </tr>
-                    @endforelse
-
-                    <tr class="bg-slate-100 font-bold text-slate-900">
-                        <td colspan="5" class="border border-black px-4 py-1 text-left italic">
-                            3. Mata Pelajaran Pilihan****
+                        <td colspan="4" class="border border-black px-4 py-2 text-center italic text-slate-500"> Belum ada data mata pelajaran kejuruan teralokasi.
                         </td>
                     </tr>
-                    @forelse($subGroupedX['pilihan'] ?? [] as $it)
-                    <tr>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">&bull;</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono font-bold">{{ $it->mataPelajaran->kode ?? '-' }}</td>
-                        <td class="border border-black px-2 py-1 pl-6">
-                            <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
-                            @if($it->keterangan)
-                            <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1">
-                            @if($it->guru)
-                            <span class="font-bold text-black">{{ $it->guru?->name }}</span>
-                            @else
-                            <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }} JP</td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">-</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">-</td>
-                        <td class="border border-black px-2 py-1 italic text-slate-500">
-                            **) Dilaksanakan pada Fase F (Kelas XI & XII) sesuai minat & bakat murid
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center italic text-slate-400">-</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">-</td>
-                    </tr>
-                    @endforelse
-
-                @else
-                    {{-- STRUKTUR RESMI KELAS XI & XII (Fase F: Konsentrasi, PKK, PKL, Pilihan) --}}
-                    @php
-                        // Kelompokkan Sub-Kategori Sesuai Dokumen Resmi Sekolah
-                        $subGrouped = $itemsKejuruan->groupBy(function($item) {
-                            $sub = $item->sub_kategori ?? '';
-                            if (str_contains($sub, 'Konsentrasi')) return 'konsentrasi';
-                            if (str_contains($sub, 'Kewirausahaan') || str_contains($sub, 'PKK')) return 'pkk';
-                            if (str_contains($sub, 'Lapangan') || str_contains($sub, 'PKL')) return 'pkl';
-                            if (str_contains($sub, 'Pilihan')) return 'pilihan';
-                            return 'dasar_umum';
-                        });
-
-                        $noB = $isKelasXII ? 6 : 1;
-                    @endphp
-
-                    {{-- 1. Umum Kejuruan (Matematika, Bahasa Inggris, Techno Preneur) --}}
-                    @foreach($subGrouped['dasar_umum'] ?? [] as $it)
-                    <tr>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $noB++ }}</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono font-bold">{{ $it->mataPelajaran->kode ?? '-' }}</td>
-                        <td class="border border-black px-2 py-1">
-                            <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
-                            @if($it->keterangan)
-                            <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1">
-                            @if($it->guru)
-                            <span class="font-bold text-black">{{ $it->guru?->name }}</span>
-                            @else
-                            <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }} JP</td>
-                    </tr>
-                    @endforeach
-
-                    {{-- 2. Mata Pelajaran [Konsentrasi Keahlian]*** --}}
-                    @if(isset($subGrouped['konsentrasi']) && $subGrouped['konsentrasi']->isNotEmpty())
-                    <tr class="bg-slate-100 font-bold text-slate-900">
-                        <td colspan="5" class="border border-black px-4 py-1 text-left italic">
-                            {{ $noB++ }}. Mata Pelajaran [Konsentrasi Keahlian]***
-                        </td>
-                    </tr>
-                    @foreach($subGrouped['konsentrasi'] as $it)
-                    <tr>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">&bull;</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono font-bold">{{ $it->mataPelajaran->kode ?? '-' }}</td>
-                        <td class="border border-black px-2 py-1 pl-6">
-                            <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
-                            @if($it->keterangan)
-                            <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1">
-                            @if($it->guru)
-                            <span class="font-bold text-black">{{ $it->guru?->name }}</span>
-                            @else
-                            <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }} JP</td>
-                    </tr>
-                    @endforeach
-                    @endif
-
-                    {{-- 3. Projek Kreatif dan Kewirausahaan --}}
-                    @if(isset($subGrouped['pkk']) && $subGrouped['pkk']->isNotEmpty())
-                    <tr class="bg-slate-100 font-bold text-slate-900">
-                        <td colspan="5" class="border border-black px-4 py-1 text-left italic">
-                            {{ $noB++ }}. Projek Kreatif dan Kewirausahaan
-                        </td>
-                    </tr>
-                    @foreach($subGrouped['pkk'] as $it)
-                    <tr>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">&bull;</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono font-bold">{{ $it->mataPelajaran->kode ?? '-' }}</td>
-                        <td class="border border-black px-2 py-1 pl-6">
-                            <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
-                            @if($it->keterangan)
-                            <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1">
-                            @if($it->guru)
-                            <span class="font-bold text-black">{{ $it->guru?->name }}</span>
-                            @else
-                            <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }} JP</td>
-                    </tr>
-                    @endforeach
-                    @endif
-
-                    {{-- 4. Praktik Kerja Lapangan (Khusus Kelas XII) --}}
-                    @if(isset($subGrouped['pkl']) && $subGrouped['pkl']->isNotEmpty())
-                    <tr class="bg-slate-100 font-bold text-slate-900">
-                        <td colspan="5" class="border border-black px-4 py-1 text-left italic">
-                            {{ $noB++ }}. Praktik Kerja Lapangan****
-                        </td>
-                    </tr>
-                    @foreach($subGrouped['pkl'] as $it)
-                    <tr class="bg-emerald-50/40">
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">&bull;</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono font-bold">{{ $it->mataPelajaran->kode ?? '-' }}</td>
-                        <td class="border border-black px-2 py-1 pl-6">
-                            <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
-                            @if($it->keterangan)
-                            <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1">
-                            @if($it->guru)
-                            <span class="font-bold text-black">{{ $it->guru?->name }}</span>
-                            @else
-                            <span class="italic text-slate-500 font-normal">Belum Ditetapkan</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }} JP</td>
-                    </tr>
-                    @endforeach
-                    @endif
-
-                    {{-- 5. Mata Pelajaran Pilihan**** --}}
-                    @if(isset($subGrouped['pilihan']) && $subGrouped['pilihan']->isNotEmpty())
-                    <tr class="bg-slate-100 font-bold text-slate-900">
-                        <td colspan="5" class="border border-black px-4 py-1 text-left italic">
-                            {{ $noB++ }}. Mata Pelajaran Pilihan{{ $isKelasXII ? '*****' : '****' }}
-                        </td>
-                    </tr>
-                    @foreach($subGrouped['pilihan'] as $it)
-                    <tr>
-                        <td class="border border-black px-2 py-1 text-center font-mono text-slate-400">&bull;</td>
-                        <td class="border border-black px-2 py-1 text-center font-mono font-bold">{{ $it->mataPelajaran->kode ?? '-' }}</td>
-                        <td class="border border-black px-2 py-1 pl-6">
-                            <span class="font-bold text-black">{{ $it->mataPelajaran->nama ?? '-' }}</span>
-                            @if($it->keterangan)
-                            <span class="text-[9.5px] block italic text-slate-600">Ket: {{ $it->keterangan }}</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1">
-                            @if($it->guru)
-                            <span class="font-bold text-black">{{ $it->guru?->name }}</span>
-                            @else
-                            <span class="italic text-slate-500 font-normal">Belum Ditetapkan / Team</span>
-                            @endif
-                        </td>
-                        <td class="border border-black px-2 py-1 text-center font-bold">{{ $it->alokasi_jam }} JP</td>
-                    </tr>
-                    @endforeach
-                    @endif
-
-                @endif
+                @endforelse
 
                 <tr class="bg-slate-50 font-bold text-black">
-                    <td colspan="4" class="border border-black px-3 py-1 text-right italic">
-                        Jumlah Kelompok Mata Pelajaran Kejuruan (B) :
-                    </td>
-                    <td class="border border-black px-2 py-1 text-center font-black">
-                        {{ $totalJpKejuruan }} JP
-                    </td>
+                    <td colspan="2" class="border border-black px-3 py-1 text-right italic">Jumlah Kelompok Mata Pelajaran Kejuruan (B) :</td>
+                    <td class="border border-black px-2 py-1 text-center font-black bg-yellow-300">{{ $totalJpKejuruan }}</td>
+                    <td class="border border-black px-2 py-1"></td>
                 </tr>
 
+                <tr class="bg-emerald-300 font-black text-black uppercase tracking-wide">
+                    <td colspan="2" class="border border-black px-3 py-1.5 text-center">JUMLAH TOTAL ALOKASI JAM PELAJARAN (A + B) / MINGGU :</td>
+                    <td class="border border-black px-2 py-1.5 text-center text-sm">{{ $totalJpKelas }}</td>
+                    <td class="border border-black px-2 py-1.5"></td>
+                </tr>
             </tbody>
             <tfoot class="bg-slate-200 font-black text-black">
                 <tr>
-                    <td colspan="4" class="border border-black px-3 py-1.5 text-right uppercase tracking-wider text-xs">
+                    <td colspan="2" class="border border-black px-3 py-1.5 text-right uppercase tracking-wider text-xs">
                         JUMLAH TOTAL ALOKASI JAM PELAJARAN (A + B) / MINGGU :
                     </td>
                     <td class="border border-black px-2 py-1.5 text-center text-sm font-black bg-emerald-300 text-slate-950">
-                        {{ $totalJpKelas }} JP
+                        {{ $totalJpKelas }}
                     </td>
+                    <td class="border border-black px-2 py-1.5 bg-slate-300"></td>
                 </tr>
             </tfoot>
         </table>

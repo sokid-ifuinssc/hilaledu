@@ -50,22 +50,6 @@
         <div class="stat-card"><p class="text-sm text-gray-500">Selesai Ditangani</p><p class="text-2xl font-bold text-green-600">{{ $pelanggarans->where('status', 'selesai')->count() }}</p></div>
     </div>
 
-    {{-- Statistik per Kategori --}}
-    @if($statistikKategori->isNotEmpty())
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h4 class="text-sm font-semibold text-gray-800 mb-3">Rekap per Kategori Pelanggaran</h4>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            @foreach($statistikKategori as $kategori => $stat)
-            <div class="rounded-lg p-3 border" style="background-color: {{ $stat['warna'] }}10; border-color: {{ $stat['warna'] }}30;">
-                <p class="text-xs font-medium" style="color: {{ $stat['warna'] }}">{{ $kategori }}</p>
-                <p class="text-lg font-bold text-gray-800">{{ $stat['jumlah'] }} kasus</p>
-                <p class="text-xs text-gray-500">{{ $stat['poin'] }} poin</p>
-            </div>
-            @endforeach
-        </div>
-    </div>
-    @endif
-
     {{-- Rekap per Kelas --}}
     @if($rekapPerKelas->isNotEmpty())
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -92,7 +76,7 @@
     {{-- Detail Pelanggaran --}}
     <div class="table-container">
         <table>
-            <thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Status</th><th>Tindakan</th></tr></thead>
+            <thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Pelanggaran</th><th>Poin</th><th>Status</th><th>Tindakan</th></tr></thead>
             <tbody>
                 @forelse($pelanggarans as $p)
                 <tr>
@@ -100,7 +84,7 @@
                     <td class="font-medium">{{ $p->siswa->nama_lengkap }}</td>
                     <td>{{ $p->siswa?->kelas?->nama ?? '-' }}</td>
                     <td>{{ $p->jenisPelanggaran->nama }}</td>
-                    <td><span class="badge" style="background-color: {{ $p->jenisPelanggaran->kategori->warna }}20; color: {{ $p->jenisPelanggaran->kategori->warna }}">{{ $p->jenisPelanggaran->kategori->nama }}</span></td>
+                    
                     <td><span class="text-red-600 font-semibold">-{{ $p->poin }}</span></td>
                     <td><span class="badge {{ $p->status_badge }}">{{ $p->status_label }}</span></td>
                     <td>
@@ -108,7 +92,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="8" class="text-center py-8 text-gray-500">Tidak ada data pelanggaran semester ini</td></tr>
+                <tr><td colspan="7" class="text-center py-8 text-gray-500">Tidak ada data pelanggaran semester ini</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -125,7 +109,7 @@
     <h3><span class="help-icon" style="background: #f0fdf4; color: #16a34a;">📝</span> Cara Penggunaan</h3>
     <ol>
         <li>Gunakan <strong>filter kelas</strong> untuk melihat data kelas tertentu</li>
-        <li>Lihat <strong>rekap per kategori</strong> dan <strong>rekap per kelas</strong></li>
+        <li>Lihat <strong>rekap per jenis pelanggaran</strong> dan <strong>rekap per kelas</strong></li>
         <li>Klik <strong>"Cetak Laporan"</strong> untuk mencetak</li>
     </ol>
 </div>

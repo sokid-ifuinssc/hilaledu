@@ -46,7 +46,7 @@
 
     <div class="table-container">
         <table>
-            <thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Status</th><th>Dokumen</th></tr></thead>
+            <thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Pelanggaran</th><th>Poin</th><th>Status</th><th>Dokumen</th></tr></thead>
             <tbody>
                 @forelse($pelanggarans as $p)
                 <tr>
@@ -54,13 +54,13 @@
                     <td class="font-medium">{{ $p->siswa->nama_lengkap }}</td>
                     <td>{{ $p->siswa?->kelas?->nama ?? '-' }}</td>
                     <td>{{ $p->jenisPelanggaran->nama }}</td>
-                    <td><span class="badge" style="background-color: {{ $p->jenisPelanggaran->kategori->warna }}20; color: {{ $p->jenisPelanggaran->kategori->warna }}">{{ $p->jenisPelanggaran->kategori->nama }}</span></td>
+                    
                     <td><span class="text-red-600 font-semibold">-{{ $p->poin }}</span></td>
                     <td><span class="badge {{ $p->status_badge }}">{{ $p->status_label }}</span></td>
                     <td>@include('components.dokumen-progres-links', ['p' => $p])</td>
                 </tr>
                 @empty
-                <tr><td colspan="8" class="text-center py-8 text-gray-500">Tidak ada pelanggaran pada minggu ini</td></tr>
+                <tr><td colspan="7" class="text-center py-8 text-gray-500">Tidak ada pelanggaran pada minggu ini</td></tr>
                 @endforelse
             </tbody>
         </table>

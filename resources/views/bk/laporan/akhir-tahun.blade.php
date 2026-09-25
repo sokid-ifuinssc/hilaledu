@@ -50,22 +50,6 @@
         <div class="stat-card"><p class="text-sm text-gray-500">Selesai Ditangani</p><p class="text-2xl font-bold text-green-600">{{ $pelanggarans->where('status', 'selesai')->count() }}</p></div>
     </div>
 
-    {{-- Statistik per Kategori --}}
-    @if($statistikKategori->isNotEmpty())
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h4 class="text-sm font-semibold text-gray-800 mb-3">Rekap per Kategori Pelanggaran</h4>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            @foreach($statistikKategori as $kategori => $stat)
-            <div class="rounded-lg p-3 border" style="background-color: {{ $stat['warna'] }}10; border-color: {{ $stat['warna'] }}30;">
-                <p class="text-xs font-medium" style="color: {{ $stat['warna'] }}">{{ $kategori }}</p>
-                <p class="text-lg font-bold text-gray-800">{{ $stat['jumlah'] }} kasus</p>
-                <p class="text-xs text-gray-500">{{ $stat['poin'] }} poin</p>
-            </div>
-            @endforeach
-        </div>
-    </div>
-    @endif
-
     {{-- Rekap per Bulan --}}
     @if($rekapPerBulan->isNotEmpty())
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -146,7 +130,7 @@
     <ol>
         <li>Pilih <strong>tahun ajaran</strong> yang diinginkan</li>
         <li>Gunakan <strong>filter kelas</strong> jika ingin melihat kelas tertentu</li>
-        <li>Lihat <strong>tren per bulan</strong>, <strong>rekap per kelas</strong>, dan <strong>kategori</strong></li>
+        <li>Lihat <strong>tren per bulan</strong>, <strong>rekap per kelas</strong>, dan <strong>jenis pelanggaran</strong></li>
         <li>Klik <strong>"Cetak Laporan"</strong> untuk dicetak dan dilaporkan ke pimpinan</li>
     </ol>
 </div>

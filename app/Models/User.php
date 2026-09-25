@@ -422,6 +422,16 @@ class User extends Authenticatable
         return $this->hasTugas('BK') || $this->hasTugas('Konseling') || ($this->role === 'admin' && $this->admin_role === 'bk') || $this->isSuperAdmin();
     }
 
+    public function canAccessBk(): bool
+    {
+        return $this->isBk() 
+            || $this->isKepalaSekolah() 
+            || $this->isWakaKesiswaan() 
+            || $this->isKaprog() 
+            || $this->isWaliKelas() 
+            || ($this->role === 'admin' && empty($this->admin_role));
+    }
+
     public function isBendaharaBos(): bool
     {
         return $this->hasTugas('Bendahara') || $this->hasTugas('BOS') || $this->isSuperAdmin();

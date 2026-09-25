@@ -10,7 +10,7 @@
             <div><span class="text-gray-500">Tanggal:</span> <span class="font-medium">{{ $pelanggaran->tanggal_pelanggaran->format('d M Y') }}</span></div>
             <div><span class="text-gray-500">Waktu:</span> <span class="font-medium">{{ $pelanggaran->waktu_pelanggaran ?? '-' }}</span></div>
             <div><span class="text-gray-500">Jenis:</span> <span class="font-medium">{{ $pelanggaran->jenisPelanggaran->nama }}</span></div>
-            <div><span class="text-gray-500">Kategori:</span> <span class="badge" style="background-color: {{ $pelanggaran->jenisPelanggaran->kategori->warna }}20; color: {{ $pelanggaran->jenisPelanggaran->kategori->warna }}">{{ $pelanggaran->jenisPelanggaran->kategori->nama }}</span></div>
+            
             <div><span class="text-gray-500">Poin Dikurangi:</span> <span class="font-semibold text-red-600">-{{ $pelanggaran->poin }}</span></div>
             <div><span class="text-gray-500">Status:</span> <span class="badge {{ $pelanggaran->status_badge }}">{{ $pelanggaran->status_label }}</span></div>
         </div>

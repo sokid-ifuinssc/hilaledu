@@ -20,7 +20,7 @@ class ProgresController extends Controller
 
         $query = ProgresPelanggaran::with([
             'pelanggaran.siswa.kelas.jurusan',
-            'pelanggaran.jenisPelanggaran.kategori',
+            'pelanggaran.jenisPelanggaran',
             'pelanggaran.pencatat',
         ]);
 
@@ -69,13 +69,13 @@ class ProgresController extends Controller
     {
         $pelanggaran->load([
             'siswa.kelas.jurusan',
-            'jenisPelanggaran.kategori',
+            'jenisPelanggaran',
             'pencatat',
             'progresPelanggaran',
         ]);
 
         // Histori semua pelanggaran siswa ini
-        $historiPelanggaran = Pelanggaran::with(['jenisPelanggaran.kategori', 'tahunAjaran', 'progresPelanggaran'])
+        $historiPelanggaran = Pelanggaran::with(['jenisPelanggaran', 'tahunAjaran', 'progresPelanggaran'])
             ->where('siswa_id', $pelanggaran->siswa_id)
             ->orderBy('tanggal_pelanggaran', 'desc')
             ->get();
@@ -122,13 +122,13 @@ class ProgresController extends Controller
      */
     private function renderSurat(Pelanggaran $pelanggaran, ProgresPelanggaran $progres)
     {
-        $pelanggaran->load(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'pencatat']);
+        $pelanggaran->load(['siswa.kelas.jurusan', 'jenisPelanggaran', 'pencatat']);
         $settings = PengaturanSekolah::getAllSettings();
 
         // Hitung total poin dan pelanggaran siswa
         $totalPelanggaran = Pelanggaran::where('siswa_id', $pelanggaran->siswa_id)->count();
         $totalPoin = Pelanggaran::where('siswa_id', $pelanggaran->siswa_id)->sum('poin');
-        $historiPelanggaran = Pelanggaran::with(['jenisPelanggaran.kategori', 'tahunAjaran', 'progresPelanggaran'])
+        $historiPelanggaran = Pelanggaran::with(['jenisPelanggaran', 'tahunAjaran', 'progresPelanggaran'])
             ->where('siswa_id', $pelanggaran->siswa_id)
             ->orderBy('tanggal_pelanggaran', 'asc')
             ->get();

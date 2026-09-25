@@ -12,7 +12,7 @@
             <div><p class="text-xs text-gray-500">Kelas</p><p class="text-sm font-medium">{{ $pelanggaran->siswa?->kelas?->nama ?? '-' }}</p></div>
             <div><p class="text-xs text-gray-500">Tanggal</p><p class="text-sm font-medium">{{ $pelanggaran->tanggal_pelanggaran->format('d M Y') }}</p></div>
             <div><p class="text-xs text-gray-500">Status</p><span class="badge {{ $pelanggaran->status_badge }}">{{ $pelanggaran->status_label }}</span></div>
-            <div class="col-span-2"><p class="text-xs text-gray-500">Jenis</p><p class="text-sm font-medium">{{ $pelanggaran->jenisPelanggaran->nama }} ({{ $pelanggaran->jenisPelanggaran->kategori->nama }})</p></div>
+            <div class="col-span-2"><p class="text-xs text-gray-500">Jenis</p><p class="text-sm font-medium">{{ $pelanggaran->jenisPelanggaran->nama }}</p></div>
             <div><p class="text-xs text-gray-500">Poin</p><p class="text-sm font-bold text-red-600">-{{ $pelanggaran->poin }}</p></div>
             <div><p class="text-xs text-gray-500">Dicatat</p><p class="text-sm">{{ $pelanggaran->pencatat->nama_lengkap ?? '-' }}</p></div>
             <div class="col-span-4"><p class="text-xs text-gray-500">Deskripsi</p><p class="text-sm">{{ $pelanggaran->deskripsi }}</p></div>

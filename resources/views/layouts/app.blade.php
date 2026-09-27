@@ -851,14 +851,12 @@
                             <span>Rombel Siswa</span>
                         </a>
                     </li>
-                    {{-- Master Mapel disembunyikan sesuai permintaan agar tidak redundan dengan Kurikulum
                     <li class="sidebar-nav-item">
-                        <a href="{{ route('akademik.mapel.index') }}" class="sidebar-nav-link {{ request()->routeIs('akademik.mapel.*') ? 'active' : '' }}">
-                            <i class="bi bi-bookmark-check" style="color:#10b981;"></i>
+                        <a href="{{ route('admin.mapel.index') }}" class="sidebar-nav-link {{ request()->routeIs('*.mapel.*') ? 'active' : '' }}">
+                            <i class="bi bi-journal-bookmark-fill" style="color:#10b981;"></i>
                             <span>Mata Pelajaran</span>
                         </a>
                     </li>
-                    --}}
                     <li class="sidebar-nav-item">
                         <a href="{{ route('superadmin.master.tugas-tambahan') }}" class="sidebar-nav-link {{ request()->routeIs('superadmin.master.tugas-tambahan*') ? 'active' : '' }}">
                             <i class="bi bi-award" style="color:#10b981;"></i>
@@ -930,6 +928,7 @@
                         <div class="sidebar-dropdown-menu {{ request()->routeIs('akademik.*') ? 'show' : '' }}" id="menuAkademik">
                             <ul class="sidebar-submenu">
                                 <li><a href="{{ route('akademik.dashboard') }}" class="{{ request()->routeIs('akademik.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Akademik</a></li>
+                                <li><a href="{{ route('admin.mapel.index') }}" class="{{ request()->routeIs('*.mapel.*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark me-1"></i> Master Mata Pelajaran</a></li>
                                 <li><a href="{{ route('akademik.kalender.index') }}" class="{{ request()->routeIs('akademik.kalender.*') ? 'active' : '' }}"><i class="bi bi-calendar-event me-1"></i> Kalender Pendidikan</a></li>
                                 <li><a href="{{ route('akademik.kurikulum.index') }}" class="{{ request()->routeIs('akademik.kurikulum.*') ? 'active' : '' }}"><i class="bi bi-diagram-3 me-1"></i> Kurikulum & Beban Ajar</a></li>
                                 <li><a href="{{ route('akademik.jadwal.index') }}" class="{{ request()->routeIs('akademik.jadwal.index') ? 'active' : '' }}"><i class="bi bi-clock-history me-1"></i> Jadwal Pelajaran</a></li>

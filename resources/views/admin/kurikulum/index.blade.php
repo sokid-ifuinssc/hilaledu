@@ -20,6 +20,25 @@
     openEdit(item) {
         this.editData = { ...item };
         this.editModal = true;
+    },
+    mapelsMap: {{ json_encode($mapels->keyBy('id')) }},
+    quickEditMapelModal: false,
+    quickEditMapelData: { id: null, kode: '', nama: '', kelompok: 'umum', tingkat: 'semua', jam_per_minggu: 2, guru_user_id: '' },
+    openQuickEditMapel(id) {
+        if (!id) return;
+        const target = this.mapelsMap[id];
+        if (target) {
+            this.quickEditMapelData = {
+                id: target.id,
+                kode: target.kode || '',
+                nama: target.nama || '',
+                kelompok: target.kelompok || 'umum',
+                tingkat: target.tingkat || 'semua',
+                jam_per_minggu: target.jam_per_minggu || 2,
+                guru_user_id: target.guru_user_id || ''
+            };
+            this.quickEditMapelModal = true;
+        }
     }
 }">
 
@@ -57,6 +76,12 @@
             </div>
 
 
+
+            <!-- Master Mapel Button -->
+            <a href="{{ route('admin.mapel.index') }}" class="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5" title="Buka Master Mata Pelajaran (Katalog & Edit Nama Mapel)">
+                <i class="bi-journal-bookmark-fill text-sm"></i>
+                <span>Master Mata Pelajaran</span>
+            </a>
 
             <!-- Import Mapel Button -->
             <button onclick="document.getElementById('modalImportMapel').classList.remove('hidden')" class="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5" title="Import Master Mapel">
@@ -324,8 +349,16 @@
                                    class="w-16 p-1 text-center border border-indigo-300 rounded text-xs focus:ring-indigo-500 focus:border-indigo-500 outline-none">
                         </td>
                         <td class="px-4 py-4">
-                            <div class="font-extrabold text-slate-900 text-sm">
-                                {{ $item->mataPelajaran->nama ?? 'Mapel #' . $item->mata_pelajaran_id }}
+                            <div class="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                                <span>{{ $item->mataPelajaran->nama ?? 'Mapel #' . $item->mata_pelajaran_id }}</span>
+                                @if($item->mataPelajaran)
+                                <button type="button" 
+                                        @click="openQuickEditMapel({{ $item->mata_pelajaran_id }})" 
+                                        class="text-slate-400 hover:text-blue-600 transition inline-flex items-center p-0.5 cursor-pointer" 
+                                        title="Ubah Nama / Kode Mapel Ini">
+                                    <i class="bi-pencil-square text-xs"></i>
+                                </button>
+                                @endif
                             </div>
                             <div class="flex flex-wrap items-center gap-1.5 mt-1">
                                 <span class="text-[10.5px] font-mono text-slate-500 font-bold">Kode: {{ $item->mataPelajaran->kode ?? '-' }}</span>
@@ -385,7 +418,7 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-1.5">
-                                <!-- Tombol Edit -->
+                                <!-- Tombol Edit Alokasi -->
                                 <button type="button" 
                                         @click="openEdit({
                                             id: {{ $item->id }},
@@ -403,6 +436,16 @@
                                         title="Edit Alokasi">
                                     <i class="bi-pencil-square text-sm"></i>
                                 </button>
+
+                                <!-- Tombol Edit Master Mapel -->
+                                @if($item->mataPelajaran)
+                                <button type="button" 
+                                        @click="openQuickEditMapel({{ $item->mata_pelajaran_id }})" 
+                                        class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition" 
+                                        title="Ubah Nama / Master Mapel Ini">
+                                    <i class="bi-journal-text text-sm"></i>
+                                </button>
+                                @endif
 
                                 <!-- Tombol Hapus -->
                                 <form action="{{ route('admin.kurikulum.destroy', $item) }}" method="POST" onsubmit="return confirm('Hapus mapel {{ addslashes($item->mataPelajaran->nama ?? '') }} dari kurikulum {{ $item->kelas }}?')">
@@ -467,7 +510,12 @@
 
                 <!-- Pilihan Mata Pelajaran -->
                 <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mata Pelajaran <span class="text-rose-500">*</span></label>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">Mata Pelajaran <span class="text-rose-500">*</span></label>
+                        <a href="{{ route('admin.mapel.index') }}" target="_blank" class="text-[11px] font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 hover:underline">
+                            <i class="bi-journal-bookmark"></i> Buka Master Mapel <i class="bi-arrow-up-right text-[10px]"></i>
+                        </a>
+                    </div>
                     <input type="text" name="mata_pelajaran_id" list="mapel-list" required placeholder="Ketik nama Mapel baru atau pilih dari list..." class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-emerald-500 focus:border-emerald-500" autocomplete="off">
                     <datalist id="mapel-list">
                         @foreach($mapels as $m)
@@ -586,13 +634,33 @@
 
                 <!-- Pilihan Mata Pelajaran -->
                 <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mata Pelajaran <span class="text-rose-500">*</span></label>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px]">Mata Pelajaran <span class="text-rose-500">*</span></label>
+                        <button type="button" 
+                                x-show="editData.mata_pelajaran_id"
+                                @click="openQuickEditMapel(editData.mata_pelajaran_id)" 
+                                class="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline cursor-pointer">
+                            <i class="bi-pencil-square"></i> Edit Nama Mapel Ini
+                        </button>
+                    </div>
                     <select name="mata_pelajaran_id" x-model="editData.mata_pelajaran_id" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">-- Pilih Mata Pelajaran --</option>
                         @foreach($mapels as $m)
                         <option value="{{ $m->id }}">{{ $m->nama }} ({{ $m->kode }})</option>
                         @endforeach
                     </select>
+                    <div class="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Salah ketik nama mapel?</span>
+                        <button type="button" 
+                                x-show="editData.mata_pelajaran_id"
+                                @click="openQuickEditMapel(editData.mata_pelajaran_id)" 
+                                class="text-blue-600 hover:text-blue-800 font-bold hover:underline cursor-pointer">
+                            Ubah nama mapel terpilih &rarr;
+                        </button>
+                        <a x-show="!editData.mata_pelajaran_id" href="{{ route('admin.mapel.index') }}" target="_blank" class="text-emerald-600 hover:text-emerald-800 font-bold hover:underline inline-flex items-center gap-0.5">
+                            Buka Master Mapel <i class="bi-arrow-up-right text-[10px]"></i>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Pilihan Guru Pengampu -->
@@ -660,6 +728,87 @@
                     <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition flex items-center gap-2">
                         <i class="bi-check-lg"></i>
                         <span>Simpan Perubahan</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- MODAL QUICK EDIT: UBAH DATA & NAMA MASTER MATA PELAJARAN -->
+    <!-- ======================================================= -->
+    <div x-show="quickEditMapelModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 relative my-8" @click.outside="quickEditMapelModal = false">
+            <button @click="quickEditMapelModal = false" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 cursor-pointer">
+                <i class="bi-x-lg text-lg"></i>
+            </button>
+
+            <div class="mb-5">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200 mb-1.5">
+                    <i class="bi-pencil-square"></i>
+                    <span>Master Mata Pelajaran</span>
+                </div>
+                <h3 class="text-xl font-black text-slate-900">Ubah Data Mata Pelajaran</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Perubahan nama di sini otomatis diperbarui pada seluruh kurikulum & jadwal.</p>
+            </div>
+
+            <form :action="'{{ url(request()->segment(1) . '/mapel') }}/' + quickEditMapelData.id" method="POST" class="space-y-4 text-xs">
+                @csrf
+                @method('PUT')
+
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Kode Mapel <span class="text-rose-500">*</span></label>
+                    <input type="text" name="kode" required x-model="quickEditMapelData.kode" placeholder="Contoh: MP-TKJT-01" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-bold uppercase font-mono text-slate-900 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Nama Mata Pelajaran <span class="text-rose-500">*</span></label>
+                    <input type="text" name="nama" required x-model="quickEditMapelData.nama" placeholder="Contoh: Dasar-Dasar Kejuruan TKJT" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-emerald-500 focus:border-emerald-500 text-sm">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Kelompok <span class="text-rose-500">*</span></label>
+                        <select name="kelompok" required x-model="quickEditMapelData.kelompok" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-900 focus:ring-emerald-500 focus:border-emerald-500">
+                            <option value="umum">Umum</option>
+                            <option value="kejuruan">Kejuruan</option>
+                            <option value="muatan_lokal">Muatan Lokal</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tingkat Kelas <span class="text-rose-500">*</span></label>
+                        <select name="tingkat" required x-model="quickEditMapelData.tingkat" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-900 focus:ring-emerald-500 focus:border-emerald-500">
+                            <option value="semua">Semua Tingkat</option>
+                            <option value="X">Kelas X</option>
+                            <option value="XI">Kelas XI</option>
+                            <option value="XII">Kelas XII</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Beban Jam (JP) <span class="text-rose-500">*</span></label>
+                        <input type="number" name="jam_per_minggu" min="1" max="18" required x-model="quickEditMapelData.jam_per_minggu" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-emerald-500 focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">Guru Pengampu</label>
+                        <select name="guru_user_id" x-model="quickEditMapelData.guru_user_id" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-900 focus:ring-emerald-500 focus:border-emerald-500">
+                            <option value="">-- Belum Ditentukan --</option>
+                            @foreach($guruList as $g)
+                            <option value="{{ $g->id }}">{{ $g->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                    <button type="button" @click="quickEditMapelModal = false" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
+                        <i class="bi-check-lg"></i>
+                        <span>Simpan Perubahan Mapel</span>
                     </button>
                 </div>
             </form>

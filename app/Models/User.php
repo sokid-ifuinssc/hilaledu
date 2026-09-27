@@ -205,6 +205,80 @@ class User extends Authenticatable
     }
 
     /**
+     * Dapatkan daftar seluruh admin role yang dipegang user sebagai array.
+     * Mendukung multi-role (dipisahkan koma atau JSON atau single string).
+     */
+    public function getAdminRolesAttribute(): array
+    {
+        if (empty($this->admin_role)) {
+            return [];
+        }
+        if (is_array($this->admin_role)) {
+            return array_values(array_filter($this->admin_role));
+        }
+        $parts = explode(',', (string)$this->admin_role);
+        return array_values(array_filter(array_map('trim', $parts)));
+    }
+
+    /**
+     * Cek apakah user memiliki admin_role tertentu (atau superadmin).
+     */
+    public function hasAdminRole(string $role): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        return in_array($role, $this->admin_roles, true);
+    }
+
+    /**
+     * Cek apakah user memiliki salah satu dari admin_role yang diberikan.
+     */
+    public function hasAnyAdminRole(array $roles): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        return count(array_intersect($roles, $this->admin_roles)) > 0;
+    }
+
+    /**
+     * Tambahkan sebuah admin_role baru tanpa menghapus role yang sudah ada sebelumnya.
+     */
+    public function addAdminRole(string $role): void
+    {
+        $roles = $this->admin_roles;
+        if (!in_array($role, $roles, true)) {
+            $roles[] = $role;
+            $this->admin_role = implode(',', $roles);
+            $this->save();
+        }
+    }
+
+    /**
+     * Cabut satu admin_role tertentu dari user.
+     */
+    public function removeAdminRole(string $role): void
+    {
+        $roles = array_filter($this->admin_roles, fn($r) => $r !== $role);
+        $this->admin_role = count($roles) > 0 ? implode(',', array_values($roles)) : null;
+        $this->save();
+    }
+
+    /**
+     * Scope query untuk mencari user dengan admin_role tertentu (bisa single maupun comma-separated).
+     */
+    public function scopeWithAdminRole($query, string $role)
+    {
+        return $query->where(function ($q) use ($role) {
+            $q->where('admin_role', $role)
+              ->orWhere('admin_role', 'like', "{$role},%")
+              ->orWhere('admin_role', 'like', "%,{$role}")
+              ->orWhere('admin_role', 'like', "%,{$role},%");
+        });
+    }
+
+    /**
      * Dapatkan daftar seluruh jabatan & tugas tambahan guru (termasuk tugas di sekolah & aplikasi).
      */
     public function getDaftarJabatanAttribute(): array
@@ -223,7 +297,13 @@ class User extends Authenticatable
                 'tracer'   => 'Admin Tracer Study (BKK)',
                 'payroll'  => 'Admin HilalPay (Penggajian)',
             ];
-            $jabatan[] = $roleNames[$this->admin_role] ?? ('Admin ' . ucfirst($this->admin_role));
+            foreach ($this->admin_roles as $ar) {
+                if (isset($roleNames[$ar])) {
+                    $jabatan[] = $roleNames[$ar];
+                } else {
+                    $jabatan[] = 'Admin ' . ucfirst($ar);
+                }
+            }
         }
         if (!empty($this->tugas_tambahan) && is_array($this->tugas_tambahan)) {
             $jabatan = array_merge($jabatan, $this->tugas_tambahan);
@@ -247,7 +327,13 @@ class User extends Authenticatable
                 'tracer'   => 'Admin Tracer',
                 'payroll'  => 'Admin HilalPay',
             ];
-            $list[] = $roleNames[$this->admin_role] ?? ('Admin ' . ucfirst($this->admin_role));
+            foreach ($this->admin_roles as $ar) {
+                if (isset($roleNames[$ar])) {
+                    $list[] = $roleNames[$ar];
+                } else {
+                    $list[] = 'Admin ' . ucfirst($ar);
+                }
+            }
         }
         if (!empty($this->tugas_tambahan) && is_array($this->tugas_tambahan)) {
             $list = array_merge($list, $this->tugas_tambahan);
@@ -478,12 +564,12 @@ class User extends Authenticatable
 
     public function isGuruBk(): bool
     {
-        return $this->hasTugas('BK') || $this->hasTugas('Konseling') || $this->hasTugasTambahan('Guru BK') || $this->admin_role === 'bk' || $this->isSuperAdmin();
+        return $this->hasTugas('BK') || $this->hasTugas('Konseling') || $this->hasTugasTambahan('Guru BK') || $this->hasAdminRole('bk') || $this->isSuperAdmin();
     }
 
     public function isWakaKesiswaan(): bool
     {
-        return $this->hasTugas('Kesiswaan') || $this->admin_role === 'bk' || $this->isSuperAdmin();
+        return $this->hasTugas('Kesiswaan') || $this->hasAdminRole('bk') || $this->isSuperAdmin();
     }
 
     public function hasTugas(string $keyword): bool
@@ -502,7 +588,7 @@ class User extends Authenticatable
 
     public function isWakaKurikulum(): bool
     {
-        return $this->hasTugas('Kurikulum') || $this->admin_role === 'akademik' || $this->isSuperAdmin();
+        return $this->hasTugas('Kurikulum') || $this->hasAdminRole('akademik') || $this->isSuperAdmin();
     }
 
     public function isWakaSarpras(): bool
@@ -512,7 +598,7 @@ class User extends Authenticatable
 
     public function isWakaHubin(): bool
     {
-        return $this->hasTugas('Humas') || $this->hasTugas('Hubin') || $this->hasTugas('Hubungan Industri') || $this->admin_role === 'prakerin' || $this->isSuperAdmin();
+        return $this->hasTugas('Humas') || $this->hasTugas('Hubin') || $this->hasTugas('Hubungan Industri') || $this->hasAdminRole('prakerin') || $this->isSuperAdmin();
     }
 
     public function isPembinaOsis(): bool
@@ -522,13 +608,13 @@ class User extends Authenticatable
 
     public function isBk(): bool
     {
-        return $this->hasTugas('BK') || $this->hasTugas('Konseling') || $this->admin_role === 'bk' || $this->isSuperAdmin();
+        return $this->hasTugas('BK') || $this->hasTugas('Konseling') || $this->hasAdminRole('bk') || $this->isSuperAdmin();
     }
 
     public function canAccessBk(): bool
     {
         return $this->isBk() 
-            || $this->admin_role === 'bk'
+            || $this->hasAdminRole('bk')
             || $this->isKepalaSekolah() 
             || $this->isWakaKesiswaan() 
             || $this->isKaprog() 
@@ -538,7 +624,7 @@ class User extends Authenticatable
 
     public function canAccessPrakerin(): bool
     {
-        return $this->admin_role === 'prakerin'
+        return $this->hasAdminRole('prakerin')
             || $this->isWakaHubin()
             || $this->isKaprog()
             || $this->isKepalaSekolah()
@@ -550,12 +636,12 @@ class User extends Authenticatable
 
     public function isBendaharaBos(): bool
     {
-        return $this->hasTugas('Bendahara') || $this->hasTugas('BOS') || $this->admin_role === 'keuangan' || $this->isSuperAdmin();
+        return $this->hasTugas('Bendahara') || $this->hasTugas('BOS') || $this->hasAdminRole('keuangan') || $this->isSuperAdmin();
     }
 
     public function isPayrollAdmin(): bool
     {
-        return $this->isSuperAdmin() || $this->admin_role === 'payroll';
+        return $this->isSuperAdmin() || $this->hasAdminRole('payroll');
     }
 
     public function pengelolaAkademik(): \Illuminate\Database\Eloquent\Relations\HasOne
@@ -582,7 +668,7 @@ class User extends Authenticatable
     public function canManageAcademic(): bool
     {
         if ($this->isSuperAdmin()) return true;
-        if ($this->admin_role === 'akademik') return true;
+        if ($this->hasAdminRole('akademik')) return true;
         if ($this->isKepalaSekolah()) return true;
         if ($this->isWakaKurikulum()) return true;
         if ($this->isKaprog()) return true;
@@ -593,7 +679,7 @@ class User extends Authenticatable
 
     public function canManageJadwal(): bool
     {
-        if ($this->isSuperAdmin() || $this->admin_role === 'akademik' || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
+        if ($this->isSuperAdmin() || $this->hasAdminRole('akademik') || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
         try {
             $pa = PengelolaAkademik::where('user_id', $this->id)->first();
             return $pa ? (bool)$pa->can_manage_jadwal : false;
@@ -604,7 +690,7 @@ class User extends Authenticatable
 
     public function canManageMapel(): bool
     {
-        if ($this->isSuperAdmin() || $this->admin_role === 'akademik' || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
+        if ($this->isSuperAdmin() || $this->hasAdminRole('akademik') || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
         try {
             $pa = PengelolaAkademik::where('user_id', $this->id)->first();
             return $pa ? (bool)$pa->can_manage_mapel : false;
@@ -615,7 +701,7 @@ class User extends Authenticatable
 
     public function canViewLaporanKehadiran(): bool
     {
-        if ($this->isSuperAdmin() || $this->admin_role === 'akademik' || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
+        if ($this->isSuperAdmin() || $this->hasAdminRole('akademik') || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
         try {
             $pa = PengelolaAkademik::where('user_id', $this->id)->first();
             return $pa ? (bool)$pa->can_view_laporan_kehadiran : false;
@@ -626,7 +712,7 @@ class User extends Authenticatable
 
     public function canViewLaporanKbm(): bool
     {
-        if ($this->isSuperAdmin() || $this->admin_role === 'akademik' || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
+        if ($this->isSuperAdmin() || $this->hasAdminRole('akademik') || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
         try {
             $pa = PengelolaAkademik::where('user_id', $this->id)->first();
             return $pa ? (bool)$pa->can_view_laporan_kbm : false;

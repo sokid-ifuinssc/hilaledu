@@ -30,7 +30,7 @@ class ModuleAccessMiddleware
 
         // 3. Jika pengguna adalah admin biasa, periksa apakah 'admin_role' mereka cocok dengan modul yang sedang diakses.
         // Contoh: Admin dengan admin_role 'akademik' hanya bisa mengakses rute yang ber-middleware 'module_access:akademik'.
-        if ($user->role === 'admin' && $user->admin_role === $module) {
+        if ($user->role === 'admin' && $user->hasAdminRole($module)) {
             return $next($request);
         }
 

@@ -914,10 +914,10 @@
                 {{-- ============================================================ --}}
                 {{-- 4. LAYANAN PEMBELAJARAN & AKADEMIK                           --}}
                 {{-- ============================================================ --}}
-                @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->admin_role, ['akademik', 'bk', 'prakerin']))
+                @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyAdminRole(['akademik', 'bk', 'prakerin']))
                 <div class="sidebar-section-title">Akademik & KBM</div>
                 <ul class="sidebar-nav">
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'akademik')
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('akademik'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('akademik.*') ? 'active' : '' }}" 
@@ -951,7 +951,7 @@
                     {{-- ============================================================ --}}
                     {{-- 5. KESISWAAN & BIMBINGAN KONSELING (BK)                      --}}
                     {{-- ============================================================ --}}
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'bk')
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('bk'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('bk.*') ? 'active' : '' }}" 
@@ -977,7 +977,7 @@
                     {{-- ============================================================ --}}
                     {{-- 6. PRAKTIK KERJA INDUSTRI (PRAKERIN / PKL)                   --}}
                     {{-- ============================================================ --}}
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'prakerin')
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('prakerin'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('prakerin.*') ? 'active' : '' }}" 
@@ -1006,10 +1006,10 @@
                 {{-- ============================================================ --}}
                 {{-- 7. LAYANAN PENDUKUNG (KEUANGAN, KOPERASI, TRACER, GAJI)     --}}
                 {{-- ============================================================ --}}
-                @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->admin_role, ['keuangan', 'koperasi', 'tracer', 'payroll']))
+                @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyAdminRole(['keuangan', 'koperasi', 'tracer', 'payroll']))
                 <div class="sidebar-section-title">Layanan Pendukung</div>
                 <ul class="sidebar-nav">
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'keuangan')
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('keuangan'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('keuangan.*') ? 'active' : '' }}" 
@@ -1029,7 +1029,7 @@
                     </li>
                     @endif
 
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'koperasi')
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('koperasi'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('koperasi.*') ? 'active' : '' }}" 
@@ -1049,7 +1049,7 @@
                     </li>
                     @endif
 
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'tracer')
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('tracer'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('tracer.*') ? 'active' : '' }}" 
@@ -1069,7 +1069,7 @@
                     </li>
                     @endif
 
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'payroll')
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('payroll'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('superadmin.payroll.*') ? 'active' : '' }}" 
@@ -1286,7 +1286,7 @@
                 <div class="sidebar-user-info">
                     <div class="sidebar-user-name">{{ auth()->user()->name }}</div>
                     <div class="sidebar-user-role">
-                        {{ ucfirst(auth()->user()->role) }}@if(auth()->user()->admin_role) · Admin {{ ucfirst(auth()->user()->admin_role) }}@endif
+                        {{ ucfirst(auth()->user()->role) }}@if(!empty(auth()->user()->admin_roles)) · Admin {{ implode(', ', array_map('ucfirst', auth()->user()->admin_roles)) }}@endif
                     </div>
                 </div>
             </div>

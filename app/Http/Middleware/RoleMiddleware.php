@@ -28,30 +28,30 @@ class RoleMiddleware
                     $hasAccess = true; break;
                 }
                 if ($r === 'superadmin') {
-                    if ($user->isSuperAdmin() || ($user->admin_role === 'payroll' && $request->is('superadmin/payroll*'))) {
+                    if ($user->isSuperAdmin() || ($user->hasAdminRole('payroll') && $request->is('superadmin/payroll*'))) {
                         $hasAccess = true; break;
                     }
                 }
-                if ($r === 'payroll' && ($user->isSuperAdmin() || $user->admin_role === 'payroll')) {
+                if ($r === 'payroll' && ($user->isSuperAdmin() || $user->hasAdminRole('payroll'))) {
                     $hasAccess = true; break;
                 }
                 if ($r === 'guru' && $user->role === 'guru') {
                     // Guru dengan admin_role tetap diizinkan mengakses halaman guru
                     $hasAccess = true; break;
                 }
-                if ($r === 'guru_bk' && ($user->hasTugasTambahan('Guru BK') || $user->hasTugas('BK') || $user->hasTugas('Konseling') || $user->admin_role === 'bk' || $user->isSuperAdmin())) {
+                if ($r === 'guru_bk' && ($user->hasTugasTambahan('Guru BK') || $user->hasTugas('BK') || $user->hasTugas('Konseling') || $user->hasAdminRole('bk') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
-                if ($r === 'kaprog' && ($user->hasRoleCategory('Kaprog') || $user->hasTugas('Kaprog') || $user->hasTugas('Kepala Program') || $user->isKaprog() || $user->admin_role === 'akademik' || $user->isSuperAdmin())) {
+                if ($r === 'kaprog' && ($user->hasRoleCategory('Kaprog') || $user->hasTugas('Kaprog') || $user->hasTugas('Kepala Program') || $user->isKaprog() || $user->hasAdminRole('akademik') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
-                if ($r === 'wali_kelas' && ($user->hasRoleCategory('Wali Kelas') || $user->hasTugas('Wali Kelas') || $user->isWaliKelas() || $user->admin_role === 'akademik' || $user->isSuperAdmin())) {
+                if ($r === 'wali_kelas' && ($user->hasRoleCategory('Wali Kelas') || $user->hasTugas('Wali Kelas') || $user->isWaliKelas() || $user->hasAdminRole('akademik') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
                 if ($r === 'kepala_sekolah' && ($user->hasTugasTambahan('Kepala Sekolah') || $user->hasTugas('Kepala Sekolah') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
-                if ($r === 'waka_kesiswaan' && ($user->hasRoleCategory('Kesiswaan') || $user->hasTugas('Kesiswaan') || $user->admin_role === 'bk' || $user->isSuperAdmin())) {
+                if ($r === 'waka_kesiswaan' && ($user->hasRoleCategory('Kesiswaan') || $user->hasTugas('Kesiswaan') || $user->hasAdminRole('bk') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
             }

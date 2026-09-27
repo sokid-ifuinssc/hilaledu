@@ -119,22 +119,32 @@ class PenugasanAdminController extends Controller
         }
 
         if ($request->filled('role_filter')) {
-            $query->where('admin_role', $request->role_filter);
+            $rf = $request->role_filter;
+            $query->where(function($q) use ($rf) {
+                $q->where('admin_role', $rf)
+                  ->orWhere('admin_role', 'like', "{$rf},%")
+                  ->orWhere('admin_role', 'like', "%,{$rf}")
+                  ->orWhere('admin_role', 'like', "%,{$rf},%");
+            });
         }
 
         if ($request->filled('tipe_user')) {
             $query->where('role', $request->tipe_user);
         }
 
-        $assignedUsers = $query->orderBy('admin_role')
-            ->orderBy('name')
+        $assignedUsers = $query->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         // Rekap admin saat ini per modul
         $currentAdminsByRole = [];
         foreach ($roleDefinitions as $key => $def) {
-            $currentAdminsByRole[$key] = User::where('admin_role', $key)->get();
+            $currentAdminsByRole[$key] = User::where(function($q) use ($key) {
+                $q->where('admin_role', $key)
+                  ->orWhere('admin_role', 'like', "{$key},%")
+                  ->orWhere('admin_role', 'like', "%,{$key}")
+                  ->orWhere('admin_role', 'like', "%,{$key},%");
+            })->get();
         }
 
         // Daftar calon pegawai (Dewan Guru & Tenaga Kependidikan / TU)
@@ -161,32 +171,50 @@ class PenugasanAdminController extends Controller
 
     /**
      * Tunjuk / Delegasikan peran admin unit kepada Guru atau TU
+     * Mendukung penugasan multi-peran (1 pegawai bisa mengelola lebih dari 1 unit admin)
      */
     public function store(Request $request)
     {
         $request->validate([
-            'user_id'    => 'required|exists:users,id',
-            'admin_role' => 'required|in:akademik,prakerin,bk,koperasi,keuangan,tracer,payroll',
-            'keterangan' => 'nullable|string|max:255',
+            'user_id'       => 'required|exists:users,id',
+            'admin_roles'   => 'nullable|array',
+            'admin_roles.*' => 'in:akademik,prakerin,bk,koperasi,keuangan,tracer,payroll',
+            'admin_role'    => 'nullable|in:akademik,prakerin,bk,koperasi,keuangan,tracer,payroll',
+            'keterangan'    => 'nullable|string|max:255',
+            'action_mode'   => 'nullable|in:set,append',
         ], [
-            'user_id.required'    => 'Silakan pilih pegawai yang ingin ditunjuk.',
-            'user_id.exists'      => 'Pegawai yang dipilih tidak ditemukan.',
-            'admin_role.required' => 'Silakan tentukan unit admin yang ditugaskan.',
-            'admin_role.in'       => 'Pilihan unit admin tidak valid.',
+            'user_id.required' => 'Silakan pilih pegawai yang ingin ditunjuk.',
+            'user_id.exists'   => 'Pegawai yang dipilih tidak ditemukan.',
         ]);
 
         $user = User::findOrFail($request->user_id);
         $roleDefinitions = self::getAdminRoleDefinitions();
-        $roleInfo = $roleDefinitions[$request->admin_role] ?? null;
-        $roleName = $roleInfo['name'] ?? ucfirst($request->admin_role);
 
-        // Update admin_role pada tabel users
-        $user->update([
-            'admin_role' => $request->admin_role,
-        ]);
+        // Ambil roles dari checkbox array atau radio single fallback
+        $selectedRoles = $request->input('admin_roles', []);
+        if (empty($selectedRoles) && $request->filled('admin_role')) {
+            $selectedRoles = [$request->input('admin_role')];
+        }
+
+        if (empty($selectedRoles) && $request->input('action_mode') !== 'append') {
+            return back()->withErrors(['admin_roles' => 'Silakan pilih minimal 1 unit layanan yang ditugaskan.']);
+        }
+
+        $validKeys = array_keys($roleDefinitions);
+        $selectedRoles = array_values(array_intersect($validKeys, (array)$selectedRoles));
+
+        if ($request->input('action_mode') === 'append') {
+            $finalRoles = array_values(array_unique(array_merge($user->admin_roles, $selectedRoles)));
+        } else {
+            $finalRoles = array_values(array_unique($selectedRoles));
+        }
+
+        // Simpan peran (bisa multi peran dipisahkan koma)
+        $user->admin_role = count($finalRoles) > 0 ? implode(',', $finalRoles) : null;
+        $user->save();
 
         // 1. Integrasi Khusus Admin Akademik (Sinkronkan izin tabel PengelolaAkademik)
-        if ($request->admin_role === 'akademik') {
+        if ($user->hasAdminRole('akademik')) {
             PengelolaAkademik::updateOrCreate(
                 ['user_id' => $user->id],
                 [
@@ -198,23 +226,28 @@ class PenugasanAdminController extends Controller
                     'keterangan'                 => $request->keterangan ?? 'Ditunjuk sebagai Admin Akademik oleh Superadmin',
                 ]
             );
+        } else {
+            PengelolaAkademik::where('user_id', $user->id)->delete();
         }
 
         // 2. Integrasi AppCoordinator untuk sinkronisasi Pusat Modul Ekosistem
-        if ($roleInfo && !empty($roleInfo['app_slug'])) {
-            $app = Application::where('slug', $roleInfo['app_slug'])->first();
-            if ($app) {
-                AppCoordinator::updateOrCreate(
-                    [
-                        'application_id' => $app->id,
-                        'user_id'        => $user->id,
-                    ],
-                    [
-                        'coordinator_role' => 'admin_app',
-                        'assigned_at'      => now(),
-                        'assigned_by'      => auth()->id(),
-                    ]
-                );
+        foreach ($finalRoles as $rKey) {
+            $roleInfo = $roleDefinitions[$rKey] ?? null;
+            if ($roleInfo && !empty($roleInfo['app_slug'])) {
+                $app = Application::where('slug', $roleInfo['app_slug'])->first();
+                if ($app) {
+                    AppCoordinator::updateOrCreate(
+                        [
+                            'application_id' => $app->id,
+                            'user_id'        => $user->id,
+                        ],
+                        [
+                            'coordinator_role' => 'admin_app',
+                            'assigned_at'      => now(),
+                            'assigned_by'      => auth()->id(),
+                        ]
+                    );
+                }
             }
         }
 
@@ -222,37 +255,46 @@ class PenugasanAdminController extends Controller
         \App\Models\Payroll\PayrollSetting::syncTunjanganForUser($user->fresh());
 
         $userType = $user->role === 'guru' ? 'Guru' : ($user->role === 'tendik' ? 'Tenaga Kependidikan (TU)' : 'Admin');
+        $badges = array_map(fn($r) => $roleDefinitions[$r]['badge'] ?? ucfirst($r), $finalRoles);
+        $roleStr = implode(', ', $badges);
 
         return redirect()->route('superadmin.penugasan-admin.index')
-            ->with('success', "Berhasil menunjuk {$user->name} ({$userType}) sebagai {$roleName}. Akses menu telah otomatis diaktifkan.");
+            ->with('success', "Berhasil memperbarui wewenang {$user->name} ({$userType}) mengelola unit: {$roleStr}. Akses panel telah diaktifkan.");
     }
 
     /**
      * Cabut penugasan admin unit dari pegawai
+     * Jika role_to_remove diberikan, hanya mencabut role tersebut tanpa mengganggu peran admin lainnya.
      */
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
-        $previousRole = $user->admin_role;
+        $roleToRemove = $request->input('role_to_remove', $request->query('role'));
         $roleDefinitions = self::getAdminRoleDefinitions();
-        $roleName = $roleDefinitions[$previousRole]['name'] ?? 'Admin Unit';
 
-        // Cabut peran admin
+        if (!empty($roleToRemove)) {
+            $user->removeAdminRole($roleToRemove);
+
+            if ($roleToRemove === 'akademik') {
+                PengelolaAkademik::where('user_id', $user->id)->delete();
+            }
+
+            $roleName = $roleDefinitions[$roleToRemove]['name'] ?? ucfirst($roleToRemove);
+            \App\Models\Payroll\PayrollSetting::syncTunjanganForUser($user->fresh());
+
+            return redirect()->route('superadmin.penugasan-admin.index')
+                ->with('success', "Wewenang {$roleName} berhasil dicabut dari {$user->name}. Peran admin lainnya tetap aktif.");
+        }
+
+        // Cabut seluruh peran admin jika tidak dispesifikasikan
         $user->update([
             'admin_role' => null,
         ]);
 
-        // Jika sebelumnya admin akademik, hapus hak pengelolaan akademik
-        if ($previousRole === 'akademik') {
-            PengelolaAkademik::where('user_id', $user->id)->delete();
-        }
-
-        // Hapus dari AppCoordinator
+        PengelolaAkademik::where('user_id', $user->id)->delete();
         AppCoordinator::where('user_id', $user->id)->delete();
-
-        // Sinkronkan kembali tunjangan jabatan pada HilalPay
         \App\Models\Payroll\PayrollSetting::syncTunjanganForUser($user->fresh());
 
         return redirect()->route('superadmin.penugasan-admin.index')
-            ->with('success', "Penugasan {$roleName} untuk {$user->name} berhasil dicabut.");
+            ->with('success', "Seluruh wewenang admin berhasil dicabut dari {$user->name}.");
     }
 }

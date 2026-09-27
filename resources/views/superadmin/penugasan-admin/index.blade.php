@@ -95,10 +95,11 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <form action="{{ route('superadmin.penugasan-admin.destroy', $adm) }}" method="POST" class="shrink-0" onsubmit="return confirm('Cabut peran {{ $def['name'] }} dari {{ $adm->name }}?');">
+                                    <form action="{{ route('superadmin.penugasan-admin.destroy', $adm) }}" method="POST" class="shrink-0" onsubmit="return confirm('Cabut wewenang {{ $def['name'] }} dari {{ $adm->name }}?');">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs" title="Cabut Penugasan">
+                                        <input type="hidden" name="role_to_remove" value="{{ $key }}">
+                                        <button type="submit" class="text-rose-500 hover:text-rose-700 p-1 text-xs" title="Cabut Penugasan {{ $def['name'] }}">
                                             <i class="bi bi-x-circle-fill"></i>
                                         </button>
                                     </form>
@@ -218,15 +219,22 @@
                                 @endif
                             </td>
                             <td class="py-3.5 px-4">
-                                @if($roleMeta)
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
-                                          style="background: {{ $roleMeta['bg_soft'] }}; color: {{ $roleMeta['color'] }}; border: 1px solid {{ $roleMeta['border'] }};">
-                                        <i class="bi {{ $roleMeta['icon'] }}"></i>
-                                        <span>{{ $roleMeta['name'] }}</span>
-                                    </span>
-                                @else
-                                    <span class="text-slate-400 italic">{{ $user->admin_role }}</span>
-                                @endif
+                                <div class="flex flex-wrap gap-1.5 max-w-xs">
+                                    @forelse($user->admin_roles as $arKey)
+                                        @php $rMeta = $roleDefinitions[$arKey] ?? null; @endphp
+                                        @if($rMeta)
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                                                  style="background: {{ $rMeta['bg_soft'] }}; color: {{ $rMeta['color'] }}; border: 1px solid {{ $rMeta['border'] }};">
+                                                <i class="bi {{ $rMeta['icon'] }}"></i>
+                                                <span>{{ $rMeta['badge'] }}</span>
+                                            </span>
+                                        @else
+                                            <span class="text-slate-400 italic">{{ $arKey }}</span>
+                                        @endif
+                                    @empty
+                                        <span class="text-slate-400 italic">-</span>
+                                    @endforelse
+                                </div>
                             </td>
                             <td class="py-3.5 px-4 text-slate-600">
                                 <div><i class="bi bi-person-vcard text-slate-400 me-1"></i> NIP: {{ $user->nip ?? '-' }}</div>
@@ -251,7 +259,7 @@
                                             title="Ubah Unit Admin"
                                             data-bs-toggle="modal" 
                                             data-bs-target="#modalTunjukAdmin"
-                                            onclick="setEditModal('{{ $user->id }}', '{{ $user->admin_role }}')">
+                                            onclick="setEditModal('{{ $user->id }}', '{{ implode(',', $user->admin_roles) }}')">
                                         <i class="bi bi-pencil-square text-sm"></i>
                                     </button>
 
@@ -320,49 +328,62 @@
                             Pilih Pegawai (Guru atau Staf TU) <span class="text-rose-500">*</span>
                         </label>
                         <select name="user_id" id="selectUserId" required class="w-full px-4 py-3 text-sm rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 bg-white">
-                            <option value="">-- Pilih Pegawai --</option>
+                            <option value="" data-roles="">-- Pilih Pegawai --</option>
                             
                             <optgroup label="📋 Tenaga Kependidikan / Tata Usaha (TU)">
                                 @foreach($candidates->where('role', 'tendik') as $c)
-                                    <option value="{{ $c->id }}">
-                                        {{ $c->name }} (NIP: {{ $c->nip ?? '-' }}) {{ $c->admin_role ? '[Saat Ini: Admin ' . ucfirst($c->admin_role) . ']' : '' }}
+                                    @php
+                                        $cBadges = array_map(fn($r) => $roleDefinitions[$r]['badge'] ?? ucfirst($r), $c->admin_roles);
+                                    @endphp
+                                    <option value="{{ $c->id }}" data-roles="{{ implode(',', $c->admin_roles) }}">
+                                        {{ $c->name }} (NIP: {{ $c->nip ?? '-' }}) {{ count($cBadges) > 0 ? '[Unit Saat Ini: ' . implode(', ', $cBadges) . ']' : '' }}
                                     </option>
                                 @endforeach
                             </optgroup>
 
                             <optgroup label="👨‍🏫 Dewan Guru">
                                 @foreach($candidates->where('role', 'guru') as $c)
-                                    <option value="{{ $c->id }}">
-                                        {{ $c->name }} (NIP: {{ $c->nip ?? '-' }}) {{ $c->admin_role ? '[Saat Ini: Admin ' . ucfirst($c->admin_role) . ']' : '' }}
+                                    @php
+                                        $cBadges = array_map(fn($r) => $roleDefinitions[$r]['badge'] ?? ucfirst($r), $c->admin_roles);
+                                    @endphp
+                                    <option value="{{ $c->id }}" data-roles="{{ implode(',', $c->admin_roles) }}">
+                                        {{ $c->name }} (NIP: {{ $c->nip ?? '-' }}) {{ count($cBadges) > 0 ? '[Unit Saat Ini: ' . implode(', ', $cBadges) . ']' : '' }}
                                     </option>
                                 @endforeach
                             </optgroup>
 
                             <optgroup label="⚙️ Admin Sistem">
                                 @foreach($candidates->where('role', 'admin') as $c)
-                                    <option value="{{ $c->id }}">
-                                        {{ $c->name }} ({{ $c->email }}) {{ $c->admin_role ? '[Saat Ini: Admin ' . ucfirst($c->admin_role) . ']' : '' }}
+                                    @php
+                                        $cBadges = array_map(fn($r) => $roleDefinitions[$r]['badge'] ?? ucfirst($r), $c->admin_roles);
+                                    @endphp
+                                    <option value="{{ $c->id }}" data-roles="{{ implode(',', $c->admin_roles) }}">
+                                        {{ $c->name }} ({{ $c->email }}) {{ count($cBadges) > 0 ? '[Unit Saat Ini: ' . implode(', ', $cBadges) . ']' : '' }}
                                     </option>
                                 @endforeach
                             </optgroup>
                         </select>
-                        <p class="text-[11px] text-slate-400 mt-1">Pegawai yang ditunjuk akan langsung mendapatkan akses panel admin pada menu modul tersebut.</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Pegawai yang ditunjuk akan langsung mendapatkan akses panel admin pada modul yang dicentang.</p>
                     </div>
 
-                    <!-- 2. Pilih Unit / Peran Admin -->
+                    <!-- 2. Pilih Unit / Peran Admin (Bisa Lebih Dari 1) -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                            Pilih Unit Layanan yang Ditugaskan <span class="text-rose-500">*</span>
-                        </label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                Pilih Unit Layanan yang Ditugaskan <span class="text-rose-500">*</span>
+                            </label>
+                            <span class="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                                <i class="bi bi-check-all text-sm"></i> Bisa pilih lebih dari 1 unit
+                            </span>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="roleOptionsGrid">
                             @foreach($roleDefinitions as $rKey => $rMeta)
                                 <label class="p-3.5 rounded-2xl border border-slate-200 hover:border-emerald-500 transition cursor-pointer flex items-start gap-3 bg-white has-[:checked]:bg-emerald-50/70 has-[:checked]:border-emerald-500 has-[:checked]:shadow-xs">
-                                    <input type="radio" 
-                                           name="admin_role" 
+                                    <input type="checkbox" 
+                                           name="admin_roles[]" 
                                            value="{{ $rKey }}" 
-                                           id="radioRole_{{ $rKey }}"
-                                           required 
-                                           class="mt-1 text-emerald-600 focus:ring-emerald-500">
+                                           id="checkRole_{{ $rKey }}"
+                                           class="role-checkbox mt-1 text-emerald-600 focus:ring-emerald-500 rounded">
                                     <div class="space-y-0.5">
                                         <div class="flex items-center gap-2">
                                             <i class="bi {{ $rMeta['icon'] }}" style="color: {{ $rMeta['color'] }};"></i>
@@ -375,6 +396,10 @@
                                 </label>
                             @endforeach
                         </div>
+                        <p class="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5">
+                            <i class="bi bi-info-circle text-emerald-600"></i>
+                            <span>Centang 2 unit atau lebih agar satu guru/tendik dapat saling membantu mengerjakan modul admin.</span>
+                        </p>
                     </div>
 
                     <!-- 3. Catatan / Surat Keputusan (SK) Opsional -->
@@ -405,22 +430,51 @@
 </div>
 
 <script>
+    function clearRoleCheckboxes() {
+        document.querySelectorAll('.role-checkbox').forEach(cb => cb.checked = false);
+    }
+
+    function checkRoles(roles) {
+        if (!roles) return;
+        const roleArr = Array.isArray(roles) ? roles : roles.split(',').map(s => s.trim()).filter(Boolean);
+        roleArr.forEach(r => {
+            const el = document.getElementById('checkRole_' + r);
+            if (el) el.checked = true;
+        });
+    }
+
     function setModalRole(roleKey) {
-        if (!roleKey) return;
-        const radio = document.getElementById('radioRole_' + roleKey);
-        if (radio) {
-            radio.checked = true;
+        clearRoleCheckboxes();
+        const selectUser = document.getElementById('selectUserId');
+        const selectedOption = selectUser ? selectUser.options[selectUser.selectedIndex] : null;
+        const existingRoles = selectedOption ? selectedOption.getAttribute('data-roles') : '';
+        
+        if (existingRoles) {
+            checkRoles(existingRoles);
+        }
+        if (roleKey) {
+            checkRoles(roleKey);
         }
     }
 
-    function setEditModal(userId, currentRole) {
+    function setEditModal(userId, currentRoles) {
         const selectUser = document.getElementById('selectUserId');
         if (selectUser) {
             selectUser.value = userId;
         }
-        if (currentRole) {
-            setModalRole(currentRole);
+        clearRoleCheckboxes();
+        if (currentRoles) {
+            checkRoles(currentRoles);
         }
     }
+
+    document.getElementById('selectUserId')?.addEventListener('change', function() {
+        clearRoleCheckboxes();
+        const selectedOption = this.options[this.selectedIndex];
+        const existingRoles = selectedOption ? selectedOption.getAttribute('data-roles') : '';
+        if (existingRoles) {
+            checkRoles(existingRoles);
+        }
+    });
 </script>
 @endsection

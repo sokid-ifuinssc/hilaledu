@@ -25,7 +25,7 @@ class AuthController extends Controller
             $user = Auth::user();
             if ($user->isSuperAdmin()) {
                 return redirect()->intended(route('superadmin.dashboard'));
-            } elseif ($user->role === 'admin' || !empty($user->admin_role)) {
+            } elseif ($user->role === 'admin') {
                 if (!empty($user->admin_role) && \Illuminate\Support\Facades\Route::has($user->admin_role . '.dashboard')) {
                     return redirect()->intended(route($user->admin_role . '.dashboard'));
                 }

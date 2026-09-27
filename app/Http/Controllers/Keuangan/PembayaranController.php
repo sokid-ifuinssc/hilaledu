@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Keuangan;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pembayaran;
+use App\Models\Tagihan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class PembayaranController extends Controller
 {
@@ -13,15 +15,12 @@ class PembayaranController extends Controller
      */
     public function index()
     {
-        //
-    }
+        $pembayarans = Pembayaran::with(['tagihan.siswa', 'penerima'])
+            ->orderBy('tanggal_bayar', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        return view('keuangan.pembayaran.index', compact('pembayarans'));
     }
 
     /**
@@ -29,39 +28,57 @@ class PembayaranController extends Controller
      */
     public function store(Request $request)
     {
-        //
-    }
+        $request->validate([
+            'tagihan_id' => 'required|exists:tagihans,id',
+            'nominal_bayar' => 'required|numeric|min:1',
+            'tanggal_bayar' => 'required|date',
+            'metode_pembayaran' => 'required|string'
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Pembayaran $pembayaran)
-    {
-        //
-    }
+        $tagihan = Tagihan::findOrFail($request->tagihan_id);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Pembayaran $pembayaran)
-    {
-        //
-    }
+        // Validate max nominal
+        $sisaTagihan = $tagihan->nominal - $tagihan->terbayar;
+        if ($request->nominal_bayar > $sisaTagihan) {
+            return back()->with('error', 'Nominal bayar melebihi sisa tagihan.');
+        }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Pembayaran $pembayaran)
-    {
-        //
+        // Create transaction
+        Pembayaran::create([
+            'kode_transaksi' => 'TRX-' . strtoupper(Str::random(8)),
+            'tagihan_id' => $tagihan->id,
+            'nominal_bayar' => $request->nominal_bayar,
+            'tanggal_bayar' => $request->tanggal_bayar,
+            'metode_pembayaran' => $request->metode_pembayaran,
+            'catatan' => $request->catatan,
+            'penerima_id' => auth()->id(),
+        ]);
+
+        // Update tagihan
+        $tagihan->terbayar += $request->nominal_bayar;
+        if ($tagihan->terbayar >= $tagihan->nominal) {
+            $tagihan->status = 'lunas';
+        }
+        $tagihan->save();
+
+        return back()->with('success', 'Pembayaran berhasil dicatat.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Pembayaran $pembayaran)
+    public function destroy($id)
     {
-        //
+        $pembayaran = Pembayaran::findOrFail($id);
+        $tagihan = $pembayaran->tagihan;
+        
+        $tagihan->terbayar -= $pembayaran->nominal_bayar;
+        $tagihan->status = 'belum_lunas'; // revert status
+        $tagihan->save();
+
+        $pembayaran->delete();
+
+        return back()->with('success', 'Transaksi pembayaran berhasil dibatalkan.');
     }
 }
 

@@ -4,9 +4,10 @@ namespace App\Http\Controllers\SuperAdmin\Payroll;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Payroll;
-use App\Models\PayrollPeriode;
+use App\Models\Payroll\Payroll;
+use App\Models\Payroll\PayrollPeriode;
 use App\Models\User;
+
 
 class PayrollReportController extends Controller
 {

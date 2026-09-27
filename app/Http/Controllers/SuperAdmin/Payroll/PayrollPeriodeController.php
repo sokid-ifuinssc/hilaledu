@@ -122,16 +122,18 @@ class PayrollPeriodeController extends Controller
 
         DB::transaction(function () use ($periode, $pegawais, &$generatedCount) {
             foreach ($pegawais as $pegawai) {
+                $isGuru = $pegawai->role === 'guru';
                 $setting = $pegawai->payrollSetting;
                 if (!$setting) {
-                    $isGuru = $pegawai->role === 'guru';
                     $setting = PayrollSetting::create([
                         'user_id'              => $pegawai->id,
-                        'gaji_pokok'           => $isGuru ? 1500000 : 1800000,
+                        'gaji_pokok'           => $isGuru ? 0 : 1800000,
                         'honor_per_jam'        => $isGuru ? 35000 : 0,
-                        'jam_mengajar_default' => $isGuru ? 24 : 0,
+                        'jam_mengajar_default' => $isGuru ? ($pegawai->total_jam_mengajar ?: 24) : 0,
                         'tunjangan_jabatan'    => 0,
-                        'tunjangan_kehadiran'  => 200000,
+                        'detail_tunjangan_tugas' => [],
+                        'tunjangan_kehadiran'  => $isGuru ? 0 : 250000,
+                        'transport_per_hari'   => 20000,
                         'tunjangan_lain'       => 0,
                         'potongan_bpjs'        => 45000,
                         'potongan_koperasi'    => 50000,
@@ -147,24 +149,44 @@ class PayrollPeriodeController extends Controller
                     'user_id'            => $pegawai->id,
                 ]);
 
-                // --- 1. SINKRONISASI JAM MENGAJAR ---
-                $jadwals = \App\Models\JadwalPelajaran::where('guru_user_id', $pegawai->id)->get();
-                $jamMingguan = 0;
-                foreach($jadwals as $j) {
-                    $jamMingguan += ($j->jam_ke_selesai - $j->jam_ke_mulai + 1);
+                // --- 1. SINKRONISASI JAM MENGAJAR DARI PENUGASAN DATABASE ---
+                $jamMengajar = 0;
+                if ($isGuru) {
+                    $jamMengajar = $pegawai->total_jam_mengajar;
+                    if ($jamMengajar <= 0) {
+                        $jamMengajar = (int) $setting->jam_mengajar_default;
+                    }
                 }
-                $totalJam = $jamMingguan * 4; // Asumsi 4 minggu per bulan
 
-                // --- 2. SINKRONISASI KEHADIRAN ---
-                $kehadiran = \App\Models\PresensiHarianGuru::where('guru_user_id', $pegawai->id)
+                // --- 2. SINKRONISASI KEHADIRAN & TRANSPORT BERDASARKAN TANGGAL UNIK ---
+                // Guru: dihubungkan dengan tanggal hadir (PresensiHarianGuru) dan/atau pembuatan laporan KBM (LaporanKbm)
+                // "jika dalam satu hari itu ada lebih dari satu mapel tetap dihitungnya satu hari"
+                
+                // Ambil tanggal dari Presensi Harian Guru
+                $presensiDates = \App\Models\PresensiHarianGuru::where('guru_user_id', $pegawai->id)
                     ->whereMonth('tanggal', $periode->bulan)
                     ->whereYear('tanggal', $periode->tahun)
-                    ->whereIn('status_masuk', ['Hadir', 'Terlambat'])
-                    ->count();
+                    ->where(function($q) {
+                        $q->whereIn('status_masuk', ['Hadir', 'hadir', 'Terlambat', 'terlambat'])
+                          ->orWhereNotNull('jam_masuk');
+                    })
+                    ->pluck('tanggal')
+                    ->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'));
+
+                // Ambil tanggal realisasi dari Laporan KBM
+                $kbmDates = \App\Models\LaporanKbm::where('guru_user_id', $pegawai->id)
+                    ->whereMonth('tanggal_realisasi', $periode->bulan)
+                    ->whereYear('tanggal_realisasi', $periode->tahun)
+                    ->pluck('tanggal_realisasi')
+                    ->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'));
+
+                $uniqueDates = $presensiDates->concat($kbmDates)->unique()->filter()->values();
+                $kehadiran = $uniqueDates->count();
 
                 $payroll->nomor_slip          = $nomorSlip;
-                $payroll->gaji_pokok          = $setting->gaji_pokok;
-                $payroll->jumlah_jam_mengajar = $totalJam > 0 ? $totalJam : $setting->jam_mengajar_default;
+                // Untuk guru, gaji pokok ditiadakan (0)
+                $payroll->gaji_pokok          = $isGuru ? 0 : $setting->gaji_pokok;
+                $payroll->jumlah_jam_mengajar = $jamMengajar;
                 $payroll->jumlah_kehadiran    = $kehadiran;
                 $payroll->status              = $payroll->status ?? 'draft';
                 $payroll->metode_pembayaran   = !empty($setting->nomor_rekening) ? 'transfer' : 'tunai';
@@ -174,8 +196,8 @@ class PayrollPeriodeController extends Controller
                 $payroll->items()->delete();
 
                 // 1. Tambah Penerimaan
-                // Gaji Pokok
-                if ($setting->gaji_pokok > 0) {
+                // Gaji Pokok (hanya jika tendik atau jika non-guru dan memiliki gaji pokok > 0)
+                if (!$isGuru && $setting->gaji_pokok > 0) {
                     PayrollItem::create([
                         'payroll_id'    => $payroll->id,
                         'nama_komponen' => 'Gaji Pokok',
@@ -185,53 +207,77 @@ class PayrollPeriodeController extends Controller
                     ]);
                 }
 
-                // Honor Jam Mengajar (khusus guru)
-                $honorJam = (float) $setting->honor_per_jam * (int) $payroll->jumlah_jam_mengajar;
-                if ($honorJam > 0) {
-                    PayrollItem::create([
-                        'payroll_id'    => $payroll->id,
-                        'nama_komponen' => 'Honor Jam Mengajar',
-                        'jenis'         => 'penerimaan',
-                        'nominal'       => $honorJam,
-                        'keterangan'    => "{$payroll->jumlah_jam_mengajar} Jam x Rp " . number_format($setting->honor_per_jam, 0, ',', '.'),
-                    ]);
-                    $payroll->total_honor_jam = $honorJam;
-                }
-
-                // Tunjangan Tugas Tambahan (Sinkronisasi dari Master Akademik)
-                $daftarTugas = $pegawai->daftar_jabatan; // get from mutators (which looks at users.tugas_tambahan)
-                if (is_array($daftarTugas) && count($daftarTugas) > 0) {
-                    foreach ($daftarTugas as $tugas) {
-                        // Cari default nominal dari Master Tugas Tambahan
-                        $komp = \App\Models\TugasTambahan::where('nama', $tugas)->where('is_aktif', true)->first();
-                        $nominalTugas = $komp ? $komp->nominal_gaji : 0;
-                        
+                // Honor Jam Mengajar (khusus guru diambil dari penugasan jam mengajar)
+                $honorJam = 0;
+                if ($isGuru) {
+                    $honorJam = (float) $setting->honor_per_jam * (int) $payroll->jumlah_jam_mengajar;
+                    if ($honorJam > 0) {
                         PayrollItem::create([
                             'payroll_id'    => $payroll->id,
-                            'nama_komponen' => 'Tugas Tambahan: ' . $tugas,
+                            'nama_komponen' => 'Honor Jam Mengajar',
                             'jenis'         => 'penerimaan',
-                            'nominal'       => $nominalTugas,
-                            'keterangan'    => 'Kategori: ' . ($komp ? $komp->kategori : 'Umum'),
+                            'nominal'       => $honorJam,
+                            'keterangan'    => "{$payroll->jumlah_jam_mengajar} Jam x Rp " . number_format($setting->honor_per_jam, 0, ',', '.'),
                         ]);
                     }
-                } elseif ($setting->tunjangan_jabatan > 0) {
-                    // Fallback jika tidak ada tugas_tambahan spesifik namun ada setting
+                }
+                $payroll->total_honor_jam = $honorJam;
+
+                // Uang Transport Kehadiran / KBM
+                // Untuk guru: Tarif transport per hari x jumlah tanggal unik hadir/kbm
+                // Untuk tendik: Tunjangan kehadiran default
+                if ($isGuru) {
+                    $tarifTransport = (float) ($setting->transport_per_hari ?? 20000);
+                    $totalTransport = $kehadiran * $tarifTransport;
+                    if ($totalTransport > 0) {
+                        PayrollItem::create([
+                            'payroll_id'    => $payroll->id,
+                            'nama_komponen' => 'Uang Transport Kehadiran / KBM',
+                            'jenis'         => 'penerimaan',
+                            'nominal'       => $totalTransport,
+                            'keterangan'    => "{$kehadiran} Hari Hadir/Laporan KBM x Rp " . number_format($tarifTransport, 0, ',', '.'),
+                        ]);
+                    }
+                } else {
+                    if ($setting->tunjangan_kehadiran > 0) {
+                        PayrollItem::create([
+                            'payroll_id'    => $payroll->id,
+                            'nama_komponen' => 'Tunjangan Kehadiran & Transport',
+                            'jenis'         => 'penerimaan',
+                            'nominal'       => $setting->tunjangan_kehadiran,
+                            'keterangan'    => 'Uang transport dan kehadiran',
+                        ]);
+                    }
+                }
+
+                // Tunjangan Tugas Tambahan (Diisi per-tugas tambahan, nominal > 0 dimasukkan, yang 0/non-rutin dilewati)
+                $detailTugas = $setting->detail_tunjangan_tugas;
+                $hasAddedTugas = false;
+
+                if (is_array($detailTugas) && count($detailTugas) > 0) {
+                    foreach ($detailTugas as $namaTugas => $nominal) {
+                        $nomFloat = (float) $nominal;
+                        if ($nomFloat > 0) {
+                            PayrollItem::create([
+                                'payroll_id'    => $payroll->id,
+                                'nama_komponen' => 'Tugas Tambahan: ' . $namaTugas,
+                                'jenis'         => 'penerimaan',
+                                'nominal'       => $nomFloat,
+                                'keterangan'    => 'Tunjangan tugas tambahan rutin',
+                            ]);
+                            $hasAddedTugas = true;
+                        }
+                    }
+                }
+
+                // Fallback jika belum pernah disetting detail_tunjangan_tugas namun ada tunjangan_jabatan
+                if (!$hasAddedTugas && (float) $setting->tunjangan_jabatan > 0) {
                     PayrollItem::create([
                         'payroll_id'    => $payroll->id,
                         'nama_komponen' => 'Tunjangan Jabatan',
                         'jenis'         => 'penerimaan',
                         'nominal'       => $setting->tunjangan_jabatan,
                         'keterangan'    => 'Tunjangan jabatan default',
-                    ]);
-                }
-                // Tunjangan Kehadiran / Transport
-                if ($setting->tunjangan_kehadiran > 0) {
-                    PayrollItem::create([
-                        'payroll_id'    => $payroll->id,
-                        'nama_komponen' => 'Tunjangan Kehadiran & Transport',
-                        'jenis'         => 'penerimaan',
-                        'nominal'       => $setting->tunjangan_kehadiran,
-                        'keterangan'    => 'Uang transport dan kehadiran',
                     ]);
                 }
 
@@ -281,7 +327,7 @@ class PayrollPeriodeController extends Controller
                 }
 
                 // Hitung total penerimaan, potongan, take home pay
-                $payroll->total_tunjangan = (float) $setting->tunjangan_jabatan + (float) $setting->tunjangan_kehadiran + (float) $setting->tunjangan_lain;
+                $payroll->total_tunjangan = (float) $payroll->items()->where('jenis', 'penerimaan')->whereNotIn('nama_komponen', ['Gaji Pokok', 'Honor Jam Mengajar'])->sum('nominal');
                 $payroll->recalculateTotals();
 
                 $generatedCount++;

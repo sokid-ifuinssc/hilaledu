@@ -117,7 +117,12 @@ class AdminController extends Controller
         $kelas = $request->query('kelas');
         $guruId = $request->query('guru_id');
 
+        $tahun = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester = \App\Models\PengaturanSekolah::getActiveSemester();
+
         $query = JadwalPelajaran::with(['mataPelajaran', 'guru'])
+            ->where('tahun_ajaran', $tahun)
+            ->where('semester', $semester)
             ->orderByRaw("CASE hari WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3 WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6 ELSE 7 END")
             ->orderBy('jam_mulai');
 
@@ -154,6 +159,7 @@ class AdminController extends Controller
 
         // Analisis kelebihan alokasi jam per kelas & mapel
         $overAllocations = [];
+        $underAllocations = [];
         $allJadwalsCount = JadwalPelajaran::all();
         $scheduledJpByClassAndMapel = [];
         foreach ($allJadwalsCount as $j) {
@@ -187,6 +193,19 @@ class AdminController extends Controller
                     'kelebihan_jp' => $terjadwal - $totalAlokasi,
                     'guru_nama'    => $k->guru->name ?? 'Belum Ditentukan',
                 ];
+            } elseif ($totalAlokasi > 0 && $terjadwal < $totalAlokasi) {
+                $underAllocations[] = [
+                    'kelas'        => $k->kelas,
+                    'mapel'        => $k->mataPelajaran->nama ?? 'Mapel',
+                    'mapel_nama'   => $k->mataPelajaran->nama ?? 'Mapel',
+                    'alokasi'      => $totalAlokasi,
+                    'alokasi_jam'  => $totalAlokasi,
+                    'terjadwal'    => $terjadwal,
+                    'terjadwal_jp' => $terjadwal,
+                    'kekurangan'   => $totalAlokasi - $terjadwal,
+                    'kekurangan_jp'=> $totalAlokasi - $terjadwal,
+                    'guru_nama'    => $k->guru->name ?? 'Belum Ditentukan',
+                ];
             }
         }
 
@@ -195,53 +214,156 @@ class AdminController extends Controller
             $editItem = JadwalPelajaran::with(['mataPelajaran', 'guru'])->find($request->input('edit'));
         }
 
-        return view('admin.jadwal.index', compact('jadwals', 'kelasList', 'guruList', 'mapels', 'hari', 'kelas', 'guruId', 'kurikulumByKelas', 'overAllocations', 'editItem'));
+        return view('admin.jadwal.index', compact('jadwals', 'kelasList', 'guruList', 'mapels', 'hari', 'kelas', 'guruId', 'kurikulumByKelas', 'overAllocations', 'underAllocations', 'editItem'));
     }
     /**
-     * Auto Generate Jadwal Pelajaran (Draft) dari Kurikulum
+     * Auto Generate Jadwal Pelajaran dari Kurikulum
+     *
+     * Urutan Skala Prioritas:
+     * 1. Mapel Mulok Khusus (Boleh bentrok 1 guru mengajar bersamaan lintas rombel):
+     *    - Kelas X   : Akhlak                      -> Selasa jam ke 3-4
+     *    - Kelas XI  : Hadits dan Tafsir Hadits    -> Rabu jam ke 3-4
+     *    - Kelas XII : Hdist (Hadist)              -> Kamis jam ke 3-4
+     * 2. Mapel 3 JP                                -> Senin jam ke 2-4 (cek guru tidak bentrok)
+     * 3. Team Work Project & Project Pancasila     -> Sabtu jam ke 7-8 (fallback jam 5-6)
+     * 4. Mapel Olahraga / PJOK                     -> Pagi hari (selesai <= jam 4)
+     * 5. Mapel 4 JP                                -> Dipecah 2+2 di hari berbeda
+     * 6. Sisa Semua Mapel (2 JP)                   -> Diisi merata pada grid tetap 2 JP (1-2, 3-4, 5-6, 7-8)
      */
-        public function autoGenerateJadwal(Request $request)
+    public function autoGenerateJadwal(Request $request)
     {
+        if (!auth()->user()->canManageJadwal()) {
+            return back()->with('error', 'Akses ditolak.');
+        }
         $tahunAjaran = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
-        $semester = \App\Models\PengaturanSekolah::getActiveSemester();
+        $semester    = \App\Models\PengaturanSekolah::getActiveSemester();
 
         DB::beginTransaction();
         try {
-            // 1. Hapus jadwal yang tidak dikunci pada semester aktif
+            // Bersihkan jadwal lama yang tidak dikunci (is_locked = false)
+            // agar seluruh skala prioritas dapat diterapkan secara optimal dari awal
             \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
                 ->where('semester', $semester)
                 ->where('is_locked', false)
                 ->delete();
 
-            // 2. Ambil semua kurikulum (alokasi)
             $kurikulums = \App\Models\Kurikulum::with('mataPelajaran')
-                ->where('is_aktif', true)
-                ->get();
+                ->where('is_aktif', true)->get();
 
-            // Kelompokkan per kelas
             $kurikulumsPerKelas = $kurikulums->groupBy('kelas');
+            $kelasList = $kurikulumsPerKelas->keys()->toArray();
+            sort($kelasList);
 
             $created = 0;
-            $hariTersedia = ['Senin' => 8, 'Selasa' => 8, 'Rabu' => 8, 'Kamis' => 8, 'Jumat' => 6];
 
-            foreach ($kurikulumsPerKelas as $kelas => $kurs) {
-                $tingkat = substr($kelas, 0, strpos($kelas, ' ')); // "X AKL" -> "X"
-                if (!$tingkat) $tingkat = $kelas;
+            $hariConfig = [
+                'Senin' => 8, 'Selasa' => 8, 'Rabu' => 8,
+                'Kamis' => 8, 'Jumat'  => 6, 'Sabtu' => 8,
+            ];
+            $hariList = array_keys($hariConfig);
 
-                // Inisialisasi slot (false = kosong, true = terisi)
-                $slots = [];
-                foreach ($hariTersedia as $hari => $maxJam) {
-                    for ($j = 1; $j <= $maxJam; $j++) {
-                        $slots[$hari][$j] = false;
+            // Bangun peta slot guru dari jadwal yang dikunci (is_locked = true)
+            $guruSlots = [];
+            foreach (\App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
+                ->where('semester', $semester)->where('is_locked', true)->get() as $ej) {
+                if ($ej->guru_user_id) {
+                    for ($j = $ej->jam_ke_mulai; $j <= $ej->jam_ke_selesai; $j++) {
+                        $guruSlots[$ej->guru_user_id][$ej->hari][$j] = true;
                     }
                 }
+            }
 
-                // Tandai slot yang sudah ada (is_locked = true)
+            // Helper: cek apakah slot kosong untuk kelas dan guru
+            $bisaDitempatkan = function (string $hari, int $start, int $end, ?int $guruId)
+                use (&$slots, &$guruSlots, $hariConfig): bool {
+                $maxJam = $hariConfig[$hari] ?? 0;
+                if ($end > $maxJam || $start < 1) return false;
+                for ($j = $start; $j <= $end; $j++) {
+                    if (!isset($slots[$hari][$j]) || $slots[$hari][$j]) return false;
+                    if ($guruId && !empty($guruSlots[$guruId][$hari][$j])) return false;
+                }
+                return true;
+            };
+
+            // Helper: simpan 1 record jadwal & tandai slot terpakai
+            $tempatkan = function ($kur, string $hari, int $start, int $end, bool $allowGuruConflict = false)
+                use (&$slots, &$guruSlots, &$created, $tahunAjaran, $semester) {
+                $times  = \App\Models\JadwalPelajaran::calculateTimesFromJamKe($hari, $start, $end);
+                $guruId = $kur->guru_user_id ?: ($kur->mataPelajaran->guru_user_id ?? null);
+                \App\Models\JadwalPelajaran::create([
+                    'hari'              => $hari,
+                    'jam_ke_mulai'      => $start,
+                    'jam_ke_selesai'    => $end,
+                    'jam_mulai'         => $times['jam_mulai'],
+                    'jam_selesai'       => $times['jam_selesai'],
+                    'kelas'             => $kur->kelas,
+                    'mata_pelajaran_id' => $kur->mata_pelajaran_id,
+                    'guru_user_id'      => $guruId,
+                    'tahun_ajaran'      => $tahunAjaran,
+                    'semester'          => $semester,
+                    'is_locked'         => false,
+                ]);
+                for ($j = $start; $j <= $end; $j++) {
+                    $slots[$hari][$j] = true;
+                    if ($guruId) {
+                        $guruSlots[$guruId][$hari][$j] = true;
+                    }
+                }
+                $created++;
+            };
+
+            // Helper: cari 1 blok berukuran $size pada grid tetap
+            $cariBlok = function (
+                $kur, int $size, array $dayOrder,
+                array $excludeDays = [], bool $isOlahraga = false
+            ) use (&$slots, $hariConfig, $bisaDitempatkan): ?array {
+                $guruId = $kur->guru_user_id ?: ($kur->mataPelajaran->guru_user_id ?? null);
+                foreach ($dayOrder as $hari) {
+                    if (in_array($hari, $excludeDays)) continue;
+                    $maxJam = $hariConfig[$hari] ?? 0;
+                    if ($maxJam < $size) continue;
+
+                    if ($size == 3) {
+                        $starts = ($hari === 'Senin') ? [2] : [];
+                    } elseif ($size == 2) {
+                        if ($hari === 'Senin') {
+                            $starts = [5, 7];
+                        } else {
+                            $starts = [1, 3, 5, 7];
+                        }
+                    } else {
+                        $starts = range(1, $maxJam - $size + 1);
+                    }
+
+                    $starts = array_filter($starts, fn($s) => ($s + $size - 1) <= $maxJam);
+                    $starts = array_values($starts);
+                    shuffle($starts);
+
+                    foreach ($starts as $start) {
+                        $end = $start + $size - 1;
+                        if ($isOlahraga && $end > 4) continue;
+                        if ($bisaDitempatkan($hari, $start, $end, $guruId)) {
+                            return ['hari' => $hari, 'start' => $start, 'end' => $end];
+                        }
+                    }
+                }
+                return null;
+            };
+
+            // PROSES PER KELAS
+            foreach ($kelasList as $kelas) {
+                $kurs    = $kurikulumsPerKelas[$kelas];
+                $tingkat = strtok($kelas, ' ');
+
+                $slots = [];
+                foreach ($hariConfig as $hari => $maxJam) {
+                    for ($j = 1; $j <= $maxJam; $j++) $slots[$hari][$j] = false;
+                }
+                $slots['Senin'][1] = true; // Upacara
+
+                // Jadwal locked yang sudah ada
                 $lockedJadwals = \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
-                    ->where('semester', $semester)
-                    ->where('kelas', $kelas)
-                    ->where('is_locked', true)
-                    ->get();
+                    ->where('semester', $semester)->where('kelas', $kelas)->where('is_locked', true)->get();
 
                 foreach ($lockedJadwals as $lj) {
                     if (isset($slots[$lj->hari])) {
@@ -251,182 +373,226 @@ class AdminController extends Controller
                     }
                 }
 
-                // RULE 1: Kosongkan Senin Jam 1 (Upacara)
-                $slots['Senin'][1] = true;
-
-                // Hitung sisa jam untuk setiap kurikulum
+                // Hitung sisa jam per mapel
                 $sisaJam = [];
                 foreach ($kurs as $kur) {
-                    $sudahTerjadwal = $lockedJadwals->where('mata_pelajaran_id', $kur->mata_pelajaran_id)->sum(function($q) {
-                        return ($q->jam_ke_selesai - $q->jam_ke_mulai) + 1;
-                    });
-                    $sisa = $kur->alokasi_jam - $sudahTerjadwal;
-                    if ($sisa > 0) {
+                    $jadwalIni = $lockedJadwals->where('mata_pelajaran_id', $kur->mata_pelajaran_id);
+                    $sudah     = $jadwalIni->sum(fn($j) => ($j->jam_ke_selesai - $j->jam_ke_mulai) + 1);
+                    $hariAda   = $jadwalIni->pluck('hari')->unique()->values()->toArray();
+
+                    if ($sudah < $kur->alokasi_jam) {
                         $sisaJam[$kur->id] = [
                             'kurikulum' => $kur,
-                            'sisa' => $sisa
+                            'sisa'      => $kur->alokasi_jam - $sudah,
+                            'hariAda'   => $hariAda,
                         ];
                     }
                 }
 
-                // RULE 2: Mulok (Selasa 3-4 untuk X, Rabu 3-4 untuk XI, Kamis 3-4 untuk XII)
-                $mulokHari = null;
-                if ($tingkat === 'X') $mulokHari = 'Selasa';
-                elseif ($tingkat === 'XI') $mulokHari = 'Rabu';
-                elseif ($tingkat === 'XII') $mulokHari = 'Kamis';
+                // =========================================================
+                // PRIORITAS 1: MAPEL MULOK KHUSUS (JAM 3-4, BOLEH BENTROK GURU)
+                //   Kelas X  : Akhlak                   -> Selasa jam 3-4
+                //   Kelas XI : Hadits dan Tafsir Hadits   -> Rabu jam 3-4
+                //   Kelas XII: Hdist (Hadist)            -> Kamis jam 3-4
+                // =========================================================
+                foreach ($sisaJam as $id => &$data) {
+                    if ($data['sisa'] < 2) continue;
+                    $kur   = $data['kurikulum'];
+                    $mapel = $kur->mataPelajaran;
+                    if (!$mapel) continue;
 
-                if ($mulokHari) {
-                    // Cari mapel mulok (sub_kategori = 'Muatan Lokal' atau nama mengandung 'Muatan Lokal' atau 'Mulok')
-                    foreach ($sisaJam as $id => &$data) {
-                        $mapel = $data['kurikulum']->mataPelajaran;
-                        if ($mapel && ($mapel->sub_kategori === 'Muatan Lokal' || stripos($mapel->nama, 'Mulok') !== false || stripos($mapel->nama, 'Muatan Lokal') !== false)) {
-                            // Jadwalkan 2 jam di hari mulok
-                            if (!$slots[$mulokHari][3] && !$slots[$mulokHari][4] && $data['sisa'] >= 2) {
-                                $this->buatJadwal($data['kurikulum'], $mulokHari, 3, 4, true);
-                                $slots[$mulokHari][3] = true;
-                                $slots[$mulokHari][4] = true;
-                                $data['sisa'] -= 2;
-                                $created++;
-                            }
-                            break; // Hanya 1 mulok per kelas (asumsi)
-                        }
+                    $targetHari = null;
+                    if ($tingkat === 'X' && (
+                        stripos($mapel->nama, 'Akhlak') !== false ||
+                        ($mapel->sub_kategori ?? '') === 'Muatan Lokal' ||
+                        stripos($mapel->nama, 'Mulok') !== false
+                    )) {
+                        $targetHari = 'Selasa';
+                    } elseif ($tingkat === 'XI' && (
+                        stripos($mapel->nama, 'Hadits') !== false ||
+                        stripos($mapel->nama, 'Tafsir') !== false ||
+                        ($mapel->sub_kategori ?? '') === 'Muatan Lokal' ||
+                        stripos($mapel->nama, 'Mulok') !== false
+                    )) {
+                        $targetHari = 'Rabu';
+                    } elseif ($tingkat === 'XII' && (
+                        stripos($mapel->nama, 'Hdist') !== false ||
+                        stripos($mapel->nama, 'Hadist') !== false ||
+                        stripos($mapel->nama, 'Hadits') !== false ||
+                        ($mapel->sub_kategori ?? '') === 'Muatan Lokal' ||
+                        stripos($mapel->nama, 'Mulok') !== false
+                    )) {
+                        $targetHari = 'Kamis';
+                    }
+
+                    if (!$targetHari) continue;
+
+                    // Khusus mapel ini, boleh bentrok satu guru lintas rombel (guruId = null)
+                    if ($bisaDitempatkan($targetHari, 3, 4, null)) {
+                        $tempatkan($kur, $targetHari, 3, 4, true);
+                        $data['sisa'] -= 2;
+                        if (!in_array($targetHari, $data['hariAda'])) $data['hariAda'][] = $targetHari;
                     }
                 }
+                unset($data);
 
-                // RULE 3: 3 Jam -> Prioritas Senin 2,3,4
-                if (!$slots['Senin'][2] && !$slots['Senin'][3] && !$slots['Senin'][4]) {
-                    foreach ($sisaJam as $id => &$data) {
-                        if ($data['sisa'] == 3) {
-                            $this->buatJadwal($data['kurikulum'], 'Senin', 2, 4, true);
-                            $slots['Senin'][2] = true;
-                            $slots['Senin'][3] = true;
-                            $slots['Senin'][4] = true;
-                            $data['sisa'] -= 3;
-                            $created++;
-                            break; // Hanya 1 mapel yang bisa menempati
-                        }
-                    }
-                }
-
-                // Sisa jam diacak
-                $hariKeys = array_keys($hariTersedia);
-
+                // =========================================================
+                // PRIORITAS 2: MAPEL 3 JAM -> SENIN JAM 2-4
+                // =========================================================
                 foreach ($sisaJam as $id => &$data) {
                     $kur = $data['kurikulum'];
+                    if ($kur->alokasi_jam !== 3 || $data['sisa'] !== 3) continue;
                     $guruId = $kur->guru_user_id ?: ($kur->mataPelajaran->guru_user_id ?? null);
+                    if ($bisaDitempatkan('Senin', 2, 4, $guruId)) {
+                        $tempatkan($kur, 'Senin', 2, 4);
+                        $data['sisa'] -= 3;
+                        if (!in_array('Senin', $data['hariAda'])) $data['hariAda'][] = 'Senin';
+                        break;
+                    }
+                }
+                unset($data);
 
-                    while ($data['sisa'] > 0) {
-                        // Tentukan block size
-                        $blockSize = 1;
-                        if ($data['sisa'] >= 4) $blockSize = 2; // Pecah 4 jadi 2+2
-                        elseif ($data['sisa'] >= 2) $blockSize = 2;
-                        else $blockSize = 1;
+                // =========================================================
+                // PRIORITAS 3: TEAM WORK PROJECT & PROJECT PANCASILA
+                //   -> JAM TERAKHIR HARI SABTU (JAM 7-8)
+                // =========================================================
+                foreach ($sisaJam as $id => &$data) {
+                    if ($data['sisa'] < 2) continue;
+                    $kur   = $data['kurikulum'];
+                    $mapel = $kur->mataPelajaran;
+                    if (!$mapel) continue;
+                    $isTWP = (
+                        stripos($mapel->nama, 'Team Work Project') !== false ||
+                        stripos($mapel->nama, 'TWP')               !== false ||
+                        stripos($mapel->nama, 'Project Pancasila') !== false ||
+                        stripos($mapel->nama, 'Projek Pancasila')  !== false ||
+                        stripos($mapel->nama, 'P5')                !== false
+                    );
+                    if (!$isTWP) continue;
 
-                        // Coba cari slot kosong
-                        $found = false;
-                        shuffle($hariKeys); // Acak urutan hari
+                    $guruId = $kur->guru_user_id ?: ($mapel->guru_user_id ?? null);
 
-                        foreach ($hariKeys as $hari) {
-                            $maxJam = $hariTersedia[$hari];
-                            // Acak jam mulai (dari 1 sampai maxJam - blockSize + 1)
-                            $possibleStarts = range(1, $maxJam - $blockSize + 1);
-                            shuffle($possibleStarts);
+                    if ($bisaDitempatkan('Sabtu', 7, 8, $guruId)) {
+                        $tempatkan($kur, 'Sabtu', 7, 8);
+                        $data['sisa'] -= 2;
+                        if (!in_array('Sabtu', $data['hariAda'])) $data['hariAda'][] = 'Sabtu';
+                    } elseif ($bisaDitempatkan('Sabtu', 5, 6, $guruId)) {
+                        $tempatkan($kur, 'Sabtu', 5, 6);
+                        $data['sisa'] -= 2;
+                        if (!in_array('Sabtu', $data['hariAda'])) $data['hariAda'][] = 'Sabtu';
+                    }
+                }
+                unset($data);
 
-                            foreach ($possibleStarts as $start) {
-                                $end = $start + $blockSize - 1;
-                                
-                                // Cek apakah slot di kelas ini kosong
-                                $isKosong = true;
-                                for ($j = $start; $j <= $end; $j++) {
-                                    if ($slots[$hari][$j]) {
-                                        $isKosong = false;
-                                        break;
-                                    }
-                                }
+                // =========================================================
+                // PRIORITAS 4: MAPEL OLAHRAGA (PJOK) -> PAGI HARI (<= jam 4)
+                // =========================================================
+                foreach ($sisaJam as $id => &$data) {
+                    if ($data['sisa'] < 2) continue;
+                    $kur   = $data['kurikulum'];
+                    $mapel = $kur->mataPelajaran;
+                    if (!$mapel) continue;
+                    $isOlahraga = (
+                        stripos($mapel->nama, 'Olahraga') !== false ||
+                        stripos($mapel->nama, 'Jasmani')  !== false ||
+                        stripos($mapel->nama, 'PJOK')     !== false
+                    );
+                    if (!$isOlahraga) continue;
 
-                                if ($isKosong) {
-                                    // Cek bentrok guru (jika guru ditentukan)
-                                    $bentrokGuru = false;
-                                    if ($guruId) {
-                                        // Cari jadwal guru di hari dan jam yang bersinggungan
-                                        $times = \App\Models\JadwalPelajaran::calculateTimesFromJamKe($hari, $start, $end);
-                                        $jamMulai = $times['jam_mulai'];
-                                        $jamSelesai = $times['jam_selesai'];
+                    $hAcak = $hariList;
+                    shuffle($hAcak);
+                    $slot = $cariBlok($kur, 2, $hAcak, $data['hariAda'], true);
+                    if (!$slot) {
+                        $slot = $cariBlok($kur, 2, $hAcak, [], true);
+                    }
+                    if ($slot) {
+                        $tempatkan($kur, $slot['hari'], $slot['start'], $slot['end']);
+                        $data['sisa'] -= 2;
+                        if (!in_array($slot['hari'], $data['hariAda'])) $data['hariAda'][] = $slot['hari'];
+                    }
+                }
+                unset($data);
 
-                                        $bentrok = \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
-                                            ->where('semester', $semester)
-                                            ->where('hari', $hari)
-                                            ->where('guru_user_id', $guruId)
-                                            ->where(function ($q) use ($jamMulai, $jamSelesai) {
-                                                $q->where('jam_mulai', '<', $jamSelesai)
-                                                  ->where('jam_selesai', '>', $jamMulai);
-                                            })->exists();
-                                        
-                                        if ($bentrok) $bentrokGuru = true;
-                                    }
+                // =========================================================
+                // PRIORITAS 5: MAPEL 4 JP -> PECAH 2+2 DI HARI BERBEDA
+                // =========================================================
+                uasort($sisaJam, fn($a, $b) => $b['sisa'] <=> $a['sisa']);
 
-                                    if (!$bentrokGuru) {
-                                        // Berhasil nemu slot!
-                                        $this->buatJadwal($kur, $hari, $start, $end, false);
-                                        for ($j = $start; $j <= $end; $j++) {
-                                            $slots[$hari][$j] = true;
-                                        }
-                                        $data['sisa'] -= $blockSize;
-                                        $created++;
-                                        $found = true;
-                                        break; // Keluar dari loop starts
-                                    }
-                                }
-                            }
-                            if ($found) break; // Keluar dari loop hari
-                        }
+                foreach ($sisaJam as $id => &$data) {
+                    if ($data['sisa'] !== 4) continue;
+                    $kur = $data['kurikulum'];
 
-                        if (!$found) {
-                            // Gagal mencari slot (mungkin bentrok guru terus). Kurangi block size jadi 1 dan coba lagi, 
-                            // atau paksa berhenti agar tidak infinite loop
-                            if ($blockSize > 1) {
-                                // Coba dipecah lebih kecil (terjadi otomatis di iterasi berikutnya jika kita kurangi sisa? Tidak, sisa belum berkurang)
-                                // Kita ubah sisa sementara untuk memaksa block size 1? Tidak, block size dihitung ulang
-                                // Break saja jika gagal total
-                                break; 
-                            } else {
-                                break; // Gagal di 1 jam
-                            }
+                    $h1 = $hariList; shuffle($h1);
+                    $blok1 = $cariBlok($kur, 2, $h1, $data['hariAda']);
+                    if ($blok1) {
+                        $tempatkan($kur, $blok1['hari'], $blok1['start'], $blok1['end']);
+                        $data['sisa'] -= 2;
+                        $data['hariAda'][] = $blok1['hari'];
+
+                        $h2 = $hariList; shuffle($h2);
+                        $blok2 = $cariBlok($kur, 2, $h2, $data['hariAda']);
+                        if ($blok2) {
+                            $tempatkan($kur, $blok2['hari'], $blok2['start'], $blok2['end']);
+                            $data['sisa'] -= 2;
+                            $data['hariAda'][] = $blok2['hari'];
                         }
                     }
                 }
-            }
+                unset($data);
+
+                // =========================================================
+                // PRIORITAS 6: SISA SEMUA MAPEL (2 JP)
+                // =========================================================
+                foreach ($sisaJam as $id => &$data) {
+                    $kur = $data['kurikulum'];
+                    while ($data['sisa'] >= 2) {
+                        $hAcak = $hariList; shuffle($hAcak);
+                        $slot = $cariBlok($kur, 2, $hAcak, $data['hariAda']);
+                        if (!$slot) {
+                            // Relaksasi: coba hari sama jika hari berbeda tidak tersedia
+                            $slot = $cariBlok($kur, 2, $hAcak, []);
+                        }
+                        if ($slot) {
+                            $tempatkan($kur, $slot['hari'], $slot['start'], $slot['end']);
+                            $data['sisa'] -= 2;
+                            if (!in_array($slot['hari'], $data['hariAda'])) $data['hariAda'][] = $slot['hari'];
+                        } else {
+                            // Fallback jika bentrok guru ketat: tempatkan di slot kelas yang kosong
+                            $placedFallback = false;
+                            foreach ($hariList as $hari) {
+                                $maxJam = $hariConfig[$hari] ?? 0;
+                                $starts = ($hari === 'Senin') ? [5, 7] : [1, 3, 5, 7];
+                                foreach ($starts as $start) {
+                                    $end = $start + 1;
+                                    if ($end <= $maxJam && $bisaDitempatkan($hari, $start, $end, null)) {
+                                        $tempatkan($kur, $hari, $start, $end, true);
+                                        $data['sisa'] -= 2;
+                                        if (!in_array($hari, $data['hariAda'])) $data['hariAda'][] = $hari;
+                                        $placedFallback = true;
+                                        break 2;
+                                    }
+                                }
+                            }
+                            if (!$placedFallback) break;
+                        }
+                    }
+                }
+                unset($data);
+            } // foreach kelas
 
             DB::commit();
-            return back()->with('success', "Berhasil Generate Acak Jadwal. {$created} blok jadwal baru telah dibuat.");
+            return back()->with('success', "Jadwal berhasil di-generate secara otomatis! {$created} sesi jadwal telah disusun sesuai urutan prioritas.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', "Gagal melakukan generate: " . $e->getMessage());
+            return back()->with('error', 'Gagal membuat jadwal otomatis: ' . $e->getMessage());
         }
-    }
-
-    private function buatJadwal($kurikulum, $hari, $jamMulai, $jamSelesai, $isLocked)
-    {
-        $times = \App\Models\JadwalPelajaran::calculateTimesFromJamKe($hari, $jamMulai, $jamSelesai);
-        $guruId = $kurikulum->guru_user_id ?: ($kurikulum->mataPelajaran->guru_user_id ?? null);
-        
-        \App\Models\JadwalPelajaran::create([
-            'hari' => $hari,
-            'jam_ke_mulai' => $jamMulai,
-            'jam_ke_selesai' => $jamSelesai,
-            'jam_mulai' => $times['jam_mulai'],
-            'jam_selesai' => $times['jam_selesai'],
-            'kelas' => $kurikulum->kelas,
-            'mata_pelajaran_id' => $kurikulum->mata_pelajaran_id,
-            'guru_user_id' => $guruId,
-            'tahun_ajaran' => \App\Models\PengaturanSekolah::getActiveTahunAjaran(),
-            'semester' => \App\Models\PengaturanSekolah::getActiveSemester(),
-            'is_locked' => $isLocked
-        ]);
     }
 
     public function jadwalStore(Request $request)
     {
+        if (!auth()->user()->canManageJadwal()) {
+            return back()->with('error', 'Akses ditolak. Anda hanya memiliki izin akses baca (read-only) untuk Jadwal.');
+        }
         $tahunAjaran = PengaturanSekolah::getActiveTahunAjaran();
         $semester = PengaturanSekolah::getActiveSemester();
 
@@ -704,6 +870,9 @@ class AdminController extends Controller
 
     public function jadwalUpdate(Request $request, JadwalPelajaran $jadwal)
     {
+        if (!auth()->user()->canManageJadwal()) {
+            return back()->with('error', 'Akses ditolak. Anda hanya memiliki izin akses baca (read-only) untuk Jadwal.');
+        }
         $guruUserId = (int) $request->input('guru_user_id');
         $kelas = $request->input('kelas');
         $mapelId = (int) $request->input('mata_pelajaran_id');
@@ -880,12 +1049,18 @@ class AdminController extends Controller
 
     public function jadwalDestroy(JadwalPelajaran $jadwal)
     {
+        if (!auth()->user()->canManageJadwal()) {
+            return back()->with('error', 'Akses ditolak. Anda hanya memiliki izin akses baca (read-only) untuk Jadwal.');
+        }
         $jadwal->delete();
         return back()->with('success', 'Jadwal pelajaran berhasil dihapus.');
     }
 
     public function jadwalBulkDelete(Request $request)
     {
+        if (!auth()->user()->canManageJadwal()) {
+            return back()->with('error', 'Akses ditolak. Anda hanya memiliki izin akses baca (read-only) untuk Jadwal.');
+        }
         $ids = $request->input('ids', []);
         if (empty($ids) || !is_array($ids)) {
             return back()->with('error', 'Silakan centang/pilih minimal satu jadwal yang ingin dihapus.');
@@ -1097,6 +1272,9 @@ class AdminController extends Controller
 
     public function jadwalImport(Request $request, \App\Services\JadwalImportExportService $service)
     {
+        if (!auth()->user()->canManageJadwal()) {
+            return back()->with('error', 'Akses ditolak. Anda hanya memiliki izin akses baca (read-only) untuk Jadwal.');
+        }
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv,txt|max:5120',
         ]);

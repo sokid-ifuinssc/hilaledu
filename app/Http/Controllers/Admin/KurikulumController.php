@@ -61,19 +61,18 @@ class KurikulumController extends Controller
         // Urutkan berdasarkan Jenjang (X, XI, XII), Kelas, Kategori (A lalu B), Sub Kategori, dan Urutan
         $kurikulums = $query->orderByRaw("CASE jenjang WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
             ->orderBy('kelas')
-            ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
             ->orderByRaw('ISNULL(urutan), urutan ASC')
-            ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 ELSE 4 END")
+            ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
+            ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 WHEN 'Praktik Kerja Lapangan****' THEN 4 ELSE 5 END")
             ->orderBy('id')
             ->paginate(50)
             ->withQueryString();
 
-        // Ringkasan KPI Statistik
-        $allActive = Kurikulum::where('is_aktif', true)->get();
-        $totalAlokasiJp = $allActive->sum('alokasi_jam');
-        $totalMapelDiampu = $allActive->count();
-        $totalGuruPengampu = $allActive->whereNotNull('guru_user_id')->pluck('guru_user_id')->unique()->count();
-        $totalRombel = $allActive->pluck('kelas')->unique()->count();
+        // Ringkasan KPI Statistik (Dioptimasi agar tidak memuat semua record)
+        $totalAlokasiJp = Kurikulum::where('is_aktif', true)->sum('alokasi_jam');
+        $totalMapelDiampu = Kurikulum::where('is_aktif', true)->count();
+        $totalGuruPengampu = Kurikulum::where('is_aktif', true)->whereNotNull('guru_user_id')->distinct('guru_user_id')->count('guru_user_id');
+        $totalRombel = Kurikulum::where('is_aktif', true)->distinct('kelas')->count('kelas');
 
         // Data Master Pilihan untuk Filter dan Modal
         $kelasList = Kelas::where('is_aktif', true)->orderBy('nama')->get();
@@ -120,6 +119,7 @@ class KurikulumController extends Controller
      */
     public function autoGenerate(Request $request)
     {
+        abort_if(!auth()->user()->canManageAcademic(), 403, 'Akses ditolak. Anda tidak memiliki wewenang mengelola kurikulum.');
         $mapels = MataPelajaran::where('is_aktif', true)->get();
         $kelasList = Kelas::with('jurusan')->where('is_aktif', true)->get();
         $tahunAjaran = PengaturanSekolah::get('tahun_pelajaran', '2025 - 2026');
@@ -201,6 +201,7 @@ class KurikulumController extends Controller
      */
     public function store(Request $request)
     {
+        abort_if(!auth()->user()->canManageAcademic(), 403, 'Akses ditolak. Anda tidak memiliki wewenang mengelola kurikulum.');
         $request->validate([
             'kelas'             => 'required|string|max:50',
             'mata_pelajaran_id' => 'required',
@@ -316,6 +317,7 @@ class KurikulumController extends Controller
      */
     public function update(Request $request, Kurikulum $kurikulum)
     {
+        abort_if(!auth()->user()->canManageAcademic(), 403, 'Akses ditolak. Anda tidak memiliki wewenang mengelola kurikulum.');
         $request->validate([
             'kelas'             => 'required|string|max:50',
             'mata_pelajaran_id' => 'required',
@@ -382,10 +384,32 @@ class KurikulumController extends Controller
     }
 
     /**
+     * Update urutan cetak via inline edit (AJAX)
+     */
+    public function updateUrutan(Request $request, Kurikulum $kurikulum)
+    {
+        abort_if(!auth()->user()->canManageAcademic(), 403, 'Akses ditolak. Anda tidak memiliki wewenang mengelola kurikulum.');
+        $request->validate([
+            'urutan' => 'nullable|integer'
+        ]);
+        
+        $kurikulum->update([
+            'urutan' => $request->input('urutan')
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Urutan berhasil diperbarui',
+            'data' => $kurikulum
+        ]);
+    }
+
+    /**
      * Hapus Satu Baris Kurikulum
      */
     public function destroy(Kurikulum $kurikulum)
     {
+        abort_if(!auth()->user()->canManageAcademic(), 403, 'Akses ditolak. Anda tidak memiliki wewenang mengelola kurikulum.');
         $info = "{$kurikulum->mataPelajaran->nama} di {$kurikulum->kelas}";
         
         // Hapus alokasi kurikulum ini saja
@@ -399,6 +423,7 @@ class KurikulumController extends Controller
      */
     public function bulkDelete(Request $request)
     {
+        abort_if(!auth()->user()->canManageAcademic(), 403, 'Akses ditolak. Anda tidak memiliki wewenang mengelola kurikulum.');
         $ids = $request->input('ids', []);
         if (empty($ids) || !is_array($ids)) {
             return redirect()->back()->with('error', 'Tidak ada data kurikulum yang dipilih untuk dihapus.');
@@ -415,6 +440,7 @@ class KurikulumController extends Controller
      */
     public function duplicate(Request $request)
     {
+        abort_if(!auth()->user()->canManageAcademic(), 403, 'Akses ditolak. Anda tidak memiliki wewenang mengelola kurikulum.');
         $request->validate([
             'from_kelas' => 'required|string',
             'to_kelas'   => 'required|string|different:from_kelas',
@@ -511,9 +537,9 @@ class KurikulumController extends Controller
 
         $kurikulums = $query->orderByRaw("CASE jenjang WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
             ->orderBy('kelas')
-            ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
             ->orderByRaw('ISNULL(urutan), urutan ASC')
-            ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 ELSE 4 END")
+            ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
+            ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 WHEN 'Praktik Kerja Lapangan****' THEN 4 ELSE 5 END")
             ->orderBy('id')
             ->get();
 
@@ -555,9 +581,9 @@ class KurikulumController extends Controller
 
         $items = $query->orderByRaw("CASE jenjang WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
             ->orderBy('kelas')
-            ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
             ->orderByRaw('ISNULL(urutan), urutan ASC')
-            ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 ELSE 4 END")
+            ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
+            ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 WHEN 'Praktik Kerja Lapangan****' THEN 4 ELSE 5 END")
             ->orderBy('id')
             ->get();
 
@@ -721,6 +747,7 @@ class KurikulumController extends Controller
      */
     public function import(Request $request)
     {
+        abort_if(!auth()->user()->canManageAcademic(), 403, 'Akses ditolak. Anda tidak memiliki wewenang mengelola kurikulum.');
         $request->validate([
             'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:10240',
         ]);

@@ -21,6 +21,10 @@
             </p>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{{ route('akademik.jadwal.sk_mengajar.print') }}" target="_blank" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                <i class="bi-printer-fill"></i>
+                <span>Cetak Lampiran SK Mengajar</span>
+            </a>
             <span class="px-3.5 py-1.5 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold flex items-center gap-1.5">
                 <i class="bi-calendar-range"></i>
                 <span>T.A. {{ $tahunAjaran }}</span>

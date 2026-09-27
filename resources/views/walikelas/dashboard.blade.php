@@ -31,9 +31,16 @@
                     @endif
                 </div>
             </div>
-            <div class="flex items-center gap-2 text-xs font-mono font-bold text-blue-300 bg-white/10 px-3 py-2 rounded-xl border border-white/10 shrink-0">
-                <i class="bi-clock-fill"></i>
-                <span>{{ \Carbon\Carbon::now()->isoFormat('dddd, D MMMM Y') }}</span>
+            <div class="flex items-center gap-3 shrink-0 flex-wrap">
+                <a href="{{ route('walikelas.jadwal') }}"
+                   class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-md transition flex items-center gap-2">
+                    <i class="bi bi-calendar3-week-fill text-sm"></i>
+                    <span>Jadwal Pelajaran Kelas</span>
+                </a>
+                <div class="flex items-center gap-2 text-xs font-mono font-bold text-blue-300 bg-white/10 px-3 py-2.5 rounded-xl border border-white/10 shrink-0">
+                    <i class="bi-clock-fill"></i>
+                    <span>{{ \Carbon\Carbon::now()->isoFormat('dddd, D MMMM Y') }}</span>
+                </div>
             </div>
         </div>
     </div>

@@ -106,7 +106,7 @@
     <div class="report-container">
         {{-- Kop Resmi Sekolah --}}
         <div class="kop-header">
-            <div class="kop-yayasan">YAYASAN PONDOK PESANTREN AL HILAL</div>
+            <div class="kop-yayasan">YAYASAN AL HILAL CIREBON</div>
             <div class="kop-sekolah">{{ $sekolah->nama_sekolah ?? 'SMK PLUS AL HILAL' }}</div>
             <div class="kop-alamat">
                 {{ $sekolah->alamat ?? 'Jl. H. Manshur No 7 Lap. Bima Rembes, Ds. Tegalgubug, Kec. Arjawinangun, Kab. Cirebon' }}<br>
@@ -196,7 +196,7 @@
         <div class="d-flex justify-content-between text-center mt-5" style="font-size:0.85rem;">
             <div>
                 Mengetahui,<br>
-                <strong>Ketua Yayasan Ponpes Al Hilal</strong>
+                <strong>Ketua Yayasan Al Hilal Cirebon</strong>
                 <div style="height: 70px;"></div>
                 <div style="border-bottom:1px solid #333; display:inline-block; min-width:180px;">
                     KH. Mukhammad Mansyur, S.Pt

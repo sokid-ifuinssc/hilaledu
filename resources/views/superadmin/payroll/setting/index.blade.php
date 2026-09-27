@@ -116,7 +116,6 @@
                     <tr>
                         <th>Pegawai</th>
                         <th>Peran & Jabatan</th>
-                        <th>Gaji Pokok</th>
                         <th>Honor Jam (Guru)</th>
                         <th>Tunj. Jabatan</th>
                         <th>Tunj. Kehadiran</th>
@@ -136,8 +135,8 @@
                             $tunjKehadiran = $setting ? (float)$setting->tunjangan_kehadiran : 0;
                             $tunjLain = $setting ? (float)$setting->tunjangan_lain : 0;
                             $totalPotongan = $setting ? ((float)$setting->potongan_bpjs + (float)$setting->potongan_koperasi + (float)$setting->potongan_lain) : 0;
-                            $totalPenerimaan = $gajiPokok + ($honorPerJam * $jamDefault) + $tunjJabatan + $tunjKehadiran + $tunjLain;
-                            $thp = max(0, $totalPenerimaan - $totalPotongan);
+                            $isGuru = $pegawai->role === 'guru';
+                            $thp = $setting ? $setting->estimasiGajiBersihAttribute() : 0;
                             $daftarJabatan = $pegawai->daftar_jabatan;
                         @endphp
                         <tr>
@@ -148,7 +147,7 @@
                                 </small>
                             </td>
                             <td>
-                                @if($pegawai->role === 'guru')
+                                @if($isGuru)
                                     <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300">Guru</span>
                                 @else
                                     <span class="badge bg-amber-100 text-amber-800 border border-amber-300">Tendik</span>
@@ -161,17 +160,25 @@
                                     @endif
                                 </div>
                             </td>
-                            <td class="fw-semibold text-slate-800">Rp {{ number_format($gajiPokok, 0, ',', '.') }}</td>
                             <td>
-                                @if($pegawai->role === 'guru')
+                                @if($isGuru)
                                     <div class="text-slate-800 small fw-semibold">Rp {{ number_format($honorPerJam, 0, ',', '.') }}/jam</div>
-                                    <small class="text-slate-500">Est: {{ $jamDefault }} jam/bln</small>
+                                    <small class="text-emerald-700 fw-medium">
+                                        <i class="bi bi-clock"></i> {{ $pegawai->total_jam_mengajar ?: $jamDefault }} Jam Database
+                                    </small>
                                 @else
                                     <span class="text-slate-400">-</span>
                                 @endif
                             </td>
                             <td class="text-emerald-700 fw-semibold">Rp {{ number_format($tunjJabatan, 0, ',', '.') }}</td>
-                            <td class="text-emerald-700 fw-semibold">Rp {{ number_format($tunjKehadiran, 0, ',', '.') }}</td>
+                            <td>
+                                @if($isGuru)
+                                    <div class="text-emerald-700 fw-semibold">Rp {{ number_format($setting->transport_per_hari ?? 20000, 0, ',', '.') }}<span class="small text-slate-500">/hari</span></div>
+                                    <small class="text-slate-400" style="font-size: 0.72rem;">Sesuai kehadiran/KBM</small>
+                                @else
+                                    <span class="text-emerald-700 fw-semibold">Rp {{ number_format($tunjKehadiran, 0, ',', '.') }}</span>
+                                @endif
+                            </td>
                             <td class="text-rose-600 fw-semibold">Rp {{ number_format($totalPotongan, 0, ',', '.') }}</td>
                             <td>
                                 <span class="fw-bold text-emerald-800 fs-6">Rp {{ number_format($thp, 0, ',', '.') }}</span>
@@ -184,7 +191,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-slate-500">
+                            <td colspan="8" class="text-center py-5 text-slate-500">
                                 <i class="bi bi-person-x fs-2 d-block mb-2 text-slate-400"></i>
                                 Tidak ada data guru atau tendik ditemukan.
                             </td>

@@ -260,6 +260,12 @@
                 </a>
             </div>
 
+            <!-- Print SK Mengajar Button -->
+            <a href="{{ route('akademik.jadwal.sk_mengajar.print') }}" target="_blank" class="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-indigo-600/20 transition">
+                <i class="bi-printer-fill text-sm"></i>
+                <span>Cetak SK Mengajar</span>
+            </a>
+
             <!-- Matriks Jadwal Resmi Button -->
             <a href="{{ route('akademik.jadwal.matrix') }}" class="px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-rose-600/20 transition">
                 <i class="bi-file-earmark-spreadsheet-fill text-sm"></i>
@@ -271,6 +277,15 @@
                 <i class="bi-file-earmark-arrow-up text-sm"></i>
                 <span>Import Excel/CSV</span>
             </button>
+
+            <!-- Kosongkan Jadwal -->
+            <form action="{{ route('akademik.jadwal.matrix.truncate') }}" method="POST" class="inline" onsubmit="return confirm('PERINGATAN: Semua jadwal untuk tahun ajaran ini akan DIHAPUS PERMANEN (termasuk yang terkunci). Apakah Anda yakin?')">
+                @csrf
+                <button type="submit" class="px-3.5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-red-600/20 transition">
+                    <i class="bi-trash3-fill text-sm"></i>
+                    <span>Kosongkan Jadwal</span>
+                </button>
+            </form>
 
             <!-- Sinkronisasi Auto Generate -->
             <form action="{{ route('akademik.jadwal.autogenerate') }}" method="POST" class="inline" onsubmit="return confirm('Proses ini akan men-generate draft jadwal (Hari Senin) secara otomatis untuk Kurikulum yang belum memiliki jadwal. Anda bisa menyesuaikan hari dan jamnya nanti. Lanjutkan?')">
@@ -312,18 +327,18 @@
     @endif
 
     <!-- Banner Kelebihan Jam Mengajar Terhadap Kurikulum -->
-    @if(!empty($overAllocations))
-    <div class="p-4 bg-amber-50/90 border border-amber-300 rounded-3xl shadow-sm text-xs text-amber-900 space-y-2">
+    @if(!empty($overAllocations) && count($overAllocations) > 0)
+    <div class="p-4 bg-amber-50/90 border border-amber-300 rounded-3xl shadow-sm text-xs text-amber-900 space-y-2 mb-4">
         <div class="flex items-center gap-2 font-black text-amber-800 text-sm">
             <i class="bi-exclamation-triangle-fill text-amber-600 text-base"></i>
             <span>Peringatan: Terdeteksi Kelebihan Jam Mengajar Terhadap Kurikulum</span>
         </div>
         <p class="text-slate-600 text-xs">
-            Beberapa mata pelajaran memiliki akumulasi jam KBM terjadwal yang melampaui alokasi kurikulum yang telah ditetapkan:
+            Beberapa mata pelajaran memiliki akumulasi jam KBM terjadwal yang melampaui alokasi kurikulum yang telah ditetapkan (klik untuk memfilter tabel):
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
             @foreach($overAllocations as $oa)
-            <div class="p-3 bg-white rounded-2xl border border-amber-200 flex items-center justify-between shadow-xs">
+            <a href="{{ route(explode('.', request()->route()->getName())[0] . '.jadwal.index', ['kelas' => $oa['kelas']]) }}" class="p-3 bg-white hover:bg-amber-100 transition rounded-2xl border border-amber-200 flex items-center justify-between shadow-xs cursor-pointer">
                 <div>
                     <span class="font-bold text-slate-800">{{ $oa['kelas'] }}</span> - <span class="text-slate-700 font-medium">{{ $oa['mapel'] }}</span>
                     <div class="text-[10.5px] text-slate-500 mt-0.5">Alokasi: {{ $oa['alokasi'] }} JP | Terjadwal: {{ $oa['terjadwal'] }} JP</div>
@@ -331,7 +346,33 @@
                 <span class="px-2.5 py-1 bg-amber-100 text-amber-800 font-black text-xs rounded-xl border border-amber-200">
                     +{{ $oa['kelebihan'] }} JP
                 </span>
-            </div>
+            </a>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+        <!-- Banner Kekurangan Jam Mengajar Terhadap Kurikulum -->
+    @if(!empty($underAllocations) && count($underAllocations) > 0)
+    <div class="p-4 bg-blue-50/90 border border-blue-300 rounded-3xl shadow-sm text-xs text-blue-900 space-y-2 mb-4">
+        <div class="flex items-center gap-2 font-black text-blue-800 text-sm">
+            <i class="bi-info-circle-fill text-blue-600 text-base"></i>
+            <span>Peringatan: Terdapat Mapel Kurikulum Belum Terjadwal Sesuai Alokasi</span>
+        </div>
+        <p class="text-slate-600 text-xs">
+            Beberapa mata pelajaran memiliki akumulasi jam KBM terjadwal yang masih kurang dari alokasi kurikulum (klik untuk memfilter tabel):
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+            @foreach($underAllocations as $ua)
+            <a href="{{ route(explode('.', request()->route()->getName())[0] . '.jadwal.index', ['kelas' => $ua['kelas']]) }}" class="p-3 bg-white hover:bg-blue-100 transition rounded-2xl border border-blue-200 flex items-center justify-between shadow-xs cursor-pointer">
+                <div>
+                    <span class="font-bold text-slate-800">{{ $ua['kelas'] }}</span> - <span class="text-slate-700 font-medium">{{ $ua['mapel'] }}</span>
+                    <div class="text-[10.5px] text-slate-500 mt-0.5">Alokasi: {{ $ua['alokasi'] }} JP | Terjadwal: {{ $ua['terjadwal'] }} JP</div>
+                </div>
+                <span class="px-2.5 py-1 bg-blue-100 text-blue-800 font-black text-xs rounded-xl border border-blue-200">
+                    -{{ $ua['kekurangan'] }} JP
+                </span>
+            </a>
             @endforeach
         </div>
     </div>
@@ -499,7 +540,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center">
+                        <td colspan="{{ auth()->user()->canManageJadwal() ? 6 : 5 }}" class="px-6 py-12 text-center">
                             <div class="max-w-md mx-auto space-y-3">
                                 <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-xl shadow-xs">
                                     <i class="bi-calendar2-plus"></i>

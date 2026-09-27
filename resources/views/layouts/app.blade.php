@@ -802,8 +802,19 @@
                 <div class="sidebar-section-title">Pusat Kendali</div>
                 <ul class="sidebar-nav">
                     <li class="sidebar-nav-item">
-                        <a href="{{ auth()->user()->isSuperAdmin() ? route('superadmin.dashboard') : route(auth()->user()->admin_role . '.dashboard') }}"
-                           class="sidebar-nav-link {{ request()->routeIs('superadmin.dashboard') || (auth()->user()->admin_role && request()->routeIs(auth()->user()->admin_role . '.dashboard')) ? 'active' : '' }}">
+                        @php
+                            $dashboardUrl = auth()->user()->isSuperAdmin()
+                                ? route('superadmin.dashboard')
+                                : (auth()->user()->role === 'guru'
+                                    ? route('guru.dashboard')
+                                    : (auth()->user()->admin_role === 'payroll'
+                                        ? route('superadmin.payroll.dashboard')
+                                        : (auth()->user()->admin_role && \Illuminate\Support\Facades\Route::has(auth()->user()->admin_role . '.dashboard')
+                                            ? route(auth()->user()->admin_role . '.dashboard')
+                                            : route('superadmin.dashboard'))));
+                        @endphp
+                        <a href="{{ $dashboardUrl }}"
+                           class="sidebar-nav-link {{ request()->routeIs('superadmin.dashboard') || request()->routeIs('guru.dashboard') || (auth()->user()->admin_role === 'payroll' && request()->routeIs('superadmin.payroll.dashboard')) || (auth()->user()->admin_role && request()->routeIs(auth()->user()->admin_role . '.dashboard')) ? 'active' : '' }}">
                             <i class="bi bi-speedometer2"></i>
                             <span>Dashboard Utama</span>
                         </a>
@@ -903,9 +914,10 @@
                 {{-- ============================================================ --}}
                 {{-- 4. LAYANAN PEMBELAJARAN & AKADEMIK                           --}}
                 {{-- ============================================================ --}}
+                @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->admin_role, ['akademik', 'bk', 'prakerin']))
                 <div class="sidebar-section-title">Akademik & KBM</div>
                 <ul class="sidebar-nav">
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'akademik' || auth()->user()->role === 'guru')
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'akademik')
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('akademik.*') ? 'active' : '' }}" 
@@ -922,6 +934,7 @@
                                 <li><a href="{{ route('akademik.kurikulum.index') }}" class="{{ request()->routeIs('akademik.kurikulum.*') ? 'active' : '' }}"><i class="bi bi-diagram-3 me-1"></i> Kurikulum & Beban Ajar</a></li>
                                 <li><a href="{{ route('akademik.jadwal.index') }}" class="{{ request()->routeIs('akademik.jadwal.index') ? 'active' : '' }}"><i class="bi bi-clock-history me-1"></i> Jadwal Pelajaran</a></li>
                                 <li><a href="{{ route('akademik.jadwal.matrix') }}" class="{{ request()->routeIs('akademik.jadwal.matrix*') ? 'active' : '' }}"><i class="bi bi-grid-3x3 me-1"></i> Matriks Jadwal Resmi</a></li>
+                                <li><a href="{{ route('akademik.jadwal.sk_mengajar.print') }}" target="_blank" class="{{ request()->routeIs('*.sk_mengajar.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-person-fill me-1" style="color: #6366f1;"></i> SK Pembagian Tugas Mengajar</a></li>
                                 <li><a href="{{ route('akademik.nilai.index') }}" class="{{ request()->routeIs('akademik.nilai.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Rekap Nilai Siswa</a></li>
                                 <li><a href="{{ route('akademik.laporan.kehadiran.index') }}" class="{{ request()->routeIs('akademik.laporan.kehadiran.*') ? 'active' : '' }}"><i class="bi bi-person-check me-1"></i> Presensi Mengajar Guru</a></li>
                                 <li><a href="{{ route('presensi-harian.index') }}" class="{{ request()->routeIs('presensi-harian.*') ? 'active' : '' }}"><i class="bi bi-person-check-fill me-1"></i> Presensi Harian Siswa</a></li>
@@ -938,7 +951,7 @@
                     {{-- ============================================================ --}}
                     {{-- 5. KESISWAAN & BIMBINGAN KONSELING (BK)                      --}}
                     {{-- ============================================================ --}}
-                    @if(auth()->check() && auth()->user()->canAccessBk())
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'bk')
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('bk.*') ? 'active' : '' }}" 
@@ -964,7 +977,7 @@
                     {{-- ============================================================ --}}
                     {{-- 6. PRAKTIK KERJA INDUSTRI (PRAKERIN / PKL)                   --}}
                     {{-- ============================================================ --}}
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasTugas('Prakerin') || auth()->user()->hasTugas('PKL') || (auth()->user()->role === 'admin' && (!auth()->user()->admin_role || auth()->user()->admin_role === 'prakerin')))
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'prakerin')
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('prakerin.*') ? 'active' : '' }}" 
@@ -988,13 +1001,15 @@
                     </li>
                     @endif
                 </ul>
+                @endif
 
                 {{-- ============================================================ --}}
                 {{-- 7. LAYANAN PENDUKUNG (KEUANGAN, KOPERASI, TRACER, GAJI)     --}}
                 {{-- ============================================================ --}}
+                @if(auth()->user()->isSuperAdmin() || in_array(auth()->user()->admin_role, ['keuangan', 'koperasi', 'tracer', 'payroll']))
                 <div class="sidebar-section-title">Layanan Pendukung</div>
                 <ul class="sidebar-nav">
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'keuangan' || (auth()->user()->role === 'admin' && (!auth()->user()->admin_role || auth()->user()->admin_role === 'keuangan')))
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'keuangan')
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('keuangan.*') ? 'active' : '' }}" 
@@ -1014,7 +1029,7 @@
                     </li>
                     @endif
 
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'koperasi' || (auth()->user()->role === 'admin' && (!auth()->user()->admin_role || auth()->user()->admin_role === 'koperasi')))
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'koperasi')
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('koperasi.*') ? 'active' : '' }}" 
@@ -1034,7 +1049,7 @@
                     </li>
                     @endif
 
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'tracer' || (auth()->user()->role === 'admin' && (!auth()->user()->admin_role || auth()->user()->admin_role === 'tracer')))
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'tracer')
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('tracer.*') ? 'active' : '' }}" 
@@ -1054,15 +1069,29 @@
                     </li>
                     @endif
 
-                    @if(auth()->user()->isSuperAdmin())
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->admin_role === 'payroll')
                     <li class="sidebar-nav-item">
-                        <a href="{{ route('superadmin.payroll.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('superadmin.payroll.*') ? 'active' : '' }}">
+                        <button type="button" 
+                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('superadmin.payroll.*') ? 'active' : '' }}" 
+                                onclick="toggleSidebarDropdown('menuPayroll')" 
+                                aria-expanded="{{ request()->routeIs('superadmin.payroll.*') ? 'true' : 'false' }}">
                             <i class="bi bi-cash-coin" style="color:#10b981;"></i>
                             <span>HilalPay (Penggajian)</span>
-                        </a>
+                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                        </button>
+                        <div class="sidebar-dropdown-menu {{ request()->routeIs('superadmin.payroll.*') ? 'show' : '' }}" id="menuPayroll">
+                            <ul class="sidebar-submenu">
+                                <li><a href="{{ route('superadmin.payroll.dashboard') }}" class="{{ request()->routeIs('superadmin.payroll.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Gaji</a></li>
+                                <li><a href="{{ route('superadmin.payroll.periode.index') }}" class="{{ request()->routeIs('superadmin.payroll.periode.*') ? 'active' : '' }}"><i class="bi bi-calendar-check me-1"></i> Proses Penggajian</a></li>
+                                <li><a href="{{ route('superadmin.payroll.setting.index') }}" class="{{ request()->routeIs('superadmin.payroll.setting.*') ? 'active' : '' }}"><i class="bi bi-sliders me-1"></i> Pengaturan Gaji Pegawai</a></li>
+                                <li><a href="{{ route('superadmin.payroll.komponen.index') }}" class="{{ request()->routeIs('superadmin.payroll.komponen.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Master Komponen</a></li>
+                                <li><a href="{{ route('superadmin.payroll.laporan.index') }}" class="{{ request()->routeIs('superadmin.payroll.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph me-1"></i> Laporan Penggajian</a></li>
+                            </ul>
+                        </div>
                     </li>
                     @endif
                 </ul>
+                @endif
 
                 {{-- ============================================================ --}}
                 {{-- 8. PENGATURAN & SISTEM                                       --}}
@@ -1084,6 +1113,68 @@
                     </li>
                 </ul>
                 @endif
+
+                {{-- ============================================================ --}}
+                {{-- MENU GURU PRIBADI (untuk guru yang ditunjuk sebagai admin)    --}}
+                {{-- ============================================================ --}}
+                @if(auth()->user()->role === 'guru')
+                @php
+                    $hasMapelAdmin = auth()->user()->getMapelDiampu()->count() > 0;
+                @endphp
+                <div class="sidebar-section-title" style="color: #fb923c; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-person-workspace"></i>
+                    <span>Tugas Guru Pribadi</span>
+                </div>
+                <ul class="sidebar-nav">
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('guru.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2" style="color:#10b981;"></i><span>Beranda Guru</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.penugasan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.penugasan.*') ? 'active' : '' }}"><i class="bi bi-briefcase-fill" style="color:#fb923c;"></i><span>Penugasan Guru</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.kalender.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.kalender.*') ? 'active' : '' }}"><i class="bi bi-calendar-event" style="color:#38bdf8;"></i><span>Kalender Akademik</span></a></li>
+
+                    @if($hasMapelAdmin)
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.perangkat-ajar.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.perangkat-ajar.*') ? 'active' : '' }}"><i class="bi bi-folder" style="color:#f59e0b;"></i><span>Perangkat Ajar</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.minggu-efektif.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.minggu-efektif.*') ? 'active' : '' }}"><i class="bi bi-calendar-check" style="color:#10b981;"></i><span>Minggu Efektif</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.rencana-pembelajaran.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rencana-pembelajaran.*') ? 'active' : '' }}"><i class="bi bi-book" style="color:#f43f5e;"></i><span>Rencana Pembelajaran</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.laporan-kbm.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.laporan-kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text" style="color:#8b5cf6;"></i><span>Laporan KBM</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.absensi.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.absensi.*') ? 'active' : '' }}"><i class="bi bi-person-check" style="color:#10b981;"></i><span>Absensi Mengajar</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.rekap-presensi.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rekap-presensi.*') ? 'active' : '' }}"><i class="bi bi-clipboard-data" style="color:#0ea5e9;"></i><span>Rekap Presensi</span></a></li>
+                    @endif
+
+                    @if(auth()->user()->hasAnyTugasTambahan())
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.realisasi-tugas-tambahan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}"><i class="bi bi-card-checklist" style="color:#eab308;"></i><span>Realisasi Tugas Tambahan</span></a></li>
+                    @endif
+
+                    @if(auth()->user()->isWaliKelas())
+                    <li class="sidebar-nav-item"><a href="{{ route('walikelas.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#6366f1;"></i><span>Jadwal Kelas Bimbingan</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('walikelas.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.dashboard') ? 'active' : '' }}"><i class="bi bi-person-badge-fill" style="color:#6366f1;"></i><span>Portal Wali Kelas</span></a></li>
+                    @endif
+
+                    @if(auth()->user()->isKaprog())
+                    <li class="sidebar-nav-item"><a href="{{ route('kaprog.jadwal.matrix') }}" class="sidebar-nav-link {{ request()->routeIs('kaprog.jadwal*') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill" style="color:#10b981;"></i><span>Matriks Jadwal Jurusan</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('kaprog.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('kaprog.dashboard') ? 'active' : '' }}"><i class="bi bi-mortarboard-fill" style="color:#8b5cf6;"></i><span>Portal Kaprog</span></a></li>
+                    @endif
+
+                    @if(auth()->user()->isWaliKelas() || auth()->user()->isKaprog() || auth()->user()->isBk() || auth()->user()->isWakaKesiswaan() || auth()->user()->isWakaKurikulum() || auth()->user()->isPembinaOsis() || auth()->user()->isPetugasPiket())
+                    <li class="sidebar-nav-item"><a href="{{ route('presensi-harian.index') }}" class="sidebar-nav-link {{ request()->routeIs('presensi-harian.*') ? 'active' : '' }}"><i class="bi bi-person-lines-fill" style="color:#0ea5e9;"></i><span>Monitoring Absensi Siswa</span></a></li>
+                    @endif
+
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.cuti.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.cuti.*') ? 'active' : '' }}"><i class="bi bi-calendar2-minus" style="color:#ef4444;"></i><span>Pengajuan Cuti</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.kegiatan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.kegiatan.*') ? 'active' : '' }}"><i class="bi bi-calendar-star" style="color:#8b5cf6;"></i><span>Kegiatan Sekolah</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('guru.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#fbbf24;"></i><span>Profil & Pendidikan</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.payroll.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.payroll.*') ? 'active' : '' }}"><i class="bi bi-wallet2" style="color:#10b981;"></i><span>Slip Gaji & Bisyarah</span></a></li>
+                </ul>
+                @endif
+
+                @if(auth()->user()->role === 'tendik')
+                <div class="sidebar-section-title" style="color: #38bdf8; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-person-badge"></i>
+                    <span>Tugas Tendik Pribadi</span>
+                </div>
+                <ul class="sidebar-nav">
+                    <li class="sidebar-nav-item"><a href="{{ route('tendik.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2" style="color:#10b981;"></i><span>Beranda Tendik</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('tendik.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#fbbf24;"></i><span>Profil & Biodata</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('tendik.payroll.index') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.payroll.*') ? 'active' : '' }}"><i class="bi bi-wallet2" style="color:#10b981;"></i><span>Slip Gaji Saya</span></a></li>
+                </ul>
+                @endif
             @else
                 {{-- ============================================================ --}}
                 {{-- PORTAL GURU, SISWA, DAN TENDIK                               --}}
@@ -1098,18 +1189,38 @@
                     </li>
 
                     @if(auth()->user()->role === 'guru')
+                        @php
+                            $hasMapel = auth()->user()->getMapelDiampu()->count() > 0;
+                        @endphp
+                        
                         <div class="sidebar-section-title mt-3">Tugas Akademik</div>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.penugasan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.penugasan.*') ? 'active' : '' }}"><i class="bi bi-briefcase-fill" style="color:#fb923c;"></i><span>Penugasan Guru</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.kalender.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.kalender.*') ? 'active' : '' }}"><i class="bi bi-calendar-event" style="color:#38bdf8;"></i><span>Kalender Akademik</span></a></li>
+                        
+                        @if($hasMapel)
+                        <li class="sidebar-nav-item"><a href="{{ route('guru.perangkat-ajar.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.perangkat-ajar.*') ? 'active' : '' }}"><i class="bi bi-folder" style="color:#f59e0b;"></i><span>Perangkat Ajar</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.minggu-efektif.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.minggu-efektif.*') ? 'active' : '' }}"><i class="bi bi-calendar-check" style="color:#10b981;"></i><span>Minggu Efektif</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.rencana-pembelajaran.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rencana-pembelajaran.*') ? 'active' : '' }}"><i class="bi bi-book" style="color:#f43f5e;"></i><span>Rencana Pembelajaran</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.laporan-kbm.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.laporan-kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text" style="color:#8b5cf6;"></i><span>Laporan KBM</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.absensi.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.absensi.*') ? 'active' : '' }}"><i class="bi bi-person-check" style="color:#10b981;"></i><span>Absensi Mengajar</span></a></li>
-                        <li class="sidebar-nav-item"><a href="{{ route('guru.realisasi-tugas-tambahan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}"><i class="bi bi-card-checklist" style="color:#eab308;"></i><span>Realisasi Tugas Tambahan</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.rekap-presensi.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rekap-presensi.*') ? 'active' : '' }}"><i class="bi bi-clipboard-data" style="color:#0ea5e9;"></i><span>Rekap Presensi</span></a></li>
-                        <li class="sidebar-nav-item"><a href="{{ route('guru.perangkat-ajar.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.perangkat-ajar.*') ? 'active' : '' }}"><i class="bi bi-folder" style="color:#f59e0b;"></i><span>Perangkat Ajar</span></a></li>
+                        @endif
+
+                        @if(auth()->user()->hasAnyTugasTambahan())
+                        <li class="sidebar-nav-item"><a href="{{ route('guru.realisasi-tugas-tambahan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}"><i class="bi bi-card-checklist" style="color:#eab308;"></i><span>Realisasi Tugas Tambahan</span></a></li>
+                        @endif
                         
                         <div class="sidebar-section-title mt-3">Monitoring & Pembimbingan</div>
+                        @if(auth()->user()->isWaliKelas())
+                        <li class="sidebar-nav-item"><a href="{{ route('walikelas.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#6366f1;"></i><span>Jadwal Kelas Bimbingan</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('walikelas.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.dashboard') ? 'active' : '' }}"><i class="bi bi-person-badge-fill" style="color:#6366f1;"></i><span>Portal Wali Kelas</span></a></li>
+                        @endif
+
+                        @if(auth()->user()->isKaprog())
+                        <li class="sidebar-nav-item"><a href="{{ route('kaprog.jadwal.matrix') }}" class="sidebar-nav-link {{ request()->routeIs('kaprog.jadwal*') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill" style="color:#10b981;"></i><span>Matriks Jadwal Jurusan</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('kaprog.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('kaprog.dashboard') ? 'active' : '' }}"><i class="bi bi-mortarboard-fill" style="color:#8b5cf6;"></i><span>Portal Kaprog</span></a></li>
+                        @endif
+
                         @if(auth()->user()->isWaliKelas() || auth()->user()->isKaprog() || auth()->user()->isBk() || auth()->user()->isWakaKesiswaan() || auth()->user()->isWakaKurikulum() || auth()->user()->isPembinaOsis() || auth()->user()->isPetugasPiket())
                         <li class="sidebar-nav-item"><a href="{{ route('presensi-harian.index') }}" class="sidebar-nav-link {{ request()->routeIs('presensi-harian.*') ? 'active' : '' }}"><i class="bi bi-person-lines-fill" style="color:#0ea5e9;"></i><span>Monitoring Absensi</span></a></li>
                         @endif
@@ -1135,8 +1246,10 @@
                             </div>
                         </li>
                         @endif
+                        @if(auth()->check() && auth()->user()->canAccessPrakerin())
                         <li class="sidebar-nav-item"><a href="{{ route('prakerin.jurnal.index') }}" class="sidebar-nav-link {{ request()->routeIs('prakerin.jurnal.*') ? 'active' : '' }}"><i class="bi bi-briefcase" style="color:#fb923c;"></i><span>Jurnal Prakerin (PKL)</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('prakerin.laporan.index') }}" class="sidebar-nav-link {{ request()->routeIs('prakerin.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph" style="color:#fb923c;"></i><span>Laporan Prakerin</span></a></li>
+                        @endif
 
                         <div class="sidebar-section-title mt-3">Layanan Pegawai</div>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.cuti.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.cuti.*') ? 'active' : '' }}"><i class="bi bi-calendar2-minus" style="color:#ef4444;"></i><span>Pengajuan Cuti</span></a></li>
@@ -1148,122 +1261,11 @@
                         <li class="sidebar-nav-item"><a href="{{ route('tendik.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#fbbf24;"></i><span>Profil & Biodata</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('tendik.payroll.index') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.payroll.*') ? 'active' : '' }}"><i class="bi bi-wallet2" style="color:#10b981;"></i><span>Slip Gaji Saya</span></a></li>
                     @elseif(auth()->user()->role === 'siswa')
+                        <li class="sidebar-nav-item"><a href="{{ route('siswa.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#10b981;"></i><span>Jadwal Pelajaran Kelas</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#38bdf8;"></i><span>Profil & Biodata</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('siswa.tagihan.index') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.tagihan.*') ? 'active' : '' }}"><i class="bi bi-receipt" style="color:#f43f5e;"></i><span>Tagihan Saya</span></a></li>
                     @endif
                 </ul>
-
-                @if(!empty(auth()->user()->admin_role))
-                {{-- Wewenang Admin Unit yang Ditunjuk Superadmin --}}
-                <div class="sidebar-section-title" style="color: #34d399; font-weight: 800; display: flex; align-items: center; gap: 6px;">
-                    <i class="bi bi-shield-lock-fill"></i>
-                    <span>Admin Unit: {{ strtoupper(auth()->user()->admin_role) }}</span>
-                </div>
-                <ul class="sidebar-nav mb-3">
-                    @if(auth()->user()->admin_role === 'akademik')
-                    <li class="sidebar-nav-item">
-                        <button type="button" class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('akademik.*') ? 'active' : '' }}" onclick="toggleSidebarDropdown('menuStaffAkademik')" aria-expanded="{{ request()->routeIs('akademik.*') ? 'true' : 'false' }}">
-                            <i class="bi bi-book-fill" style="color:#38bdf8;"></i>
-                            <span>Kelola Akademik & KBM</span>
-                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
-                        </button>
-                        <div class="sidebar-dropdown-menu {{ request()->routeIs('akademik.*') ? 'show' : '' }}" id="menuStaffAkademik">
-                            <ul class="sidebar-submenu">
-                                <li><a href="{{ route('akademik.dashboard') }}" class="{{ request()->routeIs('akademik.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Akademik</a></li>
-                                <li><a href="{{ route('akademik.kalender.index') }}" class="{{ request()->routeIs('akademik.kalender.*') ? 'active' : '' }}"><i class="bi bi-calendar-event me-1"></i> Kalender Pendidikan</a></li>
-                                <li><a href="{{ route('akademik.kurikulum.index') }}" class="{{ request()->routeIs('akademik.kurikulum.*') ? 'active' : '' }}"><i class="bi bi-diagram-3 me-1"></i> Kurikulum & Beban Ajar</a></li>
-                                <li><a href="{{ route('akademik.jadwal.index') }}" class="{{ request()->routeIs('akademik.jadwal.index') ? 'active' : '' }}"><i class="bi bi-clock-history me-1"></i> Jadwal Pelajaran</a></li>
-                                <li><a href="{{ route('akademik.jadwal.matrix') }}" class="{{ request()->routeIs('akademik.jadwal.matrix*') ? 'active' : '' }}"><i class="bi bi-grid-3x3 me-1"></i> Matriks Jadwal Resmi</a></li>
-                                <li><a href="{{ route('akademik.nilai.index') }}" class="{{ request()->routeIs('akademik.nilai.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Rekap Nilai Siswa</a></li>
-                                <li><a href="{{ route('akademik.laporan.kehadiran.index') }}" class="{{ request()->routeIs('akademik.laporan.kehadiran.*') ? 'active' : '' }}"><i class="bi bi-person-check me-1"></i> Presensi Mengajar Guru</a></li>
-                                <li><a href="{{ route('akademik.laporan.kbm.index') }}" class="{{ request()->routeIs('akademik.laporan.kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text me-1"></i> Jurnal Realisasi KBM</a></li>
-                                <li><a href="{{ route('akademik.rekap-presensi.index') }}" class="{{ request()->routeIs('akademik.rekap-presensi.*') ? 'active' : '' }}"><i class="bi bi-clipboard-data me-1"></i> Rekapitulasi Presensi</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    @elseif(auth()->user()->admin_role === 'bk')
-                    <li class="sidebar-nav-item">
-                        <button type="button" class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('bk.*') ? 'active' : '' }}" onclick="toggleSidebarDropdown('menuStaffBK')" aria-expanded="{{ request()->routeIs('bk.*') ? 'true' : 'false' }}">
-                            <i class="bi bi-shield-check" style="color:#f87171;"></i>
-                            <span>Kelola Monitoring BK</span>
-                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
-                        </button>
-                        <div class="sidebar-dropdown-menu {{ request()->routeIs('bk.*') ? 'show' : '' }}" id="menuStaffBK">
-                            <ul class="sidebar-submenu">
-                                <li><a href="{{ route('bk.dashboard') }}" class="{{ request()->routeIs('bk.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard BK</a></li>
-                                <li><a href="{{ route('bk.pelanggaran.index') }}" class="{{ request()->routeIs('bk.pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-exclamation-octagon me-1"></i> Catatan Pelanggaran</a></li>
-                                <li><a href="{{ route('bk.progres.index') }}" class="{{ request()->routeIs('bk.progres.*') ? 'active' : '' }}"><i class="bi bi-arrow-repeat me-1"></i> Progres Kasus & Bimbingan</a></li>
-                                <li><a href="{{ route('bk.poin.index') }}" class="{{ request()->routeIs('bk.poin.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Akumulasi Poin Siswa</a></li>
-                                <li><a href="{{ route('bk.jenis-pelanggaran.index') }}" class="{{ request()->routeIs('bk.jenis-pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Data Pelanggaran</a></li>
-                                <li><a href="{{ route('bk.laporan.index') }}" class="{{ request()->routeIs('bk.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled me-1"></i> Laporan Berkala BK</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    @elseif(auth()->user()->admin_role === 'prakerin')
-                    <li class="sidebar-nav-item">
-                        <button type="button" class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('prakerin.*') ? 'active' : '' }}" onclick="toggleSidebarDropdown('menuStaffPrakerin')" aria-expanded="{{ request()->routeIs('prakerin.*') ? 'true' : 'false' }}">
-                            <i class="bi bi-briefcase-fill" style="color:#fb923c;"></i>
-                            <span>Kelola Prakerin / PKL</span>
-                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
-                        </button>
-                        <div class="sidebar-dropdown-menu {{ request()->routeIs('prakerin.*') ? 'show' : '' }}" id="menuStaffPrakerin">
-                            <ul class="sidebar-submenu">
-                                <li><a href="{{ route('prakerin.dashboard') }}" class="{{ request()->routeIs('prakerin.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Prakerin</a></li>
-                                <li><a href="{{ route('prakerin.dudi.index') }}" class="{{ request()->routeIs('prakerin.dudi.*') ? 'active' : '' }}"><i class="bi bi-buildings me-1"></i> Mitra DU/DI Perusahaan</a></li>
-                                <li><a href="{{ route('prakerin.periode.index') }}" class="{{ request()->routeIs('prakerin.periode.*') ? 'active' : '' }}"><i class="bi bi-calendar-range me-1"></i> Periode Prakerin</a></li>
-                                <li><a href="{{ route('prakerin.penempatan.index') }}" class="{{ request()->routeIs('prakerin.penempatan.*') ? 'active' : '' }}"><i class="bi bi-person-workspace me-1"></i> Penempatan Siswa</a></li>
-                                <li><a href="{{ route('prakerin.jurnal.index') }}" class="{{ request()->routeIs('prakerin.jurnal.*') ? 'active' : '' }}"><i class="bi bi-journal-check me-1"></i> Jurnal Siswa</a></li>
-                                <li><a href="{{ route('prakerin.laporan.index') }}" class="{{ request()->routeIs('prakerin.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph me-1"></i> Laporan Nilai Prakerin</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    @elseif(auth()->user()->admin_role === 'keuangan')
-                    <li class="sidebar-nav-item">
-                        <button type="button" class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('keuangan.*') ? 'active' : '' }}" onclick="toggleSidebarDropdown('menuStaffKeuangan')" aria-expanded="{{ request()->routeIs('keuangan.*') ? 'true' : 'false' }}">
-                            <i class="bi bi-cash-stack" style="color:#34d399;"></i>
-                            <span>Kelola Keuangan & SPP</span>
-                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
-                        </button>
-                        <div class="sidebar-dropdown-menu {{ request()->routeIs('keuangan.*') ? 'show' : '' }}" id="menuStaffKeuangan">
-                            <ul class="sidebar-submenu">
-                                <li><a href="{{ route('keuangan.dashboard') }}" class="{{ request()->routeIs('keuangan.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Keuangan</a></li>
-                                <li><a href="{{ route('keuangan.tagihan.index') }}" class="{{ request()->routeIs('keuangan.tagihan.*') ? 'active' : '' }}"><i class="bi bi-receipt me-1"></i> Tagihan Siswa</a></li>
-                                <li><a href="{{ route('keuangan.pembayaran.index') }}" class="{{ request()->routeIs('keuangan.pembayaran.*') ? 'active' : '' }}"><i class="bi bi-credit-card me-1"></i> Data Pembayaran</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    @elseif(auth()->user()->admin_role === 'koperasi')
-                    <li class="sidebar-nav-item">
-                        <button type="button" class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('koperasi.*') ? 'active' : '' }}" onclick="toggleSidebarDropdown('menuStaffKoperasi')" aria-expanded="{{ request()->routeIs('koperasi.*') ? 'true' : 'false' }}">
-                            <i class="bi bi-shop" style="color:#fbbf24;"></i>
-                            <span>Kelola Koperasi Sekolah</span>
-                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
-                        </button>
-                        <div class="sidebar-dropdown-menu {{ request()->routeIs('koperasi.*') ? 'show' : '' }}" id="menuStaffKoperasi">
-                            <ul class="sidebar-submenu">
-                                <li><a href="{{ route('koperasi.dashboard') }}" class="{{ request()->routeIs('koperasi.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Koperasi</a></li>
-                                <li><a href="{{ route('koperasi.anggota.index') }}" class="{{ request()->routeIs('koperasi.anggota.*') ? 'active' : '' }}"><i class="bi bi-people me-1"></i> Anggota Koperasi</a></li>
-                                <li><a href="{{ route('koperasi.transaksi.index') }}" class="{{ request()->routeIs('koperasi.transaksi.*') ? 'active' : '' }}"><i class="bi bi-cart-check me-1"></i> Data Transaksi</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    @elseif(auth()->user()->admin_role === 'tracer')
-                    <li class="sidebar-nav-item">
-                        <button type="button" class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('tracer.*') ? 'active' : '' }}" onclick="toggleSidebarDropdown('menuStaffTracer')" aria-expanded="{{ request()->routeIs('tracer.*') ? 'true' : 'false' }}">
-                            <i class="bi bi-mortarboard" style="color:#c084fc;"></i>
-                            <span>Kelola Tracer Study</span>
-                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
-                        </button>
-                        <div class="sidebar-dropdown-menu {{ request()->routeIs('tracer.*') ? 'show' : '' }}" id="menuStaffTracer">
-                            <ul class="sidebar-submenu">
-                                <li><a href="{{ route('tracer.dashboard') }}" class="{{ request()->routeIs('tracer.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Tracer</a></li>
-                                <li><a href="{{ route('tracer.alumni.index') }}" class="{{ request()->routeIs('tracer.alumni.*') ? 'active' : '' }}"><i class="bi bi-person-lines-fill me-1"></i> Data Alumni</a></li>
-                                <li><a href="{{ route('tracer.kuesioner.index') }}" class="{{ request()->routeIs('tracer.kuesioner.*') ? 'active' : '' }}"><i class="bi bi-question-diamond me-1"></i> Kuesioner Karir BMW</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    @endif
-                </ul>
-                @endif
 
                 {{-- Modul Layanan Khusus Siswa --}}
                 @if(auth()->user()->role === 'siswa')
@@ -1283,7 +1285,9 @@
                 </div>
                 <div class="sidebar-user-info">
                     <div class="sidebar-user-name">{{ auth()->user()->name }}</div>
-                    <div class="sidebar-user-role">{{ auth()->user()->role }}</div>
+                    <div class="sidebar-user-role">
+                        {{ ucfirst(auth()->user()->role) }}@if(auth()->user()->admin_role) · Admin {{ ucfirst(auth()->user()->admin_role) }}@endif
+                    </div>
                 </div>
             </div>
         </div>

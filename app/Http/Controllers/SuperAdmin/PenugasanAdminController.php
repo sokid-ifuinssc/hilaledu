@@ -83,6 +83,17 @@ class PenugasanAdminController extends Controller
                 'desc'      => 'Mengelola data alumni SMK, tracking karir BMW (Bekerja, Melanjutkan, Wirausaha), dan pengisian kuesioner kelulusan.',
                 'app_slug'  => 'tracer-study',
             ],
+            'payroll' => [
+                'role'      => 'payroll',
+                'name'      => 'Admin HilalPay (Penggajian)',
+                'badge'     => 'HilalPay / Gaji',
+                'icon'      => 'bi-cash-coin',
+                'color'     => '#10b981',
+                'bg_soft'   => 'rgba(16, 185, 129, 0.12)',
+                'border'    => 'rgba(16, 185, 129, 0.3)',
+                'desc'      => 'Mengelola master komponen gaji, penyesuaian gaji & transport guru/tendik, generate & cetak slip gaji digital, dan laporan penggajian.',
+                'app_slug'  => 'payroll',
+            ],
         ];
     }
 
@@ -155,7 +166,7 @@ class PenugasanAdminController extends Controller
     {
         $request->validate([
             'user_id'    => 'required|exists:users,id',
-            'admin_role' => 'required|in:akademik,prakerin,bk,koperasi,keuangan,tracer',
+            'admin_role' => 'required|in:akademik,prakerin,bk,koperasi,keuangan,tracer,payroll',
             'keterangan' => 'nullable|string|max:255',
         ], [
             'user_id.required'    => 'Silakan pilih pegawai yang ingin ditunjuk.',

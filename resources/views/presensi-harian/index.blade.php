@@ -46,7 +46,7 @@
                         <option value="">-- Semua Bulan --</option>
                         @for($i = 1; $i <= 12; $i++)
                         <option value="{{ sprintf('%02d', $i) }}" {{ $filterBulan == sprintf('%02d', $i) ? 'selected' : '' }}>
-                            {{ \Carbon\Carbon::create()->month($i)->translatedFormat('F') }}
+                            {{ \Carbon\Carbon::create(null, (int)$i, 1)->translatedFormat('F') }}
                         </option>
                         @endfor
                     </select>
@@ -122,7 +122,7 @@
                         Rekap Presensi 
                         {{ $jenisPresensi == 'mapel' ? 'Mapel' : 'Harian' }} 
                         @if($periodeWaktu == 'bulan')
-                            Bulan {{ $filterBulan ? \Carbon\Carbon::create()->month($filterBulan)->translatedFormat('F') : 'Semua' }} {{ $filterTahun }}
+                            Bulan {{ $filterBulan ? \Carbon\Carbon::create(null, (int)$filterBulan, 1)->translatedFormat('F') : 'Semua' }} {{ $filterTahun }}
                         @else
                             Semester Aktif
                         @endif
@@ -170,7 +170,7 @@
             <!-- Tampilan Harian & Input Absen (Jika berhak) -->
             @php
                 $isKetua = (auth()->user()->role == 'siswa' && auth()->user()->kelas && auth()->user()->kelas->ketua_kelas_id == auth()->id());
-                $isPiket = (auth()->user()->role == 'guru' && str_contains(strtolower(auth()->user()->tugas_tambahan), 'piket'));
+                $isPiket = (auth()->user()->isPetugasPiket() || (auth()->user()->role == 'guru' && auth()->user()->hasTugas('piket')));
                 $canInput = ($canEdit && $jenisPresensi == 'harian' && $filterTanggal == date('Y-m-d'));
             @endphp
 

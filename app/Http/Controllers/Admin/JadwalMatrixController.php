@@ -245,7 +245,11 @@ class JadwalMatrixController extends Controller
             $kelasList[] = $kInfo;
         }
         if (empty($kelasList)) {
-            $kelasList = $allRawKelas;
+            if (auth()->check() && auth()->user()->role === 'siswa') {
+                $kelasList = [];
+            } else {
+                $kelasList = $allRawKelas;
+            }
         }
 
         // Buat map balik dari user_id / nama guru ke Kode Guru (1 - 30)
@@ -275,6 +279,7 @@ class JadwalMatrixController extends Controller
 
         // 2. Analisis Kelebihan Alokasi Jam (Over-Allocation) Tanpa False Alarm Team-Teaching
         $overAllocations = [];
+        $underAllocations = [];
         $checkedPairs = [];
         foreach ($allKurikulums as $k) {
             $cKey = trim($k->kelas);
@@ -285,6 +290,7 @@ class JadwalMatrixController extends Controller
 
             $terjadwal = $scheduledJpByClassAndMapel[$cKey][$mKey] ?? 0;
             $totalAlokasi = (int) $allKurikulums->where('kelas', $k->kelas)->where('mata_pelajaran_id', $k->mata_pelajaran_id)->sum('alokasi_jam');
+            
             if ($totalAlokasi > 0 && $terjadwal > $totalAlokasi) {
                 $overAllocations[] = [
                     'kelas'        => $k->kelas,
@@ -297,6 +303,16 @@ class JadwalMatrixController extends Controller
                     'terjadwal_jp' => $terjadwal,
                     'kelebihan'    => $terjadwal - $totalAlokasi,
                     'kelebihan_jp' => $terjadwal - $totalAlokasi,
+                    'guru_nama'    => $k->guru->name ?? 'Belum Ditentukan',
+                ];
+            } elseif ($totalAlokasi > 0 && $terjadwal < $totalAlokasi) {
+                $underAllocations[] = [
+                    'kelas'        => $k->kelas,
+                    'mapel_id'     => $k->mata_pelajaran_id,
+                    'mapel_nama'   => $k->mataPelajaran->nama ?? 'Mapel #' . $k->mata_pelajaran_id,
+                    'alokasi_jam'  => $totalAlokasi,
+                    'terjadwal_jp' => $terjadwal,
+                    'kekurangan_jp'=> $totalAlokasi - $terjadwal,
                     'guru_nama'    => $k->guru->name ?? 'Belum Ditentukan',
                 ];
             }
@@ -497,6 +513,7 @@ class JadwalMatrixController extends Controller
                 'total' => count($conflictsGuru) + count($conflictsKelas),
             ],
             'overAllocations'  => $overAllocations,
+            'underAllocations' => $underAllocations,
             'classOverLimits'  => $classOverLimits,
         ];
     }
@@ -509,6 +526,12 @@ class JadwalMatrixController extends Controller
         $jurusan = $request->query('jurusan', 'all');
         $jenjang = $request->query('jenjang', 'all');
         $kelas = $request->query('kelas', 'all');
+
+        if (auth()->check() && auth()->user()->role === 'siswa') {
+            $kelas = auth()->user()->kelas->nama ?? 'Unknown';
+            $jurusan = 'all';
+            $jenjang = 'all';
+        }
 
         $settings = PengaturanSekolah::getAllSettings();
         $guruList = static::getDaftarGuruResmi();
@@ -526,11 +549,416 @@ class JadwalMatrixController extends Controller
         $jenjang = $request->query('jenjang', 'all');
         $kelas = $request->query('kelas', 'all');
 
+        if (auth()->check() && auth()->user()->role === 'siswa') {
+            $kelas = auth()->user()->kelas->nama ?? 'Unknown';
+            $jurusan = 'all';
+            $jenjang = 'all';
+        }
+
         $settings = PengaturanSekolah::getAllSettings();
         $guruList = static::getDaftarGuruResmi();
         $matrixData = static::buildDynamicMatrix($jurusan, $jenjang, $kelas);
 
         return view('admin.jadwal.matrix_print', compact('settings', 'guruList', 'matrixData', 'jurusan', 'jenjang', 'kelas'));
+    }
+
+    /**
+     * Matriks Jadwal Khusus Kaprog (Hanya Jurusannya Saja - Full Lengkap)
+     */
+    public function kaprogMatrix(Request $request)
+    {
+        $user = auth()->user();
+        
+        // Cari jurusan yang dipimpin oleh user
+        $jurusan = \App\Models\Jurusan::where('kaprog_id', $user->id)->first();
+        if (!$jurusan && !empty($user->tugas_tambahan)) {
+            foreach ($user->tugas_tambahan as $tugas) {
+                if (stripos($tugas, 'TKJT') !== false || stripos($tugas, 'TKJ') !== false) {
+                    $jurusan = \App\Models\Jurusan::where('kode', 'TKJT')->orWhere('singkatan', 'TKJT')->first();
+                    break;
+                } elseif (stripos($tugas, 'TO') !== false || stripos($tugas, 'TKR') !== false) {
+                    $jurusan = \App\Models\Jurusan::where('kode', 'TO')->orWhere('singkatan', 'TO')->first();
+                    break;
+                } elseif (stripos($tugas, 'AKL') !== false || stripos($tugas, 'PRB') !== false) {
+                    $jurusan = \App\Models\Jurusan::where('kode', 'AKL')->orWhere('singkatan', 'AKL')->first();
+                    break;
+                }
+            }
+        }
+        
+        // Fallback jika superadmin atau tidak ada jurusan spesifik
+        if (!$jurusan) {
+            $selectedKode = $request->query('jurusan', 'TKJT');
+            $jurusan = \App\Models\Jurusan::where('kode', $selectedKode)->orWhere('singkatan', $selectedKode)->first() ?: \App\Models\Jurusan::first();
+        }
+
+        $jurusanKode = $jurusan ? ($jurusan->singkatan ?: $jurusan->kode) : 'TKJT';
+        $settings = PengaturanSekolah::getAllSettings();
+        $guruList = static::getDaftarGuruResmi();
+        $matrixData = static::buildDynamicMatrix($jurusanKode, 'all', 'all');
+
+        $semuaJurusan = \App\Models\Jurusan::where('is_aktif', true)->get();
+
+        return view('kaprog.matrix', compact('jurusan', 'jurusanKode', 'settings', 'guruList', 'matrixData', 'semuaJurusan'));
+    }
+
+    /**
+     * Cetak Matriks Jadwal Khusus Jurusan Kaprog
+     */
+    public function kaprogPrintMatrix(Request $request)
+    {
+        $user = auth()->user();
+        
+        $jurusan = \App\Models\Jurusan::where('kaprog_id', $user->id)->first();
+        if (!$jurusan && !empty($user->tugas_tambahan)) {
+            foreach ($user->tugas_tambahan as $tugas) {
+                if (stripos($tugas, 'TKJT') !== false || stripos($tugas, 'TKJ') !== false) {
+                    $jurusan = \App\Models\Jurusan::where('kode', 'TKJT')->orWhere('singkatan', 'TKJT')->first();
+                    break;
+                } elseif (stripos($tugas, 'TO') !== false || stripos($tugas, 'TKR') !== false) {
+                    $jurusan = \App\Models\Jurusan::where('kode', 'TO')->orWhere('singkatan', 'TO')->first();
+                    break;
+                } elseif (stripos($tugas, 'AKL') !== false || stripos($tugas, 'PRB') !== false) {
+                    $jurusan = \App\Models\Jurusan::where('kode', 'AKL')->orWhere('singkatan', 'AKL')->first();
+                    break;
+                }
+            }
+        }
+        
+        if (!$jurusan) {
+            $selectedKode = $request->query('jurusan', 'TKJT');
+            $jurusan = \App\Models\Jurusan::where('kode', $selectedKode)->orWhere('singkatan', $selectedKode)->first() ?: \App\Models\Jurusan::first();
+        }
+
+        $jurusanKode = $jurusan ? ($jurusan->singkatan ?: $jurusan->kode) : 'TKJT';
+        $settings = PengaturanSekolah::getAllSettings();
+        $guruList = static::getDaftarGuruResmi();
+        $matrixData = static::buildDynamicMatrix($jurusanKode, 'all', 'all');
+
+        return view('kaprog.matrix_print', compact('jurusan', 'jurusanKode', 'settings', 'guruList', 'matrixData'));
+    }
+
+    public function quickUpdate(Request $request)
+    {
+        if (!auth()->user()->canManageJadwal()) {
+            return back()->with('error', 'Akses ditolak.');
+        }
+
+        $request->validate([
+            'hari' => 'required',
+            'jam_ke_mulai' => 'required|numeric',
+            'kelas' => 'required',
+            'kurikulum_id' => 'required|numeric',
+        ]);
+
+        $hari = $request->input('hari');
+        $jamKe = $request->input('jam_ke_mulai');
+        $kelas = $request->input('kelas');
+        $isLocked = $request->has('is_locked');
+        $kurikulumId = $request->input('kurikulum_id');
+        $jadwalId = $request->input('jadwal_id');
+
+        $kurikulum = \App\Models\Kurikulum::find($kurikulumId);
+        if (!$kurikulum) {
+            return back()->with('error', 'Kurikulum tidak ditemukan.');
+        }
+
+        $mapelId = $kurikulum->mata_pelajaran_id;
+        $guruId = $kurikulum->guru_user_id ?: ($kurikulum->mataPelajaran->guru_user_id ?? null);
+        
+        $jamSelesai = $jamKe;
+        if ($kurikulum->alokasi_jam == 3) {
+            $jamSelesai = min(8, $jamKe + 2); // 3 jam
+        } elseif ($kurikulum->alokasi_jam >= 4) {
+            $jamSelesai = min(8, $jamKe + 1);
+        } elseif ($kurikulum->alokasi_jam == 2) {
+            $jamSelesai = min(8, $jamKe + 1);
+        }
+
+        $times = \App\Models\JadwalPelajaran::calculateTimesFromJamKe($hari, $jamKe, $jamSelesai);
+        
+        // Hapus jadwal lama jika di jam tsb sdh ada untuk kelas ini yg bukan jadwal ini
+        \App\Models\JadwalPelajaran::where('kelas', $kelas)
+            ->where('hari', $hari)
+            ->where('id', '!=', $jadwalId ?: 0)
+            ->where(function ($q) use ($times) {
+                $q->where('jam_mulai', '<', $times['jam_selesai'])
+                  ->where('jam_selesai', '>', $times['jam_mulai']);
+            })->delete();
+
+        if ($jadwalId) {
+            $jadwal = \App\Models\JadwalPelajaran::find($jadwalId);
+            if ($jadwal) {
+                $jadwal->update([
+                    'hari' => $hari,
+                    'jam_ke_mulai' => $jamKe,
+                    'jam_ke_selesai' => $jamSelesai,
+                    'jam_mulai' => $times['jam_mulai'],
+                    'jam_selesai' => $times['jam_selesai'],
+                    'mata_pelajaran_id' => $mapelId,
+                    'guru_user_id' => $guruId,
+                    'is_locked' => $isLocked,
+                ]);
+            }
+        } else {
+            \App\Models\JadwalPelajaran::create([
+                'hari' => $hari,
+                'jam_ke_mulai' => $jamKe,
+                'jam_ke_selesai' => $jamSelesai,
+                'jam_mulai' => $times['jam_mulai'],
+                'jam_selesai' => $times['jam_selesai'],
+                'kelas' => $kelas,
+                'mata_pelajaran_id' => $mapelId,
+                'guru_user_id' => $guruId,
+                'tahun_ajaran' => \App\Models\PengaturanSekolah::getActiveTahunAjaran(),
+                'semester' => \App\Models\PengaturanSekolah::getActiveSemester(),
+                'is_locked' => $isLocked,
+            ]);
+        }
+
+        return back()->with('success', 'Jadwal berhasil diperbarui secara cepat.');
+    }
+
+    public function printSkMengajar(Request $request)
+    {
+        // Get active academic year
+        $tahun = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        // Get all Guru with their teaching load (Kurikulum)
+        $gurus = \App\Models\User::where('role', 'guru')
+            ->where('is_active', true)
+            ->with(['kurikulums' => function ($q) use ($tahun, $semester) {
+                $q->where('tahun_ajaran', $tahun)
+                  ->where('semester', $semester)
+                  ->with('mataPelajaran'); // To get the Mapel name if needed
+            }])
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.jadwal.sk_mengajar_print', compact('gurus', 'tahun', 'semester'));
+    }
+
+    public function truncateMatrix(Request $request)
+    {
+        abort_if(!auth()->user()->canManageJadwal(), 403, 'Akses ditolak. Anda tidak memiliki izin mengosongkan jadwal.');
+        $tahun = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahun)
+            ->where('semester', $semester)
+            ->delete();
+
+        return redirect()->back()->with('success', 'Seluruh jadwal untuk tahun ajaran aktif berhasil dikosongkan.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PENGATURAN JADWAL PER HARI — UI Simpel
+    // Admin pilih Hari & Kelas → muncul daftar jam → tiap jam pilih Mapel
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function aturJadwal(Request $request)
+    {
+        if (!auth()->user()->canManageJadwal()) {
+            abort(403);
+        }
+
+        $tahunAjaran = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester    = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        $hariDipilih  = $request->query('hari', 'Senin');
+        $kelasDipilih = $request->query('kelas', 'X AKL');
+        $guruDipilih  = $request->query('guru_id');     // ← filter guru (optional)
+
+        $daftarHari  = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        $daftarKelas = array_column(static::getDaftarKelas(), 'nama');
+        $periodsConfig = static::getPeriodsConfig();
+        $periods = $hariDipilih === 'Jumat' ? $periodsConfig['jumat'] : $periodsConfig['reguler'];
+
+        // Semua kurikulum aktif untuk kelas ini (beserta guru & mapel)
+        $kurikulums = \App\Models\Kurikulum::with('mataPelajaran', 'guruUser')
+            ->where('is_aktif', true)
+            ->where('kelas', $kelasDipilih)
+            ->orderBy('mata_pelajaran_id')
+            ->get();
+
+        // Daftar guru unik yang ada di kurikulum kelas ini
+        $guruList = $kurikulums
+            ->filter(fn($k) => $k->guruUser !== null)
+            ->map(fn($k) => $k->guruUser)
+            ->unique('id')
+            ->sortBy('name')
+            ->values();
+
+        // Peta: guru_id => [kurikulum_id, ...] untuk filter JS
+        $guruMapelMap = [];
+        foreach ($kurikulums as $k) {
+            $gId = $k->guru_user_id ?: ($k->mataPelajaran->guru_user_id ?? null);
+            if ($gId) {
+                $guruMapelMap[$gId][] = $k->id;
+            }
+        }
+
+        // Jadwal hari ini (untuk slot grid)
+        $existingJadwals = \App\Models\JadwalPelajaran::with('mataPelajaran', 'guru')
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->where('kelas', $kelasDipilih)
+            ->where('hari', $hariDipilih)
+            ->orderBy('jam_ke_mulai')
+            ->get()
+            ->keyBy('jam_ke_mulai');
+
+        // Jadwal seminggu (semua hari) untuk ringkasan sudah-terjadwal per mapel
+        $jadwalSeminggu = \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->where('kelas', $kelasDipilih)
+            ->get();
+
+        // Hitung jam sudah terjadwal per mata_pelajaran_id (semua hari)
+        $jamTerjadwal = [];  // [mata_pelajaran_id => total jam]
+        foreach ($jadwalSeminggu as $jd) {
+            $mpId = $jd->mata_pelajaran_id;
+            $jam  = ($jd->jam_ke_selesai - $jd->jam_ke_mulai) + 1;
+            $jamTerjadwal[$mpId] = ($jamTerjadwal[$mpId] ?? 0) + $jam;
+        }
+
+        // Jika filter guru aktif, filter $kurikulums yang ditampilkan di view
+        $kurikulumsDitampilkan = $guruDipilih
+            ? $kurikulums->filter(function ($k) use ($guruDipilih) {
+                $gId = $k->guru_user_id ?: ($k->mataPelajaran->guru_user_id ?? null);
+                return (string)$gId === (string)$guruDipilih;
+            })
+            : $kurikulums;
+
+        $settings = \App\Models\PengaturanSekolah::getAllSettings();
+
+        return view('admin.jadwal.atur', compact(
+            'settings', 'hariDipilih', 'kelasDipilih', 'guruDipilih',
+            'daftarHari', 'daftarKelas', 'periods',
+            'kurikulums', 'kurikulumsDitampilkan',
+            'guruList', 'guruMapelMap',
+            'existingJadwals', 'jamTerjadwal',
+            'tahunAjaran', 'semester'
+        ));
+    }
+
+
+    public function aturJadwalSimpan(Request $request)
+    {
+        if (!auth()->user()->canManageJadwal()) {
+            return back()->with('error', 'Akses ditolak.');
+        }
+
+        $request->validate([
+            'hari'         => 'required|string',
+            'kelas'        => 'required|string',
+            'jam_ke'       => 'required|numeric|min:1|max:8',
+            'kurikulum_id' => 'required|numeric',
+        ]);
+
+        $tahunAjaran = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester    = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        $hari        = $request->input('hari');
+        $kelas       = $request->input('kelas');
+        $jamKe       = (int) $request->input('jam_ke');
+        $kurikulumId = $request->input('kurikulum_id');
+        $jadwalId    = $request->input('jadwal_id');   // jika update
+        $isLocked    = (bool) $request->input('is_locked', false);
+
+        $kurikulum = \App\Models\Kurikulum::with('mataPelajaran')->find($kurikulumId);
+        if (!$kurikulum) {
+            return back()->with('error', 'Kurikulum tidak ditemukan.');
+        }
+
+        $guruId    = $kurikulum->guru_user_id ?: ($kurikulum->mataPelajaran->guru_user_id ?? null);
+        $jamSelesai = $jamKe; // default 1 jam
+
+        // Tentukan blok jam berdasarkan sisa alokasi yang belum dijadwal hari ini
+        $sudahHariIni = \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->where('kelas', $kelas)
+            ->where('mata_pelajaran_id', $kurikulum->mata_pelajaran_id)
+            ->where('hari', $hari)
+            ->where('id', '!=', $jadwalId ?: 0)
+            ->sum(DB::raw('(jam_ke_selesai - jam_ke_mulai) + 1'));
+
+        $sudahTotal = \App\Models\JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->where('kelas', $kelas)
+            ->where('mata_pelajaran_id', $kurikulum->mata_pelajaran_id)
+            ->where('id', '!=', $jadwalId ?: 0)
+            ->sum(DB::raw('(jam_ke_selesai - jam_ke_mulai) + 1'));
+
+        $sisaAlokasi = max(1, $kurikulum->alokasi_jam - $sudahTotal);
+
+        // Blok jam: ambil maksimal 2 jam berurut (atau sesuai sisa alokasi)
+        $blok = min($sisaAlokasi, 2);
+        if ($kurikulum->alokasi_jam == 3 && $sisaAlokasi == 3) $blok = 3; // 3 jam sekaligus
+        $jamSelesai = $jamKe + $blok - 1;
+
+        // Batasi hari Jumat max 6 jam
+        $maxJam = $hari === 'Jumat' ? 6 : 8;
+        if ($jamSelesai > $maxJam) $jamSelesai = $maxJam;
+
+        $times = \App\Models\JadwalPelajaran::calculateTimesFromJamKe($hari, $jamKe, $jamSelesai);
+
+        // Hapus jadwal lama di slot ini untuk kelas yg sama (overlap)
+        \App\Models\JadwalPelajaran::where('kelas', $kelas)
+            ->where('hari', $hari)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->where('id', '!=', $jadwalId ?: 0)
+            ->where(function ($q) use ($times) {
+                $q->where('jam_mulai', '<', $times['jam_selesai'])
+                  ->where('jam_selesai', '>', $times['jam_mulai']);
+            })->delete();
+
+        if ($jadwalId) {
+            $jadwal = \App\Models\JadwalPelajaran::find($jadwalId);
+            if ($jadwal) {
+                $jadwal->update([
+                    'hari'              => $hari,
+                    'jam_ke_mulai'      => $jamKe,
+                    'jam_ke_selesai'    => $jamSelesai,
+                    'jam_mulai'         => $times['jam_mulai'],
+                    'jam_selesai'       => $times['jam_selesai'],
+                    'mata_pelajaran_id' => $kurikulum->mata_pelajaran_id,
+                    'guru_user_id'      => $guruId,
+                    'is_locked'         => $isLocked,
+                ]);
+            }
+        } else {
+            \App\Models\JadwalPelajaran::create([
+                'hari'              => $hari,
+                'jam_ke_mulai'      => $jamKe,
+                'jam_ke_selesai'    => $jamSelesai,
+                'jam_mulai'         => $times['jam_mulai'],
+                'jam_selesai'       => $times['jam_selesai'],
+                'kelas'             => $kelas,
+                'mata_pelajaran_id' => $kurikulum->mata_pelajaran_id,
+                'guru_user_id'      => $guruId,
+                'tahun_ajaran'      => $tahunAjaran,
+                'semester'          => $semester,
+                'is_locked'         => $isLocked,
+            ]);
+        }
+
+        $namaMapel = $kurikulum->mataPelajaran->nama ?? 'Mapel';
+        return back()->with('success', "✅ {$namaMapel} berhasil dijadwalkan di {$hari} jam ke-{$jamKe}.");
+    }
+
+    public function aturJadwalHapus(Request $request, $id)
+    {
+        if (!auth()->user()->canManageJadwal()) {
+            return back()->with('error', 'Akses ditolak.');
+        }
+
+        $jadwal = \App\Models\JadwalPelajaran::findOrFail($id);
+        $jadwal->delete();
+
+        return back()->with('success', 'Jadwal berhasil dihapus.');
     }
 }
 

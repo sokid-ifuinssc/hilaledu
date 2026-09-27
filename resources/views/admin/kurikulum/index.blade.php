@@ -274,6 +274,7 @@
                             <input type="checkbox" @change="toggleAll()" :checked="allSelected" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
                         </th>
                         <th class="px-4 py-4">Rombel & Jenjang</th>
+                        <th class="px-4 py-4 text-center">No. Urut</th>
                         <th class="px-4 py-4">Mata Pelajaran</th>
                         <th class="px-4 py-4">Guru Pengampu</th>
                         <th class="px-4 py-4 text-center">Alokasi JP</th>
@@ -297,6 +298,31 @@
                                 </span>
                             </div>
                         </td>
+                        <td class="px-4 py-4 text-center font-bold text-slate-700" 
+                            x-data="{ 
+                                isEditing: false, 
+                                urutan: {{ $item->urutan !== null ? $item->urutan : 'null' }}, 
+                                save() { 
+                                    fetch('{{ route('akademik.kurikulum.update-urutan', $item->id) }}', {
+                                        method: 'PATCH',
+                                        headers: { 
+                                            'Content-Type': 'application/json', 
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}' 
+                                        },
+                                        body: JSON.stringify({ urutan: this.urutan })
+                                    })
+                                    .then(r => r.json())
+                                    .then(res => { this.isEditing = false; }) 
+                                } 
+                            }">
+                            <div x-show="!isEditing" @click="isEditing = true" class="cursor-pointer hover:bg-slate-100 rounded px-2 py-1 inline-block border-b border-dashed border-slate-400 hover:text-indigo-600 transition" title="Klik untuk edit urutan">
+                                <span x-text="urutan === null || urutan === '' ? '-' : urutan"></span>
+                            </div>
+                            <input x-show="isEditing" x-ref="input" type="number" x-model.number="urutan" 
+                                   @keydown.enter="save()" @blur="save()" 
+                                   x-effect="if(isEditing) $nextTick(() => $refs.input.focus())"
+                                   class="w-16 p-1 text-center border border-indigo-300 rounded text-xs focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        </td>
                         <td class="px-4 py-4">
                             <div class="font-extrabold text-slate-900 text-sm">
                                 {{ $item->mataPelajaran->nama ?? 'Mapel #' . $item->mata_pelajaran_id }}
@@ -312,11 +338,6 @@
                                 @if($item->sub_kategori)
                                 <span class="text-[9.5px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
                                     {{ $item->sub_kategori }}
-                                </span>
-                                @endif
-                                @if($item->urutan)
-                                <span class="text-[9.5px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300 font-bold" title="Urutan Cetak">
-                                    <i class="bi-sort-numeric-down"></i> Urutan: {{ $item->urutan }}
                                 </span>
                                 @endif
                             </div>
@@ -490,6 +511,7 @@
                             <option value="Mata Pelajaran [Konsentrasi Keahlian]***">2. Mata Pelajaran [Konsentrasi Keahlian]</option>
                             <option value="Mata Pelajaran Pilihan****">3. Mata Pelajaran Pilihan</option>
                             <option value="Projek Kreatif dan Kewirausahaan">4. Projek Kreatif dan Kewirausahaan</option>
+                            <option value="Praktik Kerja Lapangan****">5. Praktik Kerja Lapangan</option>
                         </select>
                     </div>
                     <div class="col-span-1 sm:col-span-2">
@@ -604,6 +626,7 @@
                             <option value="Mata Pelajaran [Konsentrasi Keahlian]***">2. Mata Pelajaran [Konsentrasi Keahlian]</option>
                             <option value="Mata Pelajaran Pilihan****">3. Mata Pelajaran Pilihan</option>
                             <option value="Projek Kreatif dan Kewirausahaan">4. Projek Kreatif dan Kewirausahaan</option>
+                            <option value="Praktik Kerja Lapangan****">5. Praktik Kerja Lapangan</option>
                         </select>
                     </div>
                     <div class="col-span-1 sm:col-span-2">
@@ -823,6 +846,7 @@
                             <option value="Mata Pelajaran [Konsentrasi Keahlian]***">2. Mata Pelajaran [Konsentrasi Keahlian]</option>
                             <option value="Mata Pelajaran Pilihan****">3. Mata Pelajaran Pilihan</option>
                             <option value="Projek Kreatif dan Kewirausahaan">4. Projek Kreatif dan Kewirausahaan</option>
+                            <option value="Praktik Kerja Lapangan****">5. Praktik Kerja Lapangan</option>
                         </select>
                     </div>
                     <div class="col-span-1 sm:col-span-2">

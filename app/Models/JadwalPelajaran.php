@@ -191,6 +191,11 @@ class JadwalPelajaran extends Model
         return $this->hasMany(LaporanKbm::class, 'jadwal_pelajaran_id');
     }
 
+    public function laporanKbms(): HasMany
+    {
+        return $this->laporanKbm();
+    }
+
     public function absensiGuru(): HasMany
     {
         return $this->hasMany(AbsensiGuru::class, 'jadwal_pelajaran_id');

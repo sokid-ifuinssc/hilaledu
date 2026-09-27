@@ -12,6 +12,10 @@ class PengaturanController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isKepalaSekolah() && !auth()->user()->isWakaKurikulum()) {
+            abort(403, 'Akses ditolak. Pengaturan Akademik hanya dapat dikelola oleh Super Admin atau Pimpinan Sekolah.');
+        }
+
         $settings = PengaturanSekolah::getAllSettings();
         $guruList = JadwalMatrixController::getDaftarGuruResmi();
         $hilalAcademic = PengaturanSekolah::getHilalEduAcademicSetting();
@@ -34,6 +38,10 @@ class PengaturanController extends Controller
 
     public function update(Request $request)
     {
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isKepalaSekolah() && !auth()->user()->isWakaKurikulum()) {
+            abort(403, 'Akses ditolak. Pengaturan Akademik hanya dapat diubah oleh Super Admin atau Pimpinan Sekolah.');
+        }
+
         $validated = $request->validate([
             'nama_sekolah'         => 'required|string|max:150',
             'npsn'                 => 'nullable|string|max:20',

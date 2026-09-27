@@ -69,13 +69,15 @@ class PresensiHarianController extends Controller
         $presensiData = collect();
         
         if ($jenisPresensi === 'mapel') {
-            $presensiQuery = \App\Models\LaporanKbmPresensi::with(['siswa', 'laporan.jadwal.mataPelajaran'])
+            $activeKelasNames = Kelas::whereIn('id', $activeKelasIds)->pluck('nama');
+
+            $presensiQuery = \App\Models\LaporanKbmPresensi::with(['siswa', 'laporan.jadwal.mataPelajaran', 'laporan.guru'])
                 ->join('laporan_kbms', 'laporan_kbm_presensis.laporan_kbm_id', '=', 'laporan_kbms.id')
                 ->join('jadwal_pelajarans', 'laporan_kbms.jadwal_pelajaran_id', '=', 'jadwal_pelajarans.id')
-                ->select('laporan_kbm_presensis.*', 'laporan_kbms.tanggal_realisasi as tanggal', 'jadwal_pelajarans.kelas_id', 'jadwal_pelajarans.mata_pelajaran_id');
+                ->select('laporan_kbm_presensis.*', 'laporan_kbms.tanggal_realisasi as tanggal', 'jadwal_pelajarans.kelas', 'jadwal_pelajarans.mata_pelajaran_id');
                 
             if ($periodeWaktu === 'bulan' && $filterBulan) {
-                $presensiQuery->whereMonth('laporan_kbms.tanggal_realisasi', date('m', strtotime($filterBulan)))
+                $presensiQuery->whereMonth('laporan_kbms.tanggal_realisasi', (int)$filterBulan)
                               ->whereYear('laporan_kbms.tanggal_realisasi', $filterTahun);
             } elseif ($periodeWaktu === 'semester') {
                 $activeTa = \App\Models\TahunAjaran::where('is_aktif', true)->orWhere('is_active', true)->first();
@@ -87,7 +89,7 @@ class PresensiHarianController extends Controller
                 $presensiQuery->whereDate('laporan_kbms.tanggal_realisasi', $filterTanggal);
             }
             
-            $presensiQuery->whereIn('jadwal_pelajarans.kelas_id', $activeKelasIds);
+            $presensiQuery->whereIn('jadwal_pelajarans.kelas', $activeKelasNames);
 
             if ($filterMapel) {
                 $presensiQuery->where('jadwal_pelajarans.mata_pelajaran_id', $filterMapel);
@@ -117,7 +119,7 @@ class PresensiHarianController extends Controller
             $presensiQuery = PresensiHarianSiswa::with(['siswa', 'kelas', 'penginput']);
             
             if ($periodeWaktu === 'bulan' && $filterBulan) {
-                $presensiQuery->whereMonth('tanggal', date('m', strtotime($filterBulan)))
+                $presensiQuery->whereMonth('tanggal', (int)$filterBulan)
                               ->whereYear('tanggal', $filterTahun);
             } elseif ($periodeWaktu === 'semester') {
                 $activeTa = \App\Models\TahunAjaran::where('is_aktif', true)->orWhere('is_active', true)->first();

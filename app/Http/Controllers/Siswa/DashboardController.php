@@ -57,7 +57,7 @@ class DashboardController extends Controller
         ];
 
         foreach ($jadwalHariIni as $j) {
-            $laporan = $j->laporanKbms()->where('tanggal', $todayDate)->first();
+            $laporan = $j->laporanKbms()->where('tanggal_realisasi', $todayDate)->first();
             $presensi = null;
             if ($laporan) {
                 $presensi = $laporan->presensis()->whereIn('siswa_user_id', $studentUserIds)->first();

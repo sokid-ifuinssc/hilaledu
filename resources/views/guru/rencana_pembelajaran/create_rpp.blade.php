@@ -19,6 +19,8 @@
 
     <form method="POST" action="{{ route('guru.rencana-pembelajaran.rpp.store') }}" class="space-y-6">
         @csrf
+        <input type="hidden" name="mapel_id" value="{{ $mapelId }}">
+        <input type="hidden" name="tingkat" value="{{ $tingkat }}">
 
         <!-- Card 1: Slot Jadwal & Pertemuan -->
         <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-4">

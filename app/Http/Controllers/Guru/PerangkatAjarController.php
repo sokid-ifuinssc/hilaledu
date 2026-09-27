@@ -24,7 +24,7 @@ class PerangkatAjarController extends Controller
         }
 
         $perangkatList = $query->paginate(15);
-        $mapels = MataPelajaran::where('is_aktif', true)->orderBy('nama')->get();
+        $mapels = $user->getMapelDiampu();
         $kelasList = Kelas::where('is_aktif', true)->orderBy('nama')->get();
 
         return view('guru.perangkat_ajar.index', compact('perangkatList', 'isWaka', 'mapels', 'kelasList'));
@@ -32,7 +32,8 @@ class PerangkatAjarController extends Controller
 
     public function create()
     {
-        $mapels = MataPelajaran::where('is_aktif', true)->orderBy('nama')->get();
+        $user = Auth::user();
+        $mapels = $user->getMapelDiampu();
         $kelasList = Kelas::where('is_aktif', true)->orderBy('nama')->get();
 
         return view('guru.perangkat_ajar.create', compact('mapels', 'kelasList'));

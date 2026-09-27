@@ -117,7 +117,7 @@
                 <img src="{{ asset($settings['logo_sekolah'] ?? 'images/logo.png') }}" class="w-16 h-16 object-contain" alt="Logo Sekolah" onerror="this.onerror=null; this.src='{{ asset('images/logo.png') }}';">
             </div>
             <div class="text-center flex-1">
-                <h2 class="text-base font-bold uppercase tracking-wider text-black">YAYASAN AL-HILAL TEGALGUBUG</h2>
+                <h2 class="text-base font-bold uppercase tracking-wider text-black">{{ $settings['nama_yayasan'] ?? 'YAYASAN AL HILAL CIREBON' }}</h2>
                 <h1 class="text-xl font-black uppercase tracking-wide text-black">{{ $settings['nama_sekolah'] ?? 'SMK PLUS AL-HILAL ARJAWINANGUN' }}</h1>
                 <p class="text-[10px] font-semibold text-black">
                     NPSN: {{ $settings['npsn'] ?? '69758451' }} | Program Keahlian: {{ $settings['program_keahlian'] ?? 'Teknik Jaringan Komputer, Teknik Otomotif, Akuntansi' }}

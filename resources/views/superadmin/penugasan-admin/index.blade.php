@@ -18,7 +18,7 @@
                     Penunjukan Admin Unit (Guru & TU)
                 </h1>
                 <p class="text-sm text-slate-300 max-w-2xl leading-relaxed">
-                    Tunjuk Dewan Guru dan Staf Tata Usaha (TU) sebagai administrator pengelola modul spesifik (Akademik, Prakerin, BK, Koperasi, Keuangan, dan Tracer Study) dengan wewenang penuh tanpa memerlukan akun baru.
+                    Tunjuk Dewan Guru dan Staf Tata Usaha (TU) sebagai administrator pengelola modul spesifik (Akademik, Prakerin, BK, Koperasi, Keuangan, HilalPay / Penggajian, dan Tracer Study) dengan wewenang penuh tanpa memerlukan akun baru.
                 </p>
                 <div class="flex items-center gap-4 pt-2 text-xs text-slate-300 font-medium">
                     <span class="flex items-center gap-1.5"><i class="bi bi-people-fill text-emerald-400"></i> Total Guru: <strong>{{ $totalGuru }}</strong></span>
@@ -41,12 +41,12 @@
         <div class="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
     </div>
 
-    <!-- 2. Grid 6 Unit Administrasi & Pemegang Mandat Saat Ini -->
+    <!-- 2. Grid Unit Administrasi & Pemegang Mandat Saat Ini -->
     <div>
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
                 <i class="bi bi-grid-fill text-emerald-600"></i>
-                <span>Status Penugasan 6 Unit Layanan</span>
+                <span>Status Penugasan {{ count($roleDefinitions) }} Unit Layanan</span>
             </h2>
             <span class="text-xs text-slate-500">Klik "Tunjuk Pegawai" pada unit untuk menugaskan</span>
         </div>

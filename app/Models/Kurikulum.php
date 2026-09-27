@@ -70,6 +70,14 @@ class Kurikulum extends Model
     }
 
     /**
+     * Alias guruUser (digunakan di JadwalMatrixController atur jadwal)
+     */
+    public function guruUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'guru_user_id');
+    }
+
+    /**
      * Relasi ke Model Kelas (jika terisi)
      */
     public function kelasModel(): BelongsTo

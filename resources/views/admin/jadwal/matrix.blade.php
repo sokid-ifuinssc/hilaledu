@@ -21,11 +21,25 @@
         </div>
         <div class="flex items-center gap-2.5 flex-wrap">
             @if(auth()->user() && auth()->user()->canManageAcademic())
-            <form action="{{ route('admin.jadwal.autogenerate') }}" method="POST" class="inline-block" onsubmit="return confirm('Peringatan: Ini akan MERESET seluruh jadwal yang tidak dikunci dan mengacak ulang sisa alokasi. Lanjutkan?')">
+            <form action="{{ route('admin.jadwal.autogenerate') }}" method="POST" class="inline-block" id="form-autogenerate">
                 @csrf
-                <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs transition inline-flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+                <button type="button" onclick="confirmAutoGenerate()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs transition inline-flex items-center gap-2 shadow-lg shadow-indigo-600/20">
                     <i class="bi-magic"></i>
                     <span>Acak Jadwal Otomatis</span>
+                </button>
+            </form>
+
+            <a href="{{ request()->routeIs('admin.*') ? route('admin.jadwal.atur') : route('akademik.jadwal.atur') }}"
+               class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition inline-flex items-center gap-2 shadow-lg shadow-emerald-600/20">
+                <i class="bi-calendar3-week-fill"></i>
+                <span>Atur Jadwal</span>
+            </a>
+
+            <form action="{{ route('admin.jadwal.matrix.truncate') }}" method="POST" class="inline-block" id="form-truncate">
+                @csrf
+                <button type="button" onclick="confirmTruncate()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl text-xs transition inline-flex items-center gap-2 shadow-lg shadow-rose-600/20">
+                    <i class="bi-trash"></i>
+                    <span>Kosongkan Jadwal</span>
                 </button>
             </form>
 
@@ -42,7 +56,15 @@
             </a>
             @endif
 
-            <a href="{{ route('admin.jadwal.matrix.print', request()->query()) }}" target="_blank"
+            @if(auth()->user() && auth()->user()->canManageAcademic())
+            <a href="{{ request()->routeIs('admin.*') ? route('admin.jadwal.sk_mengajar.print') : route('akademik.jadwal.sk_mengajar.print') }}" target="_blank"
+               class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs transition inline-flex items-center gap-2 shadow-lg shadow-indigo-600/20" title="Cetak Rekap Mengajar & Tugas Tambahan Guru untuk Lampiran SK">
+                <i class="bi-file-earmark-person-fill"></i>
+                <span>Cetak Rekap & Lampiran SK</span>
+            </a>
+            @endif
+
+            <a href="{{ request()->routeIs('admin.*') ? route('admin.jadwal.matrix.print', request()->query()) : route('akademik.jadwal.matrix.print', request()->query()) }}" target="_blank"
                class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl text-xs transition inline-flex items-center gap-2 shadow-lg shadow-rose-600/20" title="Cetak Matriks sesuai filter aktif">
                 <i class="bi-printer-fill"></i>
                 <span>Cetak Dokumen Resmi (Landscape)</span>
@@ -51,6 +73,7 @@
     </div>
 
     <!-- FILTER BAR MATRIKS (JENJANG & JURUSAN) -->
+    @if(auth()->user() && auth()->user()->role !== 'siswa')
     <div class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-2 text-xs">
             <span class="font-extrabold text-slate-800 flex items-center gap-1.5 mr-2">
@@ -109,6 +132,7 @@
         </a>
         @endif
     </div>
+    @endif
 
     <!-- 1. BANNER PERINGATAN BENTROK JADWAL (JIKA ADA) -->
     @if(!empty($matrixData['conflicts']) && $matrixData['conflicts']['total'] > 0)
@@ -141,7 +165,7 @@
                 <ul class="list-disc list-inside space-y-1 text-slate-700 font-medium max-h-36 overflow-y-auto">
                     @foreach($matrixData['conflicts']['guru'] as $bg)
                     <li>
-                        <strong>{{ $bg['guru_nama'] }}</strong>: Hari <strong>{{ $bg['hari'] }}</strong>, Jam ke-<strong>{{ $bg['jam_ke'] }}</strong> ({{ $bg['waktu'] }}) di kelas: <span class="text-rose-700 font-bold">{{ implode(', ', $bg['classes']) }}</span>
+                        <a href="{{ route(explode('.', request()->route()->getName())[0] . '.jadwal.index', ['guru_id' => $bg['guru_id']]) }}" class="hover:underline text-rose-800"><strong>{{ $bg['guru_nama'] }}</strong></a>: Hari <strong>{{ $bg['hari'] }}</strong>, Jam ke-<strong>{{ $bg['jam_ke'] }}</strong> ({{ $bg['waktu'] }}) di kelas: <span class="text-rose-700 font-bold">{{ implode(', ', $bg['classes']) }}</span>
                     </li>
                     @endforeach
                 </ul>
@@ -156,7 +180,7 @@
                 <ul class="list-disc list-inside space-y-1 text-slate-700 font-medium max-h-36 overflow-y-auto">
                     @foreach($matrixData['conflicts']['kelas'] as $bk)
                     <li>
-                        Kelas <strong>{{ $bk['kelas'] }}</strong>: Hari <strong>{{ $bk['hari'] }}</strong> Jam ke-<strong>{{ $bk['jam_ke'] }}</strong> &rarr; <span class="text-rose-700 font-bold">{{ implode(' vs ', $bk['jadwals']) }}</span>
+                        <a href="{{ route(explode('.', request()->route()->getName())[0] . '.jadwal.index', ['kelas' => $bk['kelas']]) }}" class="hover:underline text-rose-800">Kelas <strong>{{ $bk['kelas'] }}</strong></a>: Hari <strong>{{ $bk['hari'] }}</strong> Jam ke-<strong>{{ $bk['jam_ke'] }}</strong> &rarr; <span class="text-rose-700 font-bold">{{ implode(' vs ', $bk['jadwals']) }}</span>
                     </li>
                     @endforeach
                 </ul>
@@ -185,7 +209,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-amber-200">
             @foreach($matrixData['overAllocations'] as $ov)
-            <div class="p-2.5 bg-white/90 rounded-xl border border-amber-200 flex items-center justify-between">
+            <a href="{{ route(explode('.', request()->route()->getName())[0] . '.jadwal.index', ['kelas' => $ov['kelas']]) }}" class="p-2.5 bg-white/90 hover:bg-amber-100 rounded-xl border border-amber-200 flex items-center justify-between transition cursor-pointer" title="Klik untuk memperbaiki jadwal">
                 <div>
                     <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">{{ $ov['kelas'] }}</span>
                     <strong class="text-slate-900 text-xs ml-1">{{ $ov['mapel_nama'] }}</strong>
@@ -197,11 +221,11 @@
                     </span>
                     <span class="text-[10px] text-slate-500 block mt-0.5">{{ $ov['terjadwal_jp'] }}/{{ $ov['alokasi_jam'] }} JP</span>
                 </div>
-            </div>
+            </a>
             @endforeach
 
             @foreach($matrixData['classOverLimits'] ?? [] as $co)
-            <div class="p-2.5 bg-rose-50 rounded-xl border border-rose-200 flex items-center justify-between">
+            <a href="{{ route(explode('.', request()->route()->getName())[0] . '.jadwal.index', ['kelas' => $co['kelas']]) }}" class="p-2.5 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 flex items-center justify-between transition cursor-pointer" title="Klik untuk memperbaiki jadwal">
                 <div>
                     <span class="px-2 py-0.5 rounded bg-rose-200 text-rose-900 font-bold text-[10px]">{{ $co['kelas'] }}</span>
                     <strong class="text-rose-950 text-xs ml-1">Total Jam Kelas Melebihi Batas Mingguan</strong>
@@ -209,7 +233,44 @@
                 <div class="text-right font-black text-rose-700 text-xs">
                     {{ $co['total_jp'] }} JP (Maks: 46 JP)
                 </div>
+            </a>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    <!-- BANNER PERINGATAN KEKURANGAN ALOKASI JAM KBM (BELUM MASUK) -->
+    @if(!empty($matrixData['underAllocations']) && count($matrixData['underAllocations']) > 0)
+    <div class="p-4 bg-blue-50 border-2 border-blue-300 rounded-3xl shadow-sm text-xs text-blue-900 space-y-2.5 mb-4">
+        <div class="flex items-center gap-2.5">
+            <span class="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center font-black text-base shadow-xs">
+                ℹ️
+            </span>
+            <div>
+                <h3 class="font-black text-sm text-blue-950 uppercase tracking-wide">
+                    Peringatan Kekurangan Jam Mengajar (Belum Terjadwal)
+                </h3>
+                <p class="text-[11px] text-blue-700 font-medium">
+                    Terdapat mata pelajaran yang jumlah jam terjadwalnya belum memenuhi alokasi kurikulum (klik untuk melengkapi):
+                </p>
             </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-blue-200">
+            @foreach($matrixData['underAllocations'] as $un)
+            <a href="{{ route(explode('.', request()->route()->getName())[0] . '.jadwal.index', ['kelas' => $un['kelas']]) }}" class="p-2.5 bg-white/90 hover:bg-blue-100 rounded-xl border border-blue-200 flex items-center justify-between transition cursor-pointer" title="Klik untuk melengkapi jadwal ini">
+                <div>
+                    <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-bold text-[10px]">{{ $un['kelas'] }}</span>
+                    <strong class="text-slate-900 text-xs ml-1">{{ $un['mapel_nama'] }}</strong>
+                    <span class="text-[10px] text-slate-500 block">Guru: {{ $un['guru_nama'] }}</span>
+                </div>
+                <div class="text-right">
+                    <span class="px-2 py-1 rounded-lg bg-blue-500 text-white font-black text-xs">
+                        -{{ $un['kekurangan_jp'] }} JP
+                    </span>
+                    <span class="text-[10px] text-slate-500 block mt-0.5">{{ $un['terjadwal_jp'] }}/{{ $un['alokasi_jam'] }} JP</span>
+                </div>
+            </a>
             @endforeach
         </div>
     </div>
@@ -252,6 +313,7 @@
     </div>
 
     <!-- PETUNJUK EDIT CEPAT & INTERAKSI MATRIKS -->
+    @if(auth()->user() && auth()->user()->canManageJadwal())
     <div class="px-5 py-3 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-between gap-3 text-xs text-blue-900 shadow-xs">
         <div class="flex items-center gap-2.5">
             <span class="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">
@@ -267,6 +329,8 @@
             <span>Daftar Tabel</span>
         </a>
     </div>
+    @endif
+
 
     <!-- SHEET PREVIEW CONTAINER (SCROLLABLE ON SMALL SCREENS) -->
     <div class="bg-white rounded-3xl p-4 sm:p-8 border border-slate-200 shadow-sm overflow-x-auto">
@@ -407,4 +471,147 @@
     </div>
 
 </div>
+
+    <!-- Modal AlpineJS Quick Edit Jadwal -->
+    <div x-data="{
+        showModal: false,
+        hari: '',
+        jamKe: '',
+        kelas: '',
+        jadwalId: null,
+        isLocked: false,
+        kurikulums: [],
+        selectedKurikulumId: '',
+        loading: false,
+
+        openModal(data) {
+            this.hari = data.hari;
+            this.jamKe = data.jam;
+            this.kelas = data.kelas;
+            this.jadwalId = data.jadwal_id;
+            this.isLocked = data.is_locked;
+            this.selectedKurikulumId = '';
+            this.showModal = true;
+            this.fetchKurikulum();
+        },
+        closeModal() {
+            this.showModal = false;
+        },
+        fetchKurikulum() {
+            this.loading = true;
+            fetch('{{ route('admin.kurikulum.by-kelas') }}?kelas=' + encodeURIComponent(this.kelas))
+                .then(res => res.json())
+                .then(data => {
+                    this.kurikulums = data;
+                    this.loading = false;
+                })
+                .catch(err => {
+                    console.error(err);
+                    this.loading = false;
+                });
+        }
+    }" 
+    @open-quick-edit.window="openModal($event.detail)"
+    x-show="showModal" style="display: none;" 
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm"
+    x-transition.opacity>
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden" @click.away="closeModal()">
+            <div class="px-5 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">Edit Cepat Jadwal <span x-text="kelas"></span></h3>
+                <button @click="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="bi-x-lg"></i></button>
+            </div>
+            <form action="{{ request()->routeIs('admin.*') ? route('admin.jadwal.matrix.quick_update') : route('akademik.jadwal.matrix.quick_update') }}" method="POST">
+                @csrf
+                <div class="p-5 space-y-4">
+                    <input type="hidden" name="hari" x-model="hari">
+                    <input type="hidden" name="jam_ke_mulai" x-model="jamKe">
+                    <input type="hidden" name="kelas" x-model="kelas">
+                    <input type="hidden" name="jadwal_id" x-model="jadwalId">
+
+                    <div class="flex items-center justify-between text-sm text-slate-600">
+                        <div>Hari: <span class="font-bold text-slate-900" x-text="hari"></span></div>
+                        <div>Jam ke: <span class="font-bold text-slate-900" x-text="jamKe"></span></div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Mata Pelajaran (Kurikulum)</label>
+                        <select name="kurikulum_id" x-model="selectedKurikulumId" class="w-full text-sm rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500" required>
+                            <option value="">-- Pilih Mata Pelajaran --</option>
+                            <template x-for="k in kurikulums" :key="k.id">
+                                <option :value="k.id" x-text="k.mapel_nama + ' - ' + k.guru_nama + ' (' + k.alokasi_jam + ' JP)'"></option>
+                            </template>
+                        </select>
+                        <p x-show="loading" class="text-xs text-indigo-500 mt-1 animate-pulse">Memuat data kurikulum...</p>
+                    </div>
+
+                    <div class="flex items-center gap-2 mt-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <input type="checkbox" name="is_locked" id="quick_lock" x-model="isLocked" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                        <label for="quick_lock" class="text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                            <i class="bi-lock-fill text-slate-500 mr-1"></i> Kunci Jadwal Ini
+                        </label>
+                    </div>
+                    <p class="text-[10px] text-slate-500 italic mt-1 leading-tight">
+                        * Jika Mapel memiliki alokasi 3 jam, maka otomatis 3 jam akan dialokasikan berurutan dari jam ini.
+                    </p>
+                </div>
+                <div class="px-5 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                    <button type="button" @click="closeModal()" class="px-4 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Simpan Jadwal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function confirmAutoGenerate() {
+    Swal.fire({
+        title: 'Acak Jadwal Otomatis?',
+        html: 'Sistem akan secara otomatis <b>mengisi slot jadwal yang masih kosong</b> (kekurangan jam alokasi). Jadwal yang sudah ada tidak akan dihapus.<br><br>Apakah Anda juga setuju jika sistem <b>otomatis menyesuaikan (memotong)</b> jadwal yang berlebih dari batas kurikulum?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4f46e5',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: 'Ya, Sesuaikan & Acak!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Sedang Memproses...',
+                text: 'Sistem sedang menghitung alokasi jam dan mencocokkan jadwal guru...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            document.getElementById('form-autogenerate').submit();
+        }
+    });
+}
+
+function confirmTruncate() {
+    Swal.fire({
+        title: 'Kosongkan Seluruh Jadwal?',
+        html: 'Apakah Anda yakin ingin <b>menghapus seluruh jadwal pelajaran</b> yang ada di matriks ini? Tindakan ini tidak dapat dibatalkan.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48', // rose-600
+        cancelButtonColor: '#64748b', // slate-500
+        confirmButtonText: 'Ya, Kosongkan!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Sedang Memproses...',
+                text: 'Sistem sedang mengosongkan seluruh jadwal...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            document.getElementById('form-truncate').submit();
+        }
+    });
+}
+</script>
 @endsection

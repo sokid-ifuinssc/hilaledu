@@ -17,17 +17,80 @@ class RencanaPembelajaranController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        
+        $jadwals = JadwalPelajaran::with('mataPelajaran')
+            ->where('guru_user_id', $user->id)
+            ->orderBy('hari')
+            ->orderBy('jam_mulai')
+            ->get();
+
+        $assignedMapels = collect();
+        foreach ($jadwals as $jadwal) {
+            if ($jadwal->mataPelajaran) {
+                $kelasStr = strtoupper($jadwal->kelas);
+                $tingkat = 'X';
+                $fase = 'E';
+                if (str_starts_with($kelasStr, 'XII')) {
+                    $tingkat = 'XII';
+                    $fase = 'F';
+                } elseif (str_starts_with($kelasStr, 'XI')) {
+                    $tingkat = 'XI';
+                    $fase = 'F';
+                } elseif (str_starts_with($kelasStr, 'X')) {
+                    $tingkat = 'X';
+                    $fase = 'E';
+                }
+
+                $key = $jadwal->mata_pelajaran_id . '_' . $tingkat;
+                if (!$assignedMapels->has($key)) {
+                    $assignedMapels->put($key, [
+                        'mata_pelajaran_id' => $jadwal->mata_pelajaran_id,
+                        'nama_mapel' => $jadwal->mataPelajaran->nama,
+                        'tingkat' => $tingkat,
+                        'fase' => $fase,
+                        'label' => $jadwal->mataPelajaran->nama . ' - Kelas ' . $tingkat . ' (Fase ' . $fase . ')'
+                    ]);
+                }
+            }
+        }
+        $assignedMapels = $assignedMapels->values();
+
+        $activeKalender = \App\Models\KalenderAkademik::with(['events' => function ($q) {
+                $q->orderBy('tanggal_mulai');
+            }])
+            ->where('is_aktif', true)
+            ->first() ?: \App\Models\KalenderAkademik::getActiveCalendar();
+
+        $selectedMapelId = $request->query('mapel_id');
+        $selectedTingkat = $request->query('tingkat');
+
+        if (!$selectedMapelId || !$selectedTingkat) {
+            return view('guru.rencana_pembelajaran.pilih_mapel', compact('assignedMapels', 'activeKalender'));
+        }
+
         $tab = $request->query('tab', 'cp'); // cp, tp, atp, rpp
+
+        $mapelInfo = $assignedMapels->first(function($item) use ($selectedMapelId, $selectedTingkat) {
+            return $item['mata_pelajaran_id'] == $selectedMapelId && $item['tingkat'] == $selectedTingkat;
+        });
+
+        if (!$mapelInfo) {
+            return redirect()->route('guru.rencana-pembelajaran.index')->with('error', 'Mata Pelajaran tidak valid atau tidak ditugaskan pada Anda dalam jadwal.');
+        }
 
         // 1. Capaian Pembelajaran (CP)
         $cpList = CapaianPembelajaran::with(['mataPelajaran', 'tujuanPembelajaran'])
             ->where('guru_user_id', $user->id)
+            ->where('mata_pelajaran_id', $selectedMapelId)
+            ->where('tingkat', $selectedTingkat)
             ->latest()
             ->get();
 
         // 2. Tujuan Pembelajaran (TP)
-        $tpList = TujuanPembelajaran::whereHas('capaianPembelajaran', function ($q) use ($user) {
-                $q->where('guru_user_id', $user->id);
+        $tpList = TujuanPembelajaran::whereHas('capaianPembelajaran', function ($q) use ($user, $selectedMapelId, $selectedTingkat) {
+                $q->where('guru_user_id', $user->id)
+                  ->where('mata_pelajaran_id', $selectedMapelId)
+                  ->where('tingkat', $selectedTingkat);
             })
             ->with('capaianPembelajaran.mataPelajaran')
             ->orderBy('kode_tp')
@@ -36,6 +99,8 @@ class RencanaPembelajaranController extends Controller
         // 3. Alur Tujuan Pembelajaran (ATP)
         $atpList = AlurTujuanPembelajaran::with(['mataPelajaran', 'capaianPembelajaran', 'tujuanPembelajaran'])
             ->where('guru_user_id', $user->id)
+            ->where('mata_pelajaran_id', $selectedMapelId)
+            ->where('tingkat', $selectedTingkat)
             ->orderBy('fase')
             ->orderBy('tingkat')
             ->orderBy('semester')
@@ -45,24 +110,26 @@ class RencanaPembelajaranController extends Controller
         // 4. Rencana Pembelajaran Harian (RPP / Modul Ajar)
         $rencanaList = RencanaPembelajaran::with(['jadwal.mataPelajaran', 'tujuanPembelajaran'])
             ->where('guru_user_id', $user->id)
+            ->whereHas('jadwal', function($q) use ($selectedMapelId, $selectedTingkat) {
+                $q->where('mata_pelajaran_id', $selectedMapelId)
+                  ->where(function($q2) use ($selectedTingkat) {
+                      $q2->where('kelas', 'LIKE', $selectedTingkat . ' %')
+                         ->orWhere('kelas', 'LIKE', $selectedTingkat);
+                  });
+            })
             ->orderBy('tanggal_rencana', 'desc')
             ->paginate(15);
 
-        // Jadwal mengajar untuk dropdown RPP
-        $jadwals = JadwalPelajaran::with('mataPelajaran')
-            ->where('guru_user_id', $user->id)
-            ->orderBy('hari')
-            ->orderBy('jam_mulai')
-            ->get();
-
-        $mapels = MataPelajaran::where('is_aktif', true)->orderBy('nama')->get();
-
-        // Kalender Akademik Sekolah Aktif sebagai acuan
-        $activeKalender = \App\Models\KalenderAkademik::with(['events' => function ($q) {
-                $q->orderBy('tanggal_mulai');
-            }])
-            ->where('is_aktif', true)
-            ->first() ?: \App\Models\KalenderAkademik::getActiveCalendar();
+        // Jadwal mengajar untuk dropdown RPP (khusus mapel ini)
+        $jadwalsManage = $jadwals->where('mata_pelajaran_id', $selectedMapelId)->filter(function($jadwal) use ($selectedTingkat) {
+            $kelasStr = strtoupper($jadwal->kelas);
+            if ($selectedTingkat == 'XII') return str_starts_with($kelasStr, 'XII');
+            if ($selectedTingkat == 'XI') return str_starts_with($kelasStr, 'XI');
+            if ($selectedTingkat == 'X') return str_starts_with($kelasStr, 'X');
+            return false;
+        });
+        
+        $mapels = $user->getMapelDiampu();
 
         return view('guru.rencana_pembelajaran.index', compact(
             'tab',
@@ -71,11 +138,14 @@ class RencanaPembelajaranController extends Controller
             'atpList',
             'rencanaList',
             'jadwals',
+            'jadwalsManage',
+            'mapelInfo',
             'mapels',
-            'activeKalender'
+            'activeKalender',
+            'selectedMapelId',
+            'selectedTingkat'
         ));
     }
-
     // =========================================================
     // 1. Capaian Pembelajaran (CP)
     // =========================================================
@@ -104,7 +174,7 @@ class RencanaPembelajaranController extends Controller
             'semester'          => $request->semester,
         ]);
 
-        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'cp'])
+        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'cp', 'mapel_id' => $request->mata_pelajaran_id ?? ($cp->mata_pelajaran_id ?? ''), 'tingkat' => $request->tingkat ?? ($cp->tingkat ?? '')])
             ->with('success', 'Capaian Pembelajaran (CP) berhasil ditambahkan!');
     }
 
@@ -116,7 +186,7 @@ class RencanaPembelajaranController extends Controller
         }
 
         $cp->delete();
-        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'cp'])
+        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'cp', 'mapel_id' => $request->mata_pelajaran_id ?? ($cp->mata_pelajaran_id ?? ''), 'tingkat' => $request->tingkat ?? ($cp->tingkat ?? '')])
             ->with('success', 'Capaian Pembelajaran berhasil dihapus.');
     }
 
@@ -146,14 +216,14 @@ class RencanaPembelajaranController extends Controller
             'urutan'                  => TujuanPembelajaran::where('capaian_pembelajaran_id', $request->capaian_pembelajaran_id)->count() + 1,
         ]);
 
-        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'tp'])
+        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'tp', 'mapel_id' => $request->mapel_id ?? ($tp->capaianPembelajaran->mata_pelajaran_id ?? ''), 'tingkat' => $request->tingkat ?? ($tp->capaianPembelajaran->tingkat ?? '')])
             ->with('success', 'Tujuan Pembelajaran (TP) berhasil ditambahkan!');
     }
 
     public function destroyTp(TujuanPembelajaran $tp)
     {
         $tp->delete();
-        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'tp'])
+        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'tp', 'mapel_id' => $request->mapel_id ?? ($tp->capaianPembelajaran->mata_pelajaran_id ?? ''), 'tingkat' => $request->tingkat ?? ($tp->capaianPembelajaran->tingkat ?? '')])
             ->with('success', 'Tujuan Pembelajaran berhasil dihapus.');
     }
 
@@ -195,7 +265,7 @@ class RencanaPembelajaranController extends Controller
             'keterangan'               => $request->keterangan,
         ]);
 
-        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'atp'])
+        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'atp', 'mapel_id' => $request->mata_pelajaran_id ?? ($cp->mata_pelajaran_id ?? ($atp->mata_pelajaran_id ?? '')), 'tingkat' => $request->tingkat ?? ($cp->tingkat ?? ($atp->tingkat ?? ''))])
             ->with('success', 'Alur Tujuan Pembelajaran (ATP) berhasil ditambahkan!');
     }
 
@@ -207,7 +277,7 @@ class RencanaPembelajaranController extends Controller
         }
 
         $atp->delete();
-        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'atp'])
+        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'atp', 'mapel_id' => $request->mata_pelajaran_id ?? ($cp->mata_pelajaran_id ?? ($atp->mata_pelajaran_id ?? '')), 'tingkat' => $request->tingkat ?? ($cp->tingkat ?? ($atp->tingkat ?? ''))])
             ->with('success', 'Alur Tujuan Pembelajaran berhasil dihapus.');
     }
 
@@ -226,7 +296,7 @@ class RencanaPembelajaranController extends Controller
 
         $tps = $cp->tujuanPembelajaran()->orderBy('urutan')->get();
         if ($tps->isEmpty()) {
-            return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'atp'])
+            return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'atp', 'mapel_id' => $request->mata_pelajaran_id ?? ($cp->mata_pelajaran_id ?? ($atp->mata_pelajaran_id ?? '')), 'tingkat' => $request->tingkat ?? ($cp->tingkat ?? ($atp->tingkat ?? ''))])
                 ->with('error', 'Capaian Pembelajaran ini belum memiliki Tujuan Pembelajaran (TP) untuk digenerate!');
         }
 
@@ -256,7 +326,7 @@ class RencanaPembelajaranController extends Controller
             $count++;
         }
 
-        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'atp'])
+        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'atp', 'mapel_id' => $request->mata_pelajaran_id ?? ($cp->mata_pelajaran_id ?? ($atp->mata_pelajaran_id ?? '')), 'tingkat' => $request->tingkat ?? ($cp->tingkat ?? ($atp->tingkat ?? ''))])
             ->with('success', "Berhasil memetakan {$count} Alur Tujuan Pembelajaran (ATP) dari TP terkait!");
     }
 
@@ -267,20 +337,37 @@ class RencanaPembelajaranController extends Controller
     {
         $user = Auth::user();
         $selectedJadwalId = $request->query('jadwal_id');
+        $mapelId = $request->query('mapel_id');
+        $tingkat = $request->query('tingkat');
 
-        $jadwals = JadwalPelajaran::with('mataPelajaran')
+        $jadwalsQuery = JadwalPelajaran::with('mataPelajaran')
             ->where('guru_user_id', $user->id)
             ->orderBy('hari')
-            ->orderBy('jam_mulai')
-            ->get();
+            ->orderBy('jam_mulai');
+            
+        if ($mapelId) {
+             $jadwalsQuery->where('mata_pelajaran_id', $mapelId);
+        }
+        $jadwals = $jadwalsQuery->get();
+        if ($tingkat) {
+            $jadwals = $jadwals->filter(function($jadwal) use ($tingkat) {
+                $kelasStr = strtoupper($jadwal->kelas);
+                if ($tingkat == 'XII') return str_starts_with($kelasStr, 'XII');
+                if ($tingkat == 'XI') return str_starts_with($kelasStr, 'XI');
+                if ($tingkat == 'X') return str_starts_with($kelasStr, 'X');
+                return true;
+            });
+        }
 
-        $tps = TujuanPembelajaran::whereHas('capaianPembelajaran', function ($q) use ($user) {
+        $tps = TujuanPembelajaran::whereHas('capaianPembelajaran', function ($q) use ($user, $mapelId, $tingkat) {
                 $q->where('guru_user_id', $user->id);
+                if ($mapelId) $q->where('mata_pelajaran_id', $mapelId);
+                if ($tingkat) $q->where('tingkat', $tingkat);
             })
             ->with('capaianPembelajaran.mataPelajaran')
             ->get();
 
-        return view('guru.rencana_pembelajaran.create_rpp', compact('jadwals', 'tps', 'selectedJadwalId'));
+        return view('guru.rencana_pembelajaran.create_rpp', compact('jadwals', 'tps', 'selectedJadwalId', 'mapelId', 'tingkat'));
     }
 
     public function storeRpp(Request $request)
@@ -301,7 +388,7 @@ class RencanaPembelajaranController extends Controller
 
         $user = Auth::user();
 
-        RencanaPembelajaran::create([
+        $rencana = RencanaPembelajaran::create([
             'jadwal_pelajaran_id'   => $request->jadwal_pelajaran_id,
             'guru_user_id'          => $user->id,
             'tujuan_pembelajaran_id'=> $request->tujuan_pembelajaran_id,
@@ -316,7 +403,7 @@ class RencanaPembelajaranController extends Controller
             'catatan'               => $request->catatan,
         ]);
 
-        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'rpp'])
+        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'rpp', 'mapel_id' => $request->mapel_id ?? ($rencana->jadwal->mata_pelajaran_id ?? ''), 'tingkat' => $request->tingkat ?? 'X'])
             ->with('success', 'Rencana Pembelajaran Harian (Modul Ajar) berhasil disimpan!');
     }
 
@@ -334,7 +421,7 @@ class RencanaPembelajaranController extends Controller
         }
 
         $rencana->delete();
-        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'rpp'])
+        return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'rpp', 'mapel_id' => $request->mapel_id ?? ($rencana->jadwal->mata_pelajaran_id ?? ''), 'tingkat' => $request->tingkat ?? 'X'])
             ->with('success', 'Rencana Pembelajaran berhasil dihapus.');
     }
 }

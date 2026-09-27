@@ -40,13 +40,18 @@ class PayrollSettingController extends Controller
             abort(404, 'Pengguna bukan guru atau tendik.');
         }
 
+        $isGuru = $user->role === 'guru';
+        $jamPenugasan = $isGuru ? $user->total_jam_mengajar : 0;
+
         $setting = $user->payrollSetting ?? new PayrollSetting([
             'user_id'              => $user->id,
-            'gaji_pokok'           => $user->role === 'guru' ? 1500000 : 1800000,
-            'honor_per_jam'        => $user->role === 'guru' ? 35000 : 0,
-            'jam_mengajar_default' => $user->role === 'guru' ? 24 : 0,
+            'gaji_pokok'           => $isGuru ? 0 : 1800000,
+            'honor_per_jam'        => $isGuru ? 35000 : 0,
+            'jam_mengajar_default' => $jamPenugasan ?: ($isGuru ? 24 : 0),
             'tunjangan_jabatan'    => 0,
-            'tunjangan_kehadiran'  => 200000,
+            'detail_tunjangan_tugas' => [],
+            'tunjangan_kehadiran'  => $isGuru ? 0 : 250000,
+            'transport_per_hari'   => 20000,
             'tunjangan_lain'       => 0,
             'potongan_bpjs'        => 45000,
             'potongan_koperasi'    => 50000,
@@ -54,31 +59,93 @@ class PayrollSettingController extends Controller
             'atas_nama_rekening'   => $user->name,
         ]);
 
-        return view('superadmin.payroll.setting.edit', compact('user', 'setting'));
+        // Jika guru dan jam penugasan ditemukan di database, sinkronkan nilai default jam mengajar
+        if ($isGuru && $jamPenugasan > 0) {
+            $setting->jam_mengajar_default = $jamPenugasan;
+        }
+
+        // Untuk guru, pastikan gaji pokok bernilai 0
+        if ($isGuru) {
+            $setting->gaji_pokok = 0;
+        }
+
+        // Dapatkan daftar tugas tambahan yang diemban (kecuali label dasar 'Guru' atau 'Tendik')
+        $daftarTugas = collect($user->daftar_jabatan)
+            ->reject(fn($t) => in_array($t, ['Guru', 'Tendik', 'Guru Pengajar', 'Siswa']))
+            ->values();
+
+        return view('superadmin.payroll.setting.edit', compact('user', 'setting', 'daftarTugas'));
     }
 
     public function update(Request $request, User $user)
     {
-        $validated = $request->validate([
-            'gaji_pokok'           => 'required|numeric|min:0',
-            'honor_per_jam'        => 'required|numeric|min:0',
-            'jam_mengajar_default' => 'required|integer|min:0',
-            'tunjangan_jabatan'    => 'required|numeric|min:0',
-            'tunjangan_kehadiran'  => 'required|numeric|min:0',
-            'tunjangan_lain'       => 'nullable|numeric|min:0',
-            'potongan_bpjs'        => 'nullable|numeric|min:0',
-            'potongan_koperasi'    => 'nullable|numeric|min:0',
-            'potongan_lain'        => 'nullable|numeric|min:0',
-            'rekening_bank'        => 'nullable|string|max:100',
-            'nomor_rekening'       => 'nullable|string|max:60',
-            'atas_nama_rekening'   => 'nullable|string|max:150',
-            'catatan'              => 'nullable|string',
-        ]);
+        $isGuru = $user->role === 'guru';
 
-        $validated['tunjangan_lain']    = $validated['tunjangan_lain'] ?? 0;
-        $validated['potongan_bpjs']     = $validated['potongan_bpjs'] ?? 0;
-        $validated['potongan_koperasi'] = $validated['potongan_koperasi'] ?? 0;
-        $validated['potongan_lain']     = $validated['potongan_lain'] ?? 0;
+        $rules = [
+            'honor_per_jam'           => 'required|numeric|min:0',
+            'jam_mengajar_default'    => 'required|integer|min:0',
+            'transport_per_hari'      => 'nullable|numeric|min:0',
+            'tunjangan_lain'          => 'nullable|numeric|min:0',
+            'potongan_bpjs'           => 'nullable|numeric|min:0',
+            'potongan_koperasi'       => 'nullable|numeric|min:0',
+            'potongan_lain'           => 'nullable|numeric|min:0',
+            'rekening_bank'           => 'nullable|string|max:100',
+            'nomor_rekening'          => 'nullable|string|max:60',
+            'atas_nama_rekening'      => 'nullable|string|max:150',
+            'catatan'                 => 'nullable|string',
+            'tugas_tambahan_nominal'  => 'nullable|array',
+            'custom_tugas_nama'       => 'nullable|array',
+            'custom_tugas_nominal'    => 'nullable|array',
+        ];
+
+        if (!$isGuru) {
+            $rules['gaji_pokok']          = 'required|numeric|min:0';
+            $rules['tunjangan_kehadiran'] = 'nullable|numeric|min:0';
+        }
+
+        $validated = $request->validate($rules);
+
+        // Jika guru, gaji pokok ditiadakan (0), diambil dari jam mengajar x honor
+        if ($isGuru) {
+            $validated['gaji_pokok'] = 0;
+            $validated['tunjangan_kehadiran'] = 0;
+        } else {
+            $validated['gaji_pokok'] = $validated['gaji_pokok'] ?? 0;
+            $validated['tunjangan_kehadiran'] = $validated['tunjangan_kehadiran'] ?? 0;
+        }
+
+        // Proses rincian nominal per tugas tambahan
+        $detailTugas = [];
+        $totalTunjanganJabatan = 0;
+
+        // 1. Tugas terdaftar
+        if (!empty($request->tugas_tambahan_nominal) && is_array($request->tugas_tambahan_nominal)) {
+            foreach ($request->tugas_tambahan_nominal as $namaTugas => $nominal) {
+                $nomFloat = max(0, (float) $nominal);
+                $detailTugas[$namaTugas] = $nomFloat;
+                $totalTunjanganJabatan += $nomFloat;
+            }
+        }
+
+        // 2. Tugas kustom tambahan (jika ada input baru dari form)
+        if (!empty($request->custom_tugas_nama) && is_array($request->custom_tugas_nama)) {
+            foreach ($request->custom_tugas_nama as $idx => $namaKustom) {
+                $namaKustom = trim($namaKustom);
+                if (!empty($namaKustom)) {
+                    $nomKustom = isset($request->custom_tugas_nominal[$idx]) ? max(0, (float)$request->custom_tugas_nominal[$idx]) : 0;
+                    $detailTugas[$namaKustom] = $nomKustom;
+                    $totalTunjanganJabatan += $nomKustom;
+                }
+            }
+        }
+
+        $validated['detail_tunjangan_tugas'] = $detailTugas;
+        $validated['tunjangan_jabatan']      = $totalTunjanganJabatan;
+        $validated['transport_per_hari']     = $validated['transport_per_hari'] ?? 20000;
+        $validated['tunjangan_lain']         = $validated['tunjangan_lain'] ?? 0;
+        $validated['potongan_bpjs']          = $validated['potongan_bpjs'] ?? 0;
+        $validated['potongan_koperasi']      = $validated['potongan_koperasi'] ?? 0;
+        $validated['potongan_lain']          = $validated['potongan_lain'] ?? 0;
 
         PayrollSetting::updateOrCreate(
             ['user_id' => $user->id],

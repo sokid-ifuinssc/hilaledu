@@ -36,7 +36,7 @@ class ModuleAccessMiddleware
 
         // 4. Periksa hak akses guru
         if ($user->role === 'guru') {
-            if (in_array($module, ['akademik', 'prakerin', 'bk', 'koperasi', 'tracer', 'keuangan'])) {
+            if (in_array($module, ['akademik', 'prakerin', 'bk', 'koperasi', 'tracer', 'keuangan', 'payroll'])) {
                 return $next($request);
             }
         }
@@ -50,7 +50,7 @@ class ModuleAccessMiddleware
 
         // 6. Periksa hak akses tendik
         if ($user->role === 'tendik') {
-            if (in_array($module, ['akademik', 'keuangan', 'koperasi', 'bk', 'prakerin', 'tracer'])) {
+            if (in_array($module, ['akademik', 'keuangan', 'koperasi', 'bk', 'prakerin', 'tracer', 'payroll'])) {
                 return $next($request);
             }
         }

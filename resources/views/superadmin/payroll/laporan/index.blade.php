@@ -12,12 +12,12 @@
                 <h5 class="fw-bold text-slate-800 mb-1"><i class="bi bi-funnel me-2 text-emerald-600"></i>Filter Laporan</h5>
                 <p class="text-slate-500 mb-0 small">Filter data penggajian untuk dicetak.</p>
             </div>
-            <a href="{{ route('payroll.laporan.print', request()->all()) }}" target="_blank" class="btn btn-emerald rounded-3 px-4">
+            <a href="{{ route('superadmin.payroll.laporan.print', request()->all()) }}" target="_blank" class="btn btn-emerald rounded-3 px-4">
                 <i class="bi bi-printer me-2"></i> Cetak Laporan
             </a>
         </div>
         <div class="card-body p-4">
-            <form action="{{ route('payroll.laporan.index') }}" method="GET" class="row g-3">
+            <form action="{{ route('superadmin.payroll.laporan.index') }}" method="GET" class="row g-3">
                 
                 <div class="col-md-3">
                     <label class="form-label text-slate-700 fw-semibold text-sm">Bulan</label>
@@ -56,7 +56,7 @@
                 </div>
 
                 <div class="col-12 text-end mt-4">
-                    <a href="{{ route('payroll.laporan.index') }}" class="btn btn-light border me-2">Reset</a>
+                    <a href="{{ route('superadmin.payroll.laporan.index') }}" class="btn btn-light border me-2">Reset</a>
                     <button type="submit" class="btn btn-primary px-4">Terapkan Filter</button>
                 </div>
             </form>
@@ -107,7 +107,7 @@
                                     @endif
                                 </td>
                                 <td class="pe-4 text-end">
-                                    <a href="{{ route('payroll.periode.slip', [$p->periode_id, $p->id]) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <a href="{{ route('superadmin.payroll.periode.slip', [$p->periode_id, $p->id]) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-printer"></i>
                                     </a>
                                 </td>

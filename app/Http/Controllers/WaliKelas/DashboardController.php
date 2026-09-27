@@ -50,4 +50,109 @@ class DashboardController extends Controller
 
         return view('walikelas.dashboard', compact('stats', 'pelanggaranTerbaru', 'kelasSaya', 'tahunAjaran'));
     }
+
+    /**
+     * Tampilan Jadwal Lengkap Kelas Bimbingan Wali Kelas
+     */
+    public function jadwalKelas()
+    {
+        $user = auth()->user();
+        $tahunAjaran = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester    = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        // Cari kelas bimbingan wali kelas
+        $kelasSaya = Kelas::where('wali_kelas_id', $user->id)->first();
+        if (!$kelasSaya && !empty($user->name)) {
+            $kelasSaya = Kelas::where('wali_kelas', $user->name)->first();
+        }
+        if (!$kelasSaya && $user->hasAnyTugasTambahan()) {
+            foreach (Kelas::all() as $k) {
+                if (stripos($user->tugas_tambahan, $k->nama_kelas) !== false || stripos($user->tugas_tambahan, $k->nama) !== false) {
+                    $kelasSaya = $k;
+                    break;
+                }
+            }
+        }
+        if (!$kelasSaya) {
+            $kelasSaya = Kelas::first();
+        }
+
+        $namaKelas = $kelasSaya ? ($kelasSaya->nama_kelas ?? $kelasSaya->nama) : 'X AKL';
+
+        // Ambil jadwal lengkap seminggu penuh (Senin - Sabtu) hanya untuk kelas bimbingannya
+        $jadwalLengkap = \App\Models\JadwalPelajaran::with(['mataPelajaran', 'guru'])
+            ->where('kelas', $namaKelas)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->orderByRaw("CASE hari WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3 WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6 ELSE 7 END")
+            ->orderBy('jam_ke_mulai')
+            ->get()
+            ->groupBy('hari');
+
+        // Ringkasan guru pengajar di kelas ini
+        $ringkasanMapel = \App\Models\JadwalPelajaran::with(['mataPelajaran', 'guru'])
+            ->where('kelas', $namaKelas)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->get()
+            ->groupBy('mata_pelajaran_id');
+
+        $totalJp = \App\Models\JadwalPelajaran::where('kelas', $namaKelas)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->get()
+            ->sum(fn($j) => max(1, ($j->jam_ke_selesai - $j->jam_ke_mulai + 1)));
+
+        return view('walikelas.jadwal', compact(
+            'user',
+            'kelasSaya',
+            'namaKelas',
+            'jadwalLengkap',
+            'ringkasanMapel',
+            'totalJp',
+            'tahunAjaran',
+            'semester'
+        ));
+    }
+
+    /**
+     * Cetak Lembar Jadwal Pelajaran Kelas Bimbingan
+     */
+    public function printJadwalKelas()
+    {
+        $user = auth()->user();
+        $tahunAjaran = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester    = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        $kelasSaya = Kelas::where('wali_kelas_id', $user->id)->first();
+        if (!$kelasSaya && !empty($user->name)) {
+            $kelasSaya = Kelas::where('wali_kelas', $user->name)->first();
+        }
+        if (!$kelasSaya) {
+            $kelasSaya = Kelas::first();
+        }
+
+        $namaKelas = $kelasSaya ? ($kelasSaya->nama_kelas ?? $kelasSaya->nama) : 'X AKL';
+
+        $jadwalLengkap = \App\Models\JadwalPelajaran::with(['mataPelajaran', 'guru'])
+            ->where('kelas', $namaKelas)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->orderByRaw("CASE hari WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3 WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6 ELSE 7 END")
+            ->orderBy('jam_ke_mulai')
+            ->get()
+            ->groupBy('hari');
+
+        $settings = \App\Models\PengaturanSekolah::getAllSettings();
+
+        return view('walikelas.jadwal_print', compact(
+            'user',
+            'kelasSaya',
+            'namaKelas',
+            'jadwalLengkap',
+            'tahunAjaran',
+            'semester',
+            'settings'
+        ));
+    }
 }

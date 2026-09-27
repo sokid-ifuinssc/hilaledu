@@ -103,6 +103,24 @@ class PengaturanSekolah extends Model
         return '2026/2027';
     }
 
+    public static function getActiveTahunAjaranId(): ?int
+    {
+        try {
+            $ta = \App\Models\TahunAjaran::where('is_aktif', true)->orWhere('is_active', true)->first();
+            if ($ta) {
+                return (int)$ta->id;
+            }
+            $activeTaString = self::getActiveTahunAjaran();
+            $taByName = \App\Models\TahunAjaran::where('nama', $activeTaString)->first();
+            if ($taByName) {
+                return (int)$taByName->id;
+            }
+            return \App\Models\TahunAjaran::first()?->id;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     public static function getActiveSemester(): string
     {
         try {
@@ -123,8 +141,35 @@ class PengaturanSekolah extends Model
         if ($key === 'semester') {
             return self::getActiveSemester();
         }
-        $setting = self::getSetting();
-        return $setting->{$key} ?? $default;
+
+        // 1. Cek tabel key-value pengaturan_sekolahs
+        try {
+            $row = \Illuminate\Support\Facades\DB::table('pengaturan_sekolahs')->where('key', $key)->first();
+            if ($row && $row->value !== null) {
+                if ($row->tipe === 'json') {
+                    $decoded = json_decode($row->value, true);
+                    return $decoded !== null ? $decoded : $row->value;
+                }
+                // Jika format JSON tapi tipenya string/text
+                if (is_string($row->value) && (str_starts_with(trim($row->value), '{') || str_starts_with(trim($row->value), '['))) {
+                    $decoded = json_decode($row->value, true);
+                    if ($decoded !== null) {
+                        return $decoded;
+                    }
+                }
+                return $row->value;
+            }
+        } catch (\Throwable $e) {}
+
+        // 2. Cek kolom di tabel pengaturan_sekolah
+        try {
+            $setting = self::getSetting();
+            if (isset($setting->{$key}) && $setting->{$key} !== null) {
+                return $setting->{$key};
+            }
+        } catch (\Throwable $e) {}
+
+        return $default;
     }
 
     public static function getAllSettings(): array
@@ -140,7 +185,7 @@ class PengaturanSekolah extends Model
             'telepon' => $setting->telepon ?? '0231-123456',
             'website' => $setting->website ?? 'https://smkplusalhilal.sch.id',
             'logo' => $setting->logo ?? null,
-            'kepala_sekolah' => $kepala ? ($kepala->nama_lengkap ?? $kepala->name) : 'Drs. H. Ahmad Fauzi, M.Pd.',
+            'kepala_sekolah' => $kepala ? ($kepala->nama_lengkap ?? $kepala->name) : 'Mukhammad Mansyur, S.Pt',
             'nip_kepala_sekolah' => $kepala ? ($kepala->nip ?? '-') : '-',
             'tahun_ajaran' => self::getActiveTahunAjaran(),
             'tahun_pelajaran' => self::getActiveTahunAjaran(),
@@ -149,10 +194,16 @@ class PengaturanSekolah extends Model
         ];
 
         try {
-            if (\Illuminate\Support\Facades\Schema::hasColumn('pengaturan_sekolah', 'key')) {
-                foreach (static::all() as $item) {
-                    if (!empty($item->key)) {
-                        $result[$item->key] = ($item->tipe ?? '') === 'json' ? json_decode($item->value, true) : $item->value;
+            $items = \Illuminate\Support\Facades\DB::table('pengaturan_sekolahs')->get();
+            foreach ($items as $item) {
+                if (!empty($item->key)) {
+                    if (($item->tipe ?? '') === 'json') {
+                        $result[$item->key] = json_decode($item->value, true) ?? $item->value;
+                    } elseif (is_string($item->value) && (str_starts_with(trim($item->value), '{') || str_starts_with(trim($item->value), '['))) {
+                        $decoded = json_decode($item->value, true);
+                        $result[$item->key] = $decoded !== null ? $decoded : $item->value;
+                    } else {
+                        $result[$item->key] = $item->value;
                     }
                 }
             }
@@ -187,13 +238,42 @@ class PengaturanSekolah extends Model
         return true;
     }
 
-    public static function set(string $key, $value): void
+    public static function set(string $key, $value, ?string $label = null, string $tipe = 'text'): void
     {
-        $setting = self::getSetting();
-        if (\Illuminate\Support\Facades\Schema::hasColumn('pengaturan_sekolah', $key)) {
-            $setting->{$key} = $value;
-            $setting->save();
-        }
+        // 1. Simpan di tabel pengaturan_sekolah jika berupa kolom fisik
+        try {
+            $setting = self::getSetting();
+            if (\Illuminate\Support\Facades\Schema::hasColumn('pengaturan_sekolah', $key)) {
+                $setting->{$key} = is_array($value) ? json_encode($value) : $value;
+                $setting->save();
+            }
+        } catch (\Throwable $e) {}
+
+        // 2. Simpan juga di tabel key-value pengaturan_sekolahs
+        try {
+            $isJson = is_array($value) || is_object($value) || $tipe === 'json';
+            $valStr = $isJson ? json_encode($value) : (string)$value;
+            $tipeFinal = $isJson ? 'json' : $tipe;
+
+            $exists = \Illuminate\Support\Facades\DB::table('pengaturan_sekolahs')->where('key', $key)->first();
+            if ($exists) {
+                \Illuminate\Support\Facades\DB::table('pengaturan_sekolahs')->where('key', $key)->update([
+                    'value' => $valStr,
+                    'label' => $label ?? $exists->label ?? $key,
+                    'tipe'  => $tipeFinal,
+                    'updated_at' => now(),
+                ]);
+            } else {
+                \Illuminate\Support\Facades\DB::table('pengaturan_sekolahs')->insert([
+                    'key'   => $key,
+                    'value' => $valStr,
+                    'label' => $label ?? $key,
+                    'tipe'  => $tipeFinal,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {}
     }
 }
 

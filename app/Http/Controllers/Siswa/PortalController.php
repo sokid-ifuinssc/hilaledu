@@ -196,4 +196,123 @@ class PortalController extends Controller
         return redirect()->route('siswa.dashboard')
             ->with('success', 'Masukan / keluhan KBM Anda berhasil dikirimkan secara RAHASIA (Anonim). Identitas Anda 100% terjaga kerahasiaannya.');
     }
+
+    /**
+     * Tampilan Jadwal Lengkap Kelas Siswa
+     */
+    public function jadwal(Request $request)
+    {
+        $user = Auth::user();
+        $siswaData = Siswa::with('kelas')->where('user_id', $user->id)->first();
+        $kelasNama = null;
+
+        if ($siswaData && $siswaData->kelas) {
+            $kelasNama = $siswaData->kelas->nama_kelas ?? $siswaData->kelas->nama;
+        } elseif ($user->kelas) {
+            $kelasNama = $user->kelas->nama_kelas ?? $user->kelas->nama;
+        } elseif ($user->kelas_id) {
+            $k = Kelas::find($user->kelas_id);
+            $kelasNama = $k ? ($k->nama_kelas ?? $k->nama) : 'X AKL';
+        } else {
+            $kelasNama = 'X AKL';
+        }
+
+        $tahunAjaran = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester    = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        // Ambil jadwal lengkap seminggu penuh (Senin - Sabtu) hanya untuk kelas siswa ini
+        $jadwalLengkap = JadwalPelajaran::with(['mataPelajaran', 'guru'])
+            ->where('kelas', $kelasNama)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->orderByRaw("CASE hari WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3 WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6 ELSE 7 END")
+            ->orderBy('jam_ke_mulai')
+            ->get()
+            ->groupBy('hari');
+
+        // Ringkasan mapel & guru di kelas ini
+        $ringkasanMapel = JadwalPelajaran::with(['mataPelajaran', 'guru'])
+            ->where('kelas', $kelasNama)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->get()
+            ->groupBy('mata_pelajaran_id');
+
+        $totalJp = JadwalPelajaran::where('kelas', $kelasNama)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->get()
+            ->sum(fn($j) => max(1, ($j->jam_ke_selesai - $j->jam_ke_mulai + 1)));
+
+        // Temukan wali kelas untuk kelas ini
+        $kelasModel = Kelas::where('nama_kelas', $kelasNama)->orWhere('nama', $kelasNama)->first();
+        $waliKelas = null;
+        if ($kelasModel && $kelasModel->wali_kelas_id) {
+            $waliKelas = User::find($kelasModel->wali_kelas_id);
+        }
+
+        return view('siswa.jadwal', compact(
+            'user',
+            'siswaData',
+            'kelasNama',
+            'kelasModel',
+            'waliKelas',
+            'jadwalLengkap',
+            'ringkasanMapel',
+            'totalJp',
+            'tahunAjaran',
+            'semester'
+        ));
+    }
+
+    /**
+     * Cetak Jadwal Pelajaran Kelas Siswa
+     */
+    public function printJadwal(Request $request)
+    {
+        $user = Auth::user();
+        $siswaData = Siswa::with('kelas')->where('user_id', $user->id)->first();
+        $kelasNama = null;
+
+        if ($siswaData && $siswaData->kelas) {
+            $kelasNama = $siswaData->kelas->nama_kelas ?? $siswaData->kelas->nama;
+        } elseif ($user->kelas) {
+            $kelasNama = $user->kelas->nama_kelas ?? $user->kelas->nama;
+        } elseif ($user->kelas_id) {
+            $k = Kelas::find($user->kelas_id);
+            $kelasNama = $k ? ($k->nama_kelas ?? $k->nama) : 'X AKL';
+        } else {
+            $kelasNama = 'X AKL';
+        }
+
+        $tahunAjaran = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester    = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        $jadwalLengkap = JadwalPelajaran::with(['mataPelajaran', 'guru'])
+            ->where('kelas', $kelasNama)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->orderByRaw("CASE hari WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3 WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6 ELSE 7 END")
+            ->orderBy('jam_ke_mulai')
+            ->get()
+            ->groupBy('hari');
+
+        $kelasModel = Kelas::where('nama_kelas', $kelasNama)->orWhere('nama', $kelasNama)->first();
+        $waliKelas = null;
+        if ($kelasModel && $kelasModel->wali_kelas_id) {
+            $waliKelas = User::find($kelasModel->wali_kelas_id);
+        }
+        $settings = \App\Models\PengaturanSekolah::getAllSettings();
+
+        return view('siswa.jadwal_print', compact(
+            'user',
+            'kelasNama',
+            'kelasModel',
+            'waliKelas',
+            'jadwalLengkap',
+            'tahunAjaran',
+            'semester',
+            'settings'
+        ));
+    }
 }

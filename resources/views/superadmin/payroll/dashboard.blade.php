@@ -133,7 +133,7 @@
                     <a href="{{ route('superadmin.payroll.komponen.index') }}" class="btn btn-outline-light fw-semibold px-3 py-2" style="border-radius: 12px; border-color: rgba(255,255,255,0.4);">
                         <i class="bi bi-tags-fill me-1"></i> Master Komponen
                     </a>
-                    <a href="{{ route('payroll.laporan.index') }}" class="btn btn-outline-light fw-semibold px-3 py-2" style="border-radius: 12px; border-color: rgba(255,255,255,0.4);">
+                    <a href="{{ route('superadmin.payroll.laporan.index') }}" class="btn btn-outline-light fw-semibold px-3 py-2" style="border-radius: 12px; border-color: rgba(255,255,255,0.4);">
                         <i class="bi bi-file-earmark-text me-1"></i> Laporan Penggajian
                     </a>
                 </div>

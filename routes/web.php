@@ -57,13 +57,16 @@ Route::get('/', function () {
         $user = auth()->user();
         if ($user->isSuperAdmin()) {
             return redirect()->route('superadmin.dashboard');
-        } elseif ($user->role === 'admin' || !empty($user->admin_role)) {
+        } elseif ($user->isGuru()) {
+            return redirect()->route('guru.dashboard');
+        } elseif ($user->role === 'admin') {
+            if ($user->admin_role === 'payroll') {
+                return redirect()->route('superadmin.payroll.dashboard');
+            }
             if (!empty($user->admin_role) && \Illuminate\Support\Facades\Route::has($user->admin_role . '.dashboard')) {
                 return redirect()->route($user->admin_role . '.dashboard');
             }
             return redirect()->route('superadmin.dashboard');
-        } elseif ($user->isGuru()) {
-            return redirect()->route('guru.dashboard');
         } elseif ($user->isSiswa()) {
             return redirect()->route('siswa.dashboard');
         } elseif ($user->isTendik()) {
@@ -267,8 +270,21 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::prefix('keuangan')->name('keuangan.')->middleware('module_access:keuangan')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Keuangan\DashboardController::class, 'index'])->name('dashboard');
+        
+        // Master Tagihan
+        Route::post('/tagihan-master', [\App\Http\Controllers\Keuangan\TagihanController::class, 'storeMaster'])->name('tagihan_master.store');
+        Route::put('/tagihan-master/{id}', [\App\Http\Controllers\Keuangan\TagihanController::class, 'updateMaster'])->name('tagihan_master.update');
+        Route::delete('/tagihan-master/{id}', [\App\Http\Controllers\Keuangan\TagihanController::class, 'destroyMaster'])->name('tagihan_master.destroy');
+
+        // Assign/Generate Tagihan ke Siswa
+        Route::post('/tagihan/generate', [\App\Http\Controllers\Keuangan\TagihanController::class, 'generateTagihan'])->name('tagihan.generate');
+        Route::post('/tagihan/generate-rutin', [\App\Http\Controllers\Keuangan\TagihanController::class, 'generateRutin'])->name('tagihan.generate_rutin');
+        Route::post('/tagihan/clean-duplicates', [\App\Http\Controllers\Keuangan\TagihanController::class, 'cleanDuplicates'])->name('tagihan.clean_duplicates');
+
         Route::resource('tagihan', \App\Http\Controllers\Keuangan\TagihanController::class);
         Route::resource('pembayaran', \App\Http\Controllers\Keuangan\PembayaranController::class);
+        Route::get('/laporan', [\App\Http\Controllers\Keuangan\LaporanController::class, 'index'])->name('laporan.index');
+        Route::get('/laporan/print', [\App\Http\Controllers\Keuangan\LaporanController::class, 'print'])->name('laporan.print');
     });
     Route::prefix('koperasi')->name('koperasi.')->middleware('module_access:koperasi')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Koperasi\DashboardController::class, 'index'])->name('dashboard');
@@ -500,6 +516,8 @@ Route::middleware('auth')->group(function () {
     // =========================================================================
     Route::prefix('siswa')->name('siswa.')->group(function () {
         Route::get('/dashboard', [SiswaPortalController::class, 'dashboard'])->name('dashboard');
+        Route::get('/jadwal', [SiswaPortalController::class, 'jadwal'])->name('jadwal');
+        Route::get('/jadwal/print', [SiswaPortalController::class, 'printJadwal'])->name('jadwal.print');
         Route::get('/keluhan/create', [SiswaPortalController::class, 'createKeluhan'])->name('keluhan.create');
         Route::post('/keluhan', [SiswaPortalController::class, 'storeKeluhan'])->name('keluhan.store');
     });
@@ -529,6 +547,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/kurikulum/autogenerate', [KurikulumController::class, 'autoGenerate'])->name('kurikulum.autogenerate');
         Route::post('/kurikulum', [KurikulumController::class, 'store'])->name('kurikulum.store');
         Route::put('/kurikulum/{kurikulum}', [KurikulumController::class, 'update'])->name('kurikulum.update');
+        Route::patch('/kurikulum/{kurikulum}/urutan', [KurikulumController::class, 'updateUrutan'])->name('kurikulum.update-urutan');
         Route::delete('/kurikulum/{kurikulum}', [KurikulumController::class, 'destroy'])->name('kurikulum.destroy');
         Route::post('/kurikulum/bulk-delete', [KurikulumController::class, 'bulkDelete'])->name('kurikulum.bulk-delete');
         Route::post('/kurikulum/duplicate', [KurikulumController::class, 'duplicate'])->name('kurikulum.duplicate');
@@ -587,7 +606,15 @@ Route::middleware('auth')->group(function () {
 
         // Matriks Jadwal Resmi (Format Sesuai Lembar Cetak Sekolah)
         Route::get('/jadwal/matrix', [JadwalMatrixController::class, 'matrix'])->name('jadwal.matrix');
+        Route::post('/jadwal/matrix/quick', [JadwalMatrixController::class, 'quickUpdate'])->name('jadwal.matrix.quick_update');
+        Route::post('/jadwal/matrix/truncate', [JadwalMatrixController::class, 'truncateMatrix'])->name('jadwal.matrix.truncate');
         Route::get('/jadwal/matrix/print', [JadwalMatrixController::class, 'printMatrix'])->name('jadwal.matrix.print');
+        Route::get('/jadwal/sk-mengajar/print', [JadwalMatrixController::class, 'printSkMengajar'])->name('jadwal.sk_mengajar.print');
+
+        // Pengaturan Jadwal Per Hari (UI Simpel: pilih hari → isi mapel per jam)
+        Route::get('/jadwal/atur', [JadwalMatrixController::class, 'aturJadwal'])->name('jadwal.atur');
+        Route::post('/jadwal/atur/simpan', [JadwalMatrixController::class, 'aturJadwalSimpan'])->name('jadwal.atur.simpan');
+        Route::delete('/jadwal/atur/hapus/{id}', [JadwalMatrixController::class, 'aturJadwalHapus'])->name('jadwal.atur.hapus');
 
         // Monitoring Suara Siswa & Evaluasi KBM (Identitas Terbuka untuk Pimpinan)
         Route::get('/keluhan', [AdminKeluhanController::class, 'index'])->name('keluhan.index');
@@ -631,6 +658,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/kurikulum/autogenerate', [KurikulumController::class, 'autoGenerate'])->name('kurikulum.autogenerate');
         Route::post('/kurikulum', [KurikulumController::class, 'store'])->name('kurikulum.store');
         Route::put('/kurikulum/{kurikulum}', [KurikulumController::class, 'update'])->name('kurikulum.update');
+        Route::patch('/kurikulum/{kurikulum}/urutan', [KurikulumController::class, 'updateUrutan'])->name('kurikulum.update-urutan');
         Route::delete('/kurikulum/{kurikulum}', [KurikulumController::class, 'destroy'])->name('kurikulum.destroy');
         Route::post('/kurikulum/bulk-delete', [KurikulumController::class, 'bulkDelete'])->name('kurikulum.bulk-delete');
         Route::post('/kurikulum/duplicate', [KurikulumController::class, 'duplicate'])->name('kurikulum.duplicate');
@@ -650,7 +678,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/jadwal/import', [AdminController::class, 'jadwalImport'])->name('jadwal.import');
         Route::get('/jadwal/template', [AdminController::class, 'jadwalTemplate'])->name('jadwal.template');
         Route::get('/jadwal/matrix', [JadwalMatrixController::class, 'matrix'])->name('jadwal.matrix');
+        Route::post('/jadwal/matrix/quick', [JadwalMatrixController::class, 'quickUpdate'])->name('jadwal.matrix.quick_update');
+        Route::post('/jadwal/matrix/truncate', [JadwalMatrixController::class, 'truncateMatrix'])->name('jadwal.matrix.truncate');
         Route::get('/jadwal/matrix/print', [JadwalMatrixController::class, 'printMatrix'])->name('jadwal.matrix.print');
+        Route::get('/jadwal/sk-mengajar/print', [JadwalMatrixController::class, 'printSkMengajar'])->name('jadwal.sk_mengajar.print');
+
+        // Pengaturan Jadwal Per Hari (UI Simpel: pilih hari → isi mapel per jam)
+        Route::get('/jadwal/atur', [JadwalMatrixController::class, 'aturJadwal'])->name('jadwal.atur');
+        Route::post('/jadwal/atur/simpan', [JadwalMatrixController::class, 'aturJadwalSimpan'])->name('jadwal.atur.simpan');
+        Route::delete('/jadwal/atur/hapus/{id}', [JadwalMatrixController::class, 'aturJadwalHapus'])->name('jadwal.atur.hapus');
+
 
         Route::get('/nilai', [AdminController::class, 'nilaiIndex'])->name('nilai.index');
 
@@ -773,7 +810,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/progres', [Kaprog\ProgresController::class, 'index'])->name('progres.index');
         Route::get('/progres/{pelanggaran}', [Kaprog\ProgresController::class, 'show'])->name('progres.show');
         Route::post('/progres/{pelanggaran}/approve', [Kaprog\ProgresController::class, 'approve'])->name('progres.approve');
-        Route::post('/progres/{pelanggaran}/laporan', [Kaprog\ProgresController::class, 'isiLaporan'])->name('progres.laporan');
+        // Matriks Jadwal Jurusan (Full)
+        Route::get('/jadwal-matrix', [\App\Http\Controllers\Admin\JadwalMatrixController::class, 'kaprogMatrix'])->name('jadwal.matrix');
+        Route::get('/jadwal-matrix/print', [\App\Http\Controllers\Admin\JadwalMatrixController::class, 'kaprogPrintMatrix'])->name('jadwal.matrix.print');
     });
 
     // ==========================================
@@ -790,6 +829,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/progres/{pelanggaran}', [WaliKelas\ProgresController::class, 'show'])->name('progres.show');
         Route::post('/progres/{pelanggaran}/approve', [WaliKelas\ProgresController::class, 'approve'])->name('progres.approve');
         Route::post('/progres/{pelanggaran}/laporan', [WaliKelas\ProgresController::class, 'isiLaporan'])->name('progres.laporan');
+        
+        // Jadwal Pelajaran Kelas Bimbingan
+        Route::get('/jadwal', [WaliKelas\DashboardController::class, 'jadwalKelas'])->name('jadwal');
+        Route::get('/jadwal/print', [WaliKelas\DashboardController::class, 'printJadwalKelas'])->name('jadwal.print');
+
+        // Tagihan Siswa (Wali Kelas view)
+        Route::get('/tagihan', [\App\Http\Controllers\Keuangan\TagihanController::class, 'walikelasTagihan'])->name('tagihan.index');
     });
 
     // ==========================================
@@ -825,6 +871,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [Siswa\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/pelanggaran', [Siswa\PelanggaranController::class, 'index'])->name('pelanggaran.index');
         Route::get('/pelanggaran/{pelanggaran}', [Siswa\PelanggaranController::class, 'show'])->name('pelanggaran.show');
+        
+        // Tagihan Saya
+        Route::get('/tagihan', [\App\Http\Controllers\Keuangan\TagihanController::class, 'siswaTagihan'])->name('tagihan.index');
     });
 });
 

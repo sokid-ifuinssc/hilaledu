@@ -101,18 +101,31 @@ class User extends Authenticatable
     }
 
     /**
+     * Cache untuk hasil getTugasTambahanAttribute
+     */
+    protected $cachedTugasTambahan = null;
+
+    /**
      * Accessor tugas_tambahan
      */
     public function getTugasTambahanAttribute($value): array
     {
+        if ($this->cachedTugasTambahan !== null) {
+            return $this->cachedTugasTambahan;
+        }
+
         $list = self::normalizeTugasTambahan($value);
 
         if ($this->exists && in_array($this->role, ['guru', 'superadmin'])) {
             // 1. Cek Penugasan Kepala Sekolah
             try {
                 if (\Illuminate\Support\Facades\Schema::hasTable('pengaturan_sekolah')) {
-                    $setting = \App\Models\PengaturanSekolah::first();
-                    if ($setting && $setting->kepala_sekolah_id == $this->id) {
+                    // Gunakan cache statis agar tidak query berulang jika dipanggil oleh user berbeda (optional)
+                    static $settingCache = null;
+                    if ($settingCache === null) {
+                        $settingCache = \App\Models\PengaturanSekolah::first() ?? false;
+                    }
+                    if ($settingCache && $settingCache->kepala_sekolah_id == $this->id) {
                         if (!in_array('Kepala Sekolah', $list)) {
                             $list[] = 'Kepala Sekolah';
                         }
@@ -153,6 +166,7 @@ class User extends Authenticatable
             $list = array_values(array_unique(array_filter($list)));
         }
 
+        $this->cachedTugasTambahan = $list;
         return $list;
     }
 
@@ -207,6 +221,7 @@ class User extends Authenticatable
                 'koperasi' => 'Admin Koperasi Sekolah',
                 'keuangan' => 'Admin Keuangan & SPP',
                 'tracer'   => 'Admin Tracer Study (BKK)',
+                'payroll'  => 'Admin HilalPay (Penggajian)',
             ];
             $jabatan[] = $roleNames[$this->admin_role] ?? ('Admin ' . ucfirst($this->admin_role));
         }
@@ -230,6 +245,7 @@ class User extends Authenticatable
                 'koperasi' => 'Admin Koperasi',
                 'keuangan' => 'Admin Keuangan',
                 'tracer'   => 'Admin Tracer',
+                'payroll'  => 'Admin HilalPay',
             ];
             $list[] = $roleNames[$this->admin_role] ?? ('Admin ' . ucfirst($this->admin_role));
         }
@@ -248,6 +264,93 @@ class User extends Authenticatable
     public function kelas(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Kelas::class, 'kelas_id');
+    }
+
+    /**
+     * Alias kelasModel (digunakan di eager-load keuangan/tagihan).
+     */
+    public function kelasModel(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Kelas::class, 'kelas_id');
+    }
+
+    /**
+     * Daftar tagihan siswa.
+     */
+    public function tagihans(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Tagihan::class, 'siswa_id');
+    }
+
+    /**
+     * Alias guruHilal untuk keperluan payroll (filter guru aktif).
+     */
+    public function guruHilal(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\Payroll\PayrollSetting::class, 'user_id');
+    }
+
+    public function kurikulums(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Kurikulum::class, 'guru_user_id');
+    }
+
+    /**
+     * Hitung total jam mengajar guru otomatis dari penugasan kurikulum / jadwal
+     */
+    public function getTotalJamMengajarAttribute(): int
+    {
+        $tahun = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        $jamKurikulum = (int) $this->kurikulums()
+            ->when($tahun, fn($q) => $q->where('tahun_ajaran', $tahun))
+            ->when($semester, fn($q) => $q->where('semester', $semester))
+            ->sum('alokasi_jam');
+
+        if ($jamKurikulum > 0) {
+            return $jamKurikulum;
+        }
+
+        $jadwals = \App\Models\JadwalPelajaran::where('guru_user_id', $this->id)->get();
+        if ($jadwals->isNotEmpty()) {
+            return (int) $jadwals->sum(fn($j) => max(1, $j->jam_ke_selesai - $j->jam_ke_mulai + 1));
+        }
+
+        return (int) ($this->kurikulums()->sum('alokasi_jam') ?: 0);
+    }
+
+    /**
+     * Ambil daftar Mata Pelajaran yang diampu guru ini berdasarkan:
+     * 1. Jadwal Pelajaran aktif (jadwal_pelajarans)
+     * 2. Penugasan Kurikulum aktif (kurikulums)
+     * 3. Master Mapel yang langsung di-assign (mata_pelajarans.guru_user_id)
+     * 4. Master Penugasan Guru dari Pengaturan Sekolah / Admin (master_penugasan_guru)
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<MataPelajaran>
+     */
+    public function getMapelDiampu(): \Illuminate\Database\Eloquent\Collection
+    {
+        // Kumpulkan semua mata_pelajaran_id HANYA dari Jadwal Pelajaran 
+        // sesuai permintaan user "hapus yang tidak ditugaskan dijadwal"
+        $mapelIds = collect();
+
+        try {
+            $fromJadwal = JadwalPelajaran::where('guru_user_id', $this->id)
+                ->pluck('mata_pelajaran_id');
+            $mapelIds = $mapelIds->merge($fromJadwal);
+        } catch (\Throwable $e) {}
+
+        $mapelIds = $mapelIds->unique()->filter()->values();
+
+        if ($mapelIds->isEmpty()) {
+            return new \Illuminate\Database\Eloquent\Collection();
+        }
+
+        return MataPelajaran::whereIn('id', $mapelIds)
+            ->where('is_aktif', true)
+            ->orderBy('nama')
+            ->get();
     }
 
     public function presensiHarians(): \Illuminate\Database\Eloquent\Relations\HasMany
@@ -360,27 +463,27 @@ class User extends Authenticatable
 
     public function isKepalaSekolah(): bool
     {
-        return $this->hasTugasTambahan('Kepala Sekolah') || $this->isSuperAdmin();
+        return $this->hasTugasTambahan('Kepala Sekolah') || $this->hasTugas('Kepala Sekolah') || $this->isSuperAdmin();
     }
 
     public function isKaprog(): bool
     {
-        return $this->hasTugasTambahan('Kaprog') || $this->hasTugas('Kepala Program') || $this->isSuperAdmin();
+        return $this->hasTugasTambahan('Kaprog') || $this->hasTugas('Kepala Program') || $this->hasTugas('Kaprog') || $this->isSuperAdmin();
     }
 
     public function isWaliKelas(): bool
     {
-        return $this->hasTugasTambahan('Wali Kelas') || $this->isSuperAdmin();
+        return $this->hasTugasTambahan('Wali Kelas') || $this->hasTugas('Wali Kelas') || $this->isSuperAdmin();
     }
 
     public function isGuruBk(): bool
     {
-        return $this->hasTugasTambahan('Guru BK') || ($this->role === 'admin' && $this->admin_role === 'bk') || $this->isSuperAdmin();
+        return $this->hasTugas('BK') || $this->hasTugas('Konseling') || $this->hasTugasTambahan('Guru BK') || $this->admin_role === 'bk' || $this->isSuperAdmin();
     }
 
     public function isWakaKesiswaan(): bool
     {
-        return $this->hasTugasTambahan('Kesiswaan') || $this->isSuperAdmin();
+        return $this->hasTugas('Kesiswaan') || $this->admin_role === 'bk' || $this->isSuperAdmin();
     }
 
     public function hasTugas(string $keyword): bool
@@ -399,7 +502,7 @@ class User extends Authenticatable
 
     public function isWakaKurikulum(): bool
     {
-        return $this->hasTugas('Kurikulum') || $this->isSuperAdmin();
+        return $this->hasTugas('Kurikulum') || $this->admin_role === 'akademik' || $this->isSuperAdmin();
     }
 
     public function isWakaSarpras(): bool
@@ -409,7 +512,7 @@ class User extends Authenticatable
 
     public function isWakaHubin(): bool
     {
-        return $this->hasTugas('Humas') || $this->hasTugas('Hubin') || $this->hasTugas('Hubungan Industri') || $this->isSuperAdmin();
+        return $this->hasTugas('Humas') || $this->hasTugas('Hubin') || $this->hasTugas('Hubungan Industri') || $this->admin_role === 'prakerin' || $this->isSuperAdmin();
     }
 
     public function isPembinaOsis(): bool
@@ -419,22 +522,40 @@ class User extends Authenticatable
 
     public function isBk(): bool
     {
-        return $this->hasTugas('BK') || $this->hasTugas('Konseling') || ($this->role === 'admin' && $this->admin_role === 'bk') || $this->isSuperAdmin();
+        return $this->hasTugas('BK') || $this->hasTugas('Konseling') || $this->admin_role === 'bk' || $this->isSuperAdmin();
     }
 
     public function canAccessBk(): bool
     {
         return $this->isBk() 
+            || $this->admin_role === 'bk'
             || $this->isKepalaSekolah() 
             || $this->isWakaKesiswaan() 
             || $this->isKaprog() 
             || $this->isWaliKelas() 
-            || ($this->role === 'admin' && empty($this->admin_role));
+            || $this->isSuperAdmin();
+    }
+
+    public function canAccessPrakerin(): bool
+    {
+        return $this->admin_role === 'prakerin'
+            || $this->isWakaHubin()
+            || $this->isKaprog()
+            || $this->isKepalaSekolah()
+            || $this->hasTugas('Pembimbing')
+            || $this->hasTugas('Prakerin')
+            || $this->hasTugas('PKL')
+            || $this->isSuperAdmin();
     }
 
     public function isBendaharaBos(): bool
     {
-        return $this->hasTugas('Bendahara') || $this->hasTugas('BOS') || $this->isSuperAdmin();
+        return $this->hasTugas('Bendahara') || $this->hasTugas('BOS') || $this->admin_role === 'keuangan' || $this->isSuperAdmin();
+    }
+
+    public function isPayrollAdmin(): bool
+    {
+        return $this->isSuperAdmin() || $this->admin_role === 'payroll';
     }
 
     public function pengelolaAkademik(): \Illuminate\Database\Eloquent\Relations\HasOne
@@ -461,6 +582,7 @@ class User extends Authenticatable
     public function canManageAcademic(): bool
     {
         if ($this->isSuperAdmin()) return true;
+        if ($this->admin_role === 'akademik') return true;
         if ($this->isKepalaSekolah()) return true;
         if ($this->isWakaKurikulum()) return true;
         if ($this->isKaprog()) return true;
@@ -471,7 +593,7 @@ class User extends Authenticatable
 
     public function canManageJadwal(): bool
     {
-        if ($this->isSuperAdmin() || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
+        if ($this->isSuperAdmin() || $this->admin_role === 'akademik' || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
         try {
             $pa = PengelolaAkademik::where('user_id', $this->id)->first();
             return $pa ? (bool)$pa->can_manage_jadwal : false;
@@ -482,7 +604,7 @@ class User extends Authenticatable
 
     public function canManageMapel(): bool
     {
-        if ($this->isSuperAdmin() || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
+        if ($this->isSuperAdmin() || $this->admin_role === 'akademik' || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
         try {
             $pa = PengelolaAkademik::where('user_id', $this->id)->first();
             return $pa ? (bool)$pa->can_manage_mapel : false;
@@ -493,7 +615,7 @@ class User extends Authenticatable
 
     public function canViewLaporanKehadiran(): bool
     {
-        if ($this->isSuperAdmin() || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
+        if ($this->isSuperAdmin() || $this->admin_role === 'akademik' || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
         try {
             $pa = PengelolaAkademik::where('user_id', $this->id)->first();
             return $pa ? (bool)$pa->can_view_laporan_kehadiran : false;
@@ -504,7 +626,7 @@ class User extends Authenticatable
 
     public function canViewLaporanKbm(): bool
     {
-        if ($this->isSuperAdmin() || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
+        if ($this->isSuperAdmin() || $this->admin_role === 'akademik' || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;
         try {
             $pa = PengelolaAkademik::where('user_id', $this->id)->first();
             return $pa ? (bool)$pa->can_view_laporan_kbm : false;
@@ -575,12 +697,28 @@ class User extends Authenticatable
      */
     public function dashboardRoute(): string
     {
+        // Guru dengan admin_role tetap diarahkan ke dashboard guru
+        if ($this->role === 'guru') {
+            return 'guru.dashboard';
+        }
+
+        if ($this->admin_role === 'payroll' && $this->role === 'admin') {
+            return 'superadmin.payroll.dashboard';
+        }
+
         return match ($this->role) {
             'superadmin' => 'superadmin.dashboard',
-            'guru'       => 'guru.dashboard',
+            'admin'      => !empty($this->admin_role) && \Illuminate\Support\Facades\Route::has($this->admin_role . '.dashboard')
+                            ? $this->admin_role . '.dashboard'
+                            : 'superadmin.dashboard',
             'tendik'     => 'tendik.dashboard',
             'siswa'      => 'siswa.dashboard',
             default      => 'login',
         };
+    }
+
+    public function getDashboardRoute(): string
+    {
+        return $this->dashboardRoute();
     }
 }

@@ -32,7 +32,7 @@ class ProfileController extends Controller
         }
 
         // Ambil mapel dari jadwal
-        $mapelDiampu = \App\Models\JadwalPelajaran::where('guru_user_id', $user->id)
+        $mapelDiampu = \App\Models\JadwalPelajaran::where('jadwal_pelajarans.guru_user_id', $user->id)
             ->join('mata_pelajarans', 'jadwal_pelajarans.mata_pelajaran_id', '=', 'mata_pelajarans.id')
             ->distinct()
             ->pluck('mata_pelajarans.nama')

@@ -8,14 +8,22 @@
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+            <div class="flex items-center gap-2 mb-2">
+                <a href="{{ route('guru.rencana-pembelajaran.index') }}" class="text-xs font-bold text-slate-500 hover:text-blue-600 flex items-center gap-1 transition">
+                    <i class="bi-arrow-left"></i> Kembali ke Pilihan Mapel
+                </a>
+            </div>
             <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                 <i class="bi-journal-check text-blue-600"></i>
-                <span>Perangkat Rencana Pembelajaran</span>
+                <span>Kelola Perangkat: {{ $mapelInfo['nama_mapel'] }}</span>
             </h1>
-            <p class="text-xs text-slate-500 mt-1">Alur Kurikulum Merdeka: 1. CP &rarr; 2. TP &rarr; 3. ATP &rarr; 4. Modul Ajar Harian (RPP)</p>
+            <p class="text-xs text-slate-500 mt-1">
+                Fase {{ $mapelInfo['fase'] }} &bull; Kelas {{ $mapelInfo['tingkat'] }} &bull; 
+                Alur Kurikulum Merdeka: 1. CP &rarr; 2. TP &rarr; 3. ATP &rarr; 4. Modul Ajar Harian (RPP)
+            </p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{{ route('guru.rencana-pembelajaran.rpp.create') }}" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-blue-600/20 transition">
+            <a href="{{ route('guru.rencana-pembelajaran.rpp.create', ['mapel_id' => $selectedMapelId, 'tingkat' => $selectedTingkat]) }}" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-blue-600/20 transition">
                 <i class="bi-plus-circle text-sm"></i>
                 <span>Buat Modul Ajar Harian (RPP)</span>
             </a>
@@ -121,6 +129,7 @@
     <!-- TAB 1: CAPAIAN PEMBELAJARAN (CP) -->
     <!-- ========================================================= -->
     <div x-show="tab === 'cp'" class="space-y-6">
+
         <!-- Form Tambah CP -->
         <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-4">
             <div class="flex items-center justify-between">
@@ -133,30 +142,11 @@
 
             <form method="POST" action="{{ route('guru.rencana-pembelajaran.cp.store') }}" class="space-y-4 text-xs">
                 @csrf
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Mata Pelajaran <span class="text-rose-500">*</span></label>
-                        <select name="mata_pelajaran_id" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-blue-500">
-                            @foreach($mapels as $mapel)
-                            <option value="{{ $mapel->id }}">{{ $mapel->nama }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Fase Kurikulum <span class="text-rose-500">*</span></label>
-                        <select name="fase" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500">
-                            <option value="E">Fase E (Kelas X)</option>
-                            <option value="F">Fase F (Kelas XI & XII)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Tingkat Kelas <span class="text-rose-500">*</span></label>
-                        <select name="tingkat" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500">
-                            <option value="X">Kelas X</option>
-                            <option value="XI">Kelas XI</option>
-                            <option value="XII">Kelas XII</option>
-                        </select>
-                    </div>
+                <input type="hidden" name="mata_pelajaran_id" value="{{ $selectedMapelId }}">
+                <input type="hidden" name="fase" value="{{ $mapelInfo['fase'] }}">
+                <input type="hidden" name="tingkat" value="{{ $selectedTingkat }}">
+                
+                <div class="grid grid-cols-1 gap-4">
                     <div>
                         <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Elemen / Dimensi <span class="text-rose-500">*</span></label>
                         <input type="text" name="elemen" placeholder="Contoh: Jaringan Komputer..." required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-blue-500">
@@ -255,7 +245,11 @@
             @else
             <form method="POST" action="{{ route('guru.rencana-pembelajaran.tp.store') }}" class="space-y-4 text-xs">
                 @csrf
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <input type="hidden" name="mata_pelajaran_id" value="{{ $selectedMapelId }}">
+                <input type="hidden" name="fase" value="{{ $mapelInfo['fase'] }}">
+                <input type="hidden" name="tingkat" value="{{ $selectedTingkat }}">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Capaian Pembelajaran (CP) Induk <span class="text-rose-500">*</span></label>
                         <select name="capaian_pembelajaran_id" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-blue-500">

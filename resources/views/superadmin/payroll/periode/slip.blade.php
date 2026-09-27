@@ -326,12 +326,23 @@
 
         $hariKehadiran = $payroll->jumlah_kehadiran ?? 0;
         
-        $itemTransport = $payroll->penerimaanItems->firstWhere('nama_komponen', 'Tunjangan Kehadiran & Transport');
+        $itemTransport = $payroll->penerimaanItems->first(function($i) {
+            return in_array($i->nama_komponen, ['Uang Transport Kehadiran / KBM', 'Tunjangan Kehadiran & Transport']);
+        });
         $totalTransport = $itemTransport ? $itemTransport->nominal : 0;
-        $rateTransport = ($hariKehadiran > 0) ? ($totalTransport / $hariKehadiran) : 0;
+        $rateTransport = ($hariKehadiran > 0 && $totalTransport > 0) 
+            ? ($totalTransport / $hariKehadiran) 
+            : ($payroll->user->payrollSetting->transport_per_hari ?? 20000);
+
+        $itemGajiPokok = $payroll->penerimaanItems->firstWhere('nama_komponen', 'Gaji Pokok');
 
         $tunjanganLainnya = $payroll->penerimaanItems->filter(function($item) {
-            return !in_array($item->nama_komponen, ['Honor Jam Mengajar', 'Tunjangan Kehadiran & Transport']);
+            return !in_array($item->nama_komponen, [
+                'Gaji Pokok', 
+                'Honor Jam Mengajar', 
+                'Tunjangan Kehadiran & Transport', 
+                'Uang Transport Kehadiran / KBM'
+            ]);
         });
     @endphp
 
@@ -385,22 +396,36 @@
                 <tr class="section-header">
                     <td colspan="3">A. PENERIMAAN</td>
                 </tr>
+
+                @if($itemGajiPokok && $itemGajiPokok->nominal > 0)
+                <tr>
+                    <td>Gaji Pokok</td>
+                    <td style="text-align: center; color: #64748b; font-size: 13px;">Gaji pokok bulanan</td>
+                    <td class="amount-cell text-green">{{ number_format($itemGajiPokok->nominal, 0, ',', '.') }}</td>
+                </tr>
+                @endif
+
+                @if($totalHonorJam > 0 || $payroll->user->role === 'guru')
                 <tr>
                     <td>Honor Jam Mengajar</td>
                     <td style="text-align: center; color: #64748b; font-size: 13px;">{{ $jamMengajar }} Jam × Rp{{ number_format($honorPerJam, 0, ',', '.') }}</td>
                     <td class="amount-cell text-green">{{ number_format($totalHonorJam, 0, ',', '.') }}</td>
                 </tr>
+                @endif
+
+                @if($totalTransport > 0 || $hariKehadiran > 0)
                 <tr>
-                    <td>Tunjangan Kehadiran & Transport</td>
+                    <td>{{ $itemTransport ? $itemTransport->nama_komponen : 'Uang Transport Kehadiran / KBM' }}</td>
                     <td style="text-align: center; color: #64748b; font-size: 13px;">{{ $hariKehadiran }} Hari × Rp{{ number_format($rateTransport, 0, ',', '.') }}</td>
                     <td class="amount-cell text-green">{{ number_format($totalTransport, 0, ',', '.') }}</td>
                 </tr>
+                @endif
 
                 @if($tunjanganLainnya->count() > 0)
                     @foreach($tunjanganLainnya as $item)
                         <tr>
                             <td>{{ str_replace('Tugas Tambahan: ', '', $item->nama_komponen) }}</td>
-                            <td style="text-align: center; color: #64748b; font-size: 13px;">-</td>
+                            <td style="text-align: center; color: #64748b; font-size: 13px;">{{ $item->keterangan ?? '-' }}</td>
                             <td class="amount-cell text-green">{{ number_format($item->nominal, 0, ',', '.') }}</td>
                         </tr>
                     @endforeach

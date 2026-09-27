@@ -55,6 +55,11 @@ class LaporanKbm extends Model
         return $this->hasMany(LaporanKbmPresensi::class, 'laporan_kbm_id');
     }
 
+    public function presensis(): HasMany
+    {
+        return $this->presensiSiswa();
+    }
+
     /**
      * Hitung ulang ringkasan jumlah hadir/tidak hadir siswa
      */

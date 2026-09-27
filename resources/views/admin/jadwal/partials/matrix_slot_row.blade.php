@@ -28,9 +28,9 @@
         }
     @endphp
     @if($isTerisi)
-    <td class="border border-slate-900 py-0.5 px-0.5 {{ $bg }} leading-tight cursor-pointer hover:opacity-90 hover:ring-1 hover:ring-blue-400 transition relative group p-0"
-        title="Jam ke-{{ $jamKe }} | {{ $slot['guru_nama'] ?? '' }} (Kode: {{ $kode }}) - {{ $slot['mapel_nama'] ?? '' }}{{ $isGabungan ? ' [KULIAH GABUNGAN KEPESANTRENAN]' : '' }}{{ $isBentrok ? ' [BENTROK JADWAL!]' : '' }}{{ $isOver ? ' [LEBIH ALOKASI JAM!]' : '' }} &#10;👉 Klik untuk edit manual jadwal ini">
-        <a href="{{ !empty($slot['jadwal_id']) ? route('admin.jadwal.index', ['edit' => $slot['jadwal_id']]) : '#' }}" class="block w-full h-full p-0.5">
+    <td class="border border-slate-900 py-0.5 px-0.5 {{ $bg }} leading-tight {{ auth()->user() && auth()->user()->canManageJadwal() ? 'cursor-pointer hover:opacity-90 hover:ring-1 hover:ring-blue-400' : '' }} transition relative group p-0"
+        title="Jam ke-{{ $jamKe }} | {{ $slot['guru_nama'] ?? '' }} (Kode: {{ $kode }}) - {{ $slot['mapel_nama'] ?? '' }}{{ $isGabungan ? ' [KULIAH GABUNGAN KEPESANTRENAN]' : '' }}{{ $isBentrok ? ' [BENTROK JADWAL!]' : '' }}{{ $isOver ? ' [LEBIH ALOKASI JAM!]' : '' }} {{ auth()->user() && auth()->user()->canManageJadwal() ? '&#10;👉 Klik untuk edit manual jadwal ini' : '' }}">
+        <a href="#" @if(auth()->user() && auth()->user()->canManageJadwal()) x-on:click.prevent="$dispatch('open-quick-edit', { hari: '{{ $slotHari }}', jam: {{ $jamKe }}, kelas: '{{ $slotKelas }}', jadwal_id: {{ $slot['jadwal_id'] ?? 'null' }}, is_locked: {{ $isLocked ? 'true' : 'false' }} })" @endif class="block w-full h-full p-0.5 {{ !(auth()->user() && auth()->user()->canManageJadwal()) ? 'cursor-default pointer-events-none' : '' }}">
             @if($isBentrok)
             <span class="absolute -top-0.5 -right-0.5 text-[7px] leading-none bg-yellow-300 text-slate-950 font-black px-0.5 rounded-bl">⚠️</span>
             @elseif($isOver)
@@ -48,10 +48,9 @@
         </a>
     </td>
     @else
-    <td class="border border-slate-900 py-0.5 px-0.5 bg-slate-50/80 text-slate-400 hover:bg-amber-100 hover:text-amber-900 transition leading-tight">
-        <a href="{{ route('admin.jadwal.index', ['hari' => $slotHari, 'kelas' => $slotKelas, 'jam_ke_mulai' => $jamKe, 'jam_ke_selesai' => $jamKe, 'tambah' => 1]) }}"
-           class="block w-full h-full py-0.5 font-mono font-bold text-[9px]"
-           title="Belum terinput. Klik untuk tambah jadwal Jam ke-{{ $jamKe }} {{ $slotKelas }}">
+    <td class="border border-slate-900 py-0.5 px-0.5 bg-slate-50/80 text-slate-400 {{ auth()->user() && auth()->user()->canManageJadwal() ? 'hover:bg-amber-100 hover:text-amber-900 cursor-pointer' : 'cursor-default pointer-events-none' }} transition leading-tight">
+        <a href="#" @if(auth()->user() && auth()->user()->canManageJadwal()) x-on:click.prevent="$dispatch('open-quick-edit', { hari: '{{ $slotHari }}', jam: {{ $jamKe }}, kelas: '{{ $slotKelas }}', jadwal_id: null, is_locked: false })" @endif class="block w-full h-full py-0.5 font-mono font-bold text-[9px] {{ !(auth()->user() && auth()->user()->canManageJadwal()) ? 'cursor-default pointer-events-none' : '' }}"
+           title="Belum terinput. {{ auth()->user() && auth()->user()->canManageJadwal() ? 'Klik untuk tambah jadwal Jam ke-' . $jamKe . ' ' . $slotKelas : '' }}">
             -
         </a>
     </td>

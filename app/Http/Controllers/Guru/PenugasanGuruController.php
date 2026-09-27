@@ -95,6 +95,48 @@ class PenugasanGuruController extends Controller
             }
         }
 
+        // Tambahkan dari getMapelDiampu() jika guru belum terisi plotting jadwal/kurikulum spesifik
+        if ($penugasanMengajar->isEmpty()) {
+            $fallbackMapels = $user->getMapelDiampu();
+            $allActiveKelas = \App\Models\Kelas::where('is_aktif', true)->orderBy('nama')->get();
+
+            foreach ($fallbackMapels as $m) {
+                // Tentukan kelas yang sesuai dengan tingkat mapel (X, XI, XII)
+                $matchedKelas = $allActiveKelas->filter(function($k) use ($m) {
+                    if (empty($m->tingkat)) return true;
+                    return str_starts_with(strtoupper(trim($k->nama)), strtoupper(trim($m->tingkat)));
+                });
+
+                if ($matchedKelas->isEmpty()) {
+                    $matchedKelas = $allActiveKelas->take(2);
+                }
+
+                foreach ($matchedKelas as $k) {
+                    $key = $m->id . '_' . $k->nama;
+                    if (!$penugasanMengajar->has($key)) {
+                        $perangkat = PerangkatAjar::where('guru_user_id', $user->id)
+                            ->where('mata_pelajaran_id', $m->id)
+                            ->where('kelas', $k->nama)
+                            ->latest()
+                            ->first();
+
+                        $penugasanMengajar->put($key, [
+                            'mata_pelajaran_id' => $m->id,
+                            'mapel_nama'        => $m->nama,
+                            'mapel_kode'        => $m->kode ?? '',
+                            'kelas'             => $k->nama,
+                            'alokasi_jam'       => $m->jam_per_minggu ?: 2,
+                            'terjadwal_jp'      => $m->jam_per_minggu ?: 2,
+                            'sisa_jp'           => 0,
+                            'ruang'             => 'Ruang Kelas ' . $k->nama,
+                            'hari_mengajar'     => 'Penugasan Mengajar',
+                            'perangkat'         => $perangkat,
+                        ]);
+                    }
+                }
+            }
+        }
+
         // 2. Data Penugasan Tambahan
         $listTugasTambahan = $user->tugas_tambahan ?? [];
         if (!empty($user->jabatan_utama) && !in_array($user->jabatan_utama, $listTugasTambahan)) {

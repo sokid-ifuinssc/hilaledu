@@ -82,36 +82,37 @@
     </div>
 
     {{-- Rincian Komponen Terdaftar --}}
+    {{-- Rincian Komponen Terdaftar --}}
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
             <div class="stat-card">
-                <small class="text-slate-500 d-block">Gaji Pokok</small>
-                <div class="text-slate-900 fw-bold fs-5 mt-1">Rp {{ number_format($setting?->gaji_pokok ?? 0, 0, ',', '.') }}</div>
-                <small class="text-slate-500">Gaji pokok bulanan</small>
+                <small class="text-slate-500 d-block">Penugasan Mengajar</small>
+                <div class="text-slate-900 fw-bold fs-5 mt-1">{{ auth()->user()->total_jam_mengajar ?: ($setting?->jam_mengajar_default ?? 0) }} Jam</div>
+                <small class="text-emerald-600"><i class="bi bi-check2-circle"></i> Otomatis dari Database</small>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <small class="text-slate-500 d-block">Honor Mengajar</small>
                 <div class="text-emerald-700 fw-bold fs-5 mt-1">Rp {{ number_format($setting?->honor_per_jam ?? 0, 0, ',', '.') }}/jam</div>
-                <small class="text-slate-500">Estimasi: {{ $setting?->jam_mengajar_default ?? 0 }} jam/bln</small>
+                <small class="text-slate-500">Honor jam tatap muka</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <small class="text-slate-500 d-block">Uang Transport / Hari</small>
+                <div class="text-emerald-700 fw-bold fs-5 mt-1">Rp {{ number_format($setting?->transport_per_hari ?? 20000, 0, ',', '.') }}</div>
+                <small class="text-slate-500">Per hari hadir / laporan KBM</small>
             </div>
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card">
                 <small class="text-slate-500 d-block">Tunj. Tugas Tambahan</small>
-                <div class="text-emerald-700 fw-bold fs-5 mt-1">Rp {{ number_format($setting?->tunjangan_jabatan ?? 0, 0, ',', '.') }}</div>
+                <div class="text-primary fw-bold fs-5 mt-1">Rp {{ number_format($setting?->tunjangan_jabatan ?? 0, 0, ',', '.') }}</div>
                 <small class="text-slate-500">
                     @php $jabatanList = auth()->user()->daftar_jabatan; @endphp
-                    {{ count($jabatanList) > 0 ? implode(', ', $jabatanList) : 'Walas, Kaprog, dll' }}
+                    {{ count($jabatanList) > 0 ? implode(', ', array_slice($jabatanList, 0, 2)) . (count($jabatanList) > 2 ? '...' : '') : '-' }}
                 </small>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stat-card">
-                <small class="text-slate-500 d-block">Total Bisyarah Diterima</small>
-                <div class="text-amber-700 fw-bold fs-5 mt-1">Rp {{ number_format($totalDiterima, 0, ',', '.') }}</div>
-                <small class="text-slate-500">Akumulasi yang telah cair</small>
             </div>
         </div>
     </div>

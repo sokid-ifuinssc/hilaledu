@@ -18,7 +18,6 @@ class TahunAjaran extends Model
     {
         return [
             'is_aktif'  => 'boolean',
-            'is_active' => 'boolean',
         ];
     }
 

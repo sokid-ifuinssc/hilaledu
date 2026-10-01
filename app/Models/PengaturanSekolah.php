@@ -30,23 +30,34 @@ class PengaturanSekolah extends Model
         );
     }
 
+    // Static storage to hold pre-save old kepala_sekolah_id
+    protected static array $_pendingKepalaSync = [];
+
     protected static function booted()
     {
+        // Capture old value BEFORE update (getOriginal() masih valid di sini)
+        static::updating(function ($setting) {
+            self::$_pendingKepalaSync[$setting->id] = $setting->getOriginal('kepala_sekolah_id');
+        });
+
         static::saved(function ($setting) {
-            $oldKepalaId = $setting->getOriginal('kepala_sekolah_id');
+            $oldKepalaId = self::$_pendingKepalaSync[$setting->id] ?? null;
+            unset(self::$_pendingKepalaSync[$setting->id]);
             $newKepalaId = $setting->kepala_sekolah_id;
 
             // 1. Jika kepala sekolah lama diganti, hapus tugas "Kepala Sekolah" dari guru lama
             if ($oldKepalaId && ($oldKepalaId != $newKepalaId)) {
                 $oldGuru = User::find($oldKepalaId);
                 if ($oldGuru) {
-                    $tugas = is_array($oldGuru->tugas_tambahan) ? $oldGuru->tugas_tambahan : [];
-                    $tugas = array_filter($tugas, fn($t) => $t !== 'Kepala Sekolah');
-                    $oldGuru->tugas_tambahan = array_values(array_unique($tugas));
-                    if ($oldGuru->jabatan_utama === 'Kepala Sekolah') {
-                        $oldGuru->jabatan_utama = 'Guru Pengajar';
-                    }
-                    $oldGuru->save();
+                    // Ambil raw DB value (bukan accessor yang bisa terkena live query)
+                    $rawTugas = json_decode($oldGuru->attributes['tugas_tambahan'] ?? '[]', true) ?? [];
+                    $rawTugas = array_values(array_filter($rawTugas, fn($t) => $t !== 'Kepala Sekolah'));
+                    \Illuminate\Support\Facades\DB::table('users')
+                        ->where('id', $oldKepalaId)
+                        ->update([
+                            'tugas_tambahan' => json_encode($rawTugas),
+                            'jabatan_utama'  => $oldGuru->jabatan_utama === 'Kepala Sekolah' ? 'Guru Pengajar' : $oldGuru->jabatan_utama,
+                        ]);
                 }
             }
 
@@ -54,15 +65,20 @@ class PengaturanSekolah extends Model
             if ($newKepalaId) {
                 $newGuru = User::find($newKepalaId);
                 if ($newGuru) {
-                    $tugas = is_array($newGuru->tugas_tambahan) ? $newGuru->tugas_tambahan : [];
-                    if (!in_array('Kepala Sekolah', $tugas)) {
-                        $tugas[] = 'Kepala Sekolah';
+                    // Ambil raw DB value (bukan accessor yang bisa terkena live query)
+                    $rawTugas = json_decode($newGuru->attributes['tugas_tambahan'] ?? '[]', true) ?? [];
+                    if (!in_array('Kepala Sekolah', $rawTugas)) {
+                        $rawTugas[] = 'Kepala Sekolah';
                     }
-                    $newGuru->tugas_tambahan = array_values(array_unique(array_filter($tugas)));
-                    if (empty($newGuru->jabatan_utama) || $newGuru->jabatan_utama === 'Guru Pengajar') {
-                        $newGuru->jabatan_utama = 'Kepala Sekolah';
-                    }
-                    $newGuru->save();
+                    $rawTugas = array_values(array_unique(array_filter($rawTugas)));
+                    $jabatanBaru = (empty($newGuru->jabatan_utama) || $newGuru->jabatan_utama === 'Guru Pengajar')
+                        ? 'Kepala Sekolah' : $newGuru->jabatan_utama;
+                    \Illuminate\Support\Facades\DB::table('users')
+                        ->where('id', $newKepalaId)
+                        ->update([
+                            'tugas_tambahan' => json_encode($rawTugas),
+                            'jabatan_utama'  => $jabatanBaru,
+                        ]);
                 }
             }
         });

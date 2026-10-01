@@ -61,10 +61,12 @@ class DocumentExportAndViewTest extends TestCase
     {
         $admin = $this->getSuperAdmin();
 
-        $this->actingAs($admin)->get(route('bk.kategori-pelanggaran.export'))->assertStatus(200);
-        $this->actingAs($admin)->get(route('bk.kategori-pelanggaran.template'))->assertStatus(200);
+        // bk.kategori-pelanggaran sudah dihapus (skema disederhanakan)
+        // Gunakan bk.jenis-pelanggaran yang merupakan pengganti langsung
+        $this->actingAs($admin)->get(route('bk.jenis-pelanggaran.export'))->assertStatus(200);
         $this->actingAs($admin)->get(route('bk.laporan.cetak'))->assertStatus(200);
     }
+
 
     public function test_prakerin_export_and_print_work(): void
     {

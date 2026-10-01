@@ -19,6 +19,9 @@ class Kelas extends Model
         return ['is_aktif' => 'boolean'];
     }
 
+    // Static storage to hold pre-save values during updating event
+    protected static array $_pendingSyncData = [];
+
     protected static function booted()
     {
         static::saving(function ($kelas) {
@@ -40,11 +43,21 @@ class Kelas extends Model
             }
         });
 
+        // Capture old values BEFORE update (getOriginal() masih valid di sini)
+        static::updating(function ($kelas) {
+            self::$_pendingSyncData[$kelas->id] = [
+                'old_wali_kelas_id' => $kelas->getOriginal('wali_kelas_id'),
+                'old_nama_kelas'    => $kelas->getOriginal('nama_kelas') ?? $kelas->getOriginal('nama'),
+            ];
+        });
+
         static::saved(function ($kelas) {
-            $originalWaliKelasId = $kelas->getOriginal('wali_kelas_id');
+            $pending = self::$_pendingSyncData[$kelas->id] ?? null;
+            $originalWaliKelasId = $pending ? $pending['old_wali_kelas_id'] : null;
             $newWaliKelasId      = $kelas->wali_kelas_id;
-            $originalNamaKelas   = $kelas->getOriginal('nama_kelas') ?? $kelas->getOriginal('nama');
+            $originalNamaKelas   = $pending ? $pending['old_nama_kelas'] : null;
             $newNamaKelas        = $kelas->nama_kelas ?? $kelas->nama;
+            unset(self::$_pendingSyncData[$kelas->id]);
 
             // 1. Jika wali kelas lama berbeda dengan wali kelas baru, bersihkan penugasan dari guru lama
             if ($originalWaliKelasId && ($originalWaliKelasId != $newWaliKelasId)) {
@@ -78,25 +91,26 @@ class Kelas extends Model
         $guru = User::find($guruId);
         if (!$guru) return;
 
-        $tugas = is_array($guru->tugas_tambahan) ? $guru->tugas_tambahan : [];
+        // Ambil raw DB value langsung dari attributes agar tidak terkena live query accessor
+        $rawTugas = json_decode($guru->attributes['tugas_tambahan'] ?? '[]', true) ?? [];
         $tugasBaru = "Wali Kelas {$namaKelas}";
 
         // Bersihkan "Wali Kelas" umum untuk menghindari duplikasi badge jika ada kelas spesifik
-        $tugas = array_filter($tugas, fn($item) => $item !== 'Wali Kelas');
+        $rawTugas = array_filter($rawTugas, fn($item) => $item !== 'Wali Kelas');
 
         // Tambahkan "Wali Kelas [Nama Kelas]" spesifik jika belum ada
-        if (!in_array($tugasBaru, $tugas)) {
-            $tugas[] = $tugasBaru;
+        if (!in_array($tugasBaru, $rawTugas)) {
+            $rawTugas[] = $tugasBaru;
         }
-
-        $guru->tugas_tambahan = array_values(array_unique(array_filter($tugas)));
+        $rawTugas = array_values(array_unique(array_filter($rawTugas)));
 
         // Jika jabatan utama kosong atau masih default Guru Pengajar, jadikan Wali Kelas
-        if (empty($guru->jabatan_utama) || $guru->jabatan_utama === 'Guru Pengajar') {
-            $guru->jabatan_utama = $tugasBaru;
-        }
+        $jabatan = (empty($guru->jabatan_utama) || $guru->jabatan_utama === 'Guru Pengajar')
+            ? $tugasBaru : $guru->jabatan_utama;
 
-        $guru->save();
+        \Illuminate\Support\Facades\DB::table('users')
+            ->where('id', $guruId)
+            ->update(['tugas_tambahan' => json_encode($rawTugas), 'jabatan_utama' => $jabatan]);
     }
 
     /**
@@ -107,12 +121,11 @@ class Kelas extends Model
         $guru = User::find($guruId);
         if (!$guru) return;
 
-        $tugas = is_array($guru->tugas_tambahan) ? $guru->tugas_tambahan : [];
-        $target1 = $namaKelas ? "Wali Kelas {$namaKelas}" : null;
+        // Ambil raw DB value langsung dari attributes agar tidak terkena live query accessor
+        $rawTugas = json_decode($guru->attributes['tugas_tambahan'] ?? '[]', true) ?? [];
+        $target1  = $namaKelas ? "Wali Kelas {$namaKelas}" : null;
 
-        $tugas = array_filter($tugas, function ($item) use ($target1) {
-            return $item !== $target1;
-        });
+        $rawTugas = array_filter($rawTugas, fn($item) => $item !== $target1);
 
         // Periksa apakah guru ini masih memegang kelas lain sebagai wali kelas
         $queryOther = self::where('wali_kelas_id', $guruId);
@@ -121,19 +134,19 @@ class Kelas extends Model
         }
         $masihAdaKelasLain = $queryOther->exists();
 
+        $jabatan = $guru->jabatan_utama;
         if (!$masihAdaKelasLain) {
             // Hapus juga "Wali Kelas" umum jika tidak memegang kelas manapun
-            $tugas = array_filter($tugas, function ($item) {
-                return $item !== 'Wali Kelas';
-            });
-
-            if ($guru->jabatan_utama === $target1) {
-                $guru->jabatan_utama = 'Guru Pengajar';
+            $rawTugas = array_filter($rawTugas, fn($item) => $item !== 'Wali Kelas');
+            if ($jabatan === $target1) {
+                $jabatan = 'Guru Pengajar';
             }
         }
 
-        $guru->tugas_tambahan = array_values(array_unique($tugas));
-        $guru->save();
+        $rawTugas = array_values(array_unique($rawTugas));
+        \Illuminate\Support\Facades\DB::table('users')
+            ->where('id', $guruId)
+            ->update(['tugas_tambahan' => json_encode($rawTugas), 'jabatan_utama' => $jabatan]);
     }
 
     /**
@@ -144,28 +157,24 @@ class Kelas extends Model
         $guru = User::find($guruId);
         if (!$guru) return;
 
-        $tugas = is_array($guru->tugas_tambahan) ? $guru->tugas_tambahan : [];
+        // Ambil raw DB value langsung dari attributes agar tidak terkena live query accessor
+        $rawTugas  = json_decode($guru->attributes['tugas_tambahan'] ?? '[]', true) ?? [];
         $oldTarget = "Wali Kelas {$oldNama}";
         $newTarget = "Wali Kelas {$newNama}";
 
-        $tugas = array_map(function ($item) use ($oldTarget, $newTarget) {
-            return $item === $oldTarget ? $newTarget : $item;
-        }, $tugas);
+        $rawTugas = array_map(fn($item) => $item === $oldTarget ? $newTarget : $item, $rawTugas);
 
-        if (!in_array('Wali Kelas', $tugas)) {
-            $tugas[] = 'Wali Kelas';
+        // Tidak perlu tambahkan "Wali Kelas" generik, cukup yang spesifik
+        if (!in_array($newTarget, $rawTugas)) {
+            $rawTugas[] = $newTarget;
         }
-        if (!in_array($newTarget, $tugas)) {
-            $tugas[] = $newTarget;
-        }
+        $rawTugas = array_values(array_unique(array_filter($rawTugas)));
 
-        $guru->tugas_tambahan = array_values(array_unique(array_filter($tugas)));
+        $jabatan = $guru->jabatan_utama === $oldTarget ? $newTarget : $guru->jabatan_utama;
 
-        if ($guru->jabatan_utama === $oldTarget) {
-            $guru->jabatan_utama = $newTarget;
-        }
-
-        $guru->save();
+        \Illuminate\Support\Facades\DB::table('users')
+            ->where('id', $guruId)
+            ->update(['tugas_tambahan' => json_encode($rawTugas), 'jabatan_utama' => $jabatan]);
     }
 
     public function jurusan(): BelongsTo

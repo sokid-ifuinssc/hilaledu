@@ -8,12 +8,12 @@ use App\Models\User;
 
 class AkademikRoutesTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_all_akademik_routes()
     {
-        $user = User::where('role', 'superadmin')->first();
-        if (!$user) {
-            $this->markTestSkipped("No superadmin found");
-        }
+        $user = User::where('role', 'superadmin')->first()
+            ?? User::factory()->create(['role' => 'superadmin']);
 
         $routes = [
             'akademik.dashboard',

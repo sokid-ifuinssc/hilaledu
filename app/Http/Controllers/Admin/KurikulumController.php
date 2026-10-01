@@ -61,7 +61,7 @@ class KurikulumController extends Controller
         // Urutkan berdasarkan Jenjang (X, XI, XII), Kelas, Kategori (A lalu B), Sub Kategori, dan Urutan
         $kurikulums = $query->orderByRaw("CASE jenjang WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
             ->orderBy('kelas')
-            ->orderByRaw('ISNULL(urutan), urutan ASC')
+            ->orderByRaw('CASE WHEN urutan IS NULL THEN 1 ELSE 0 END, urutan ASC')
             ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
             ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 WHEN 'Praktik Kerja Lapangan****' THEN 4 ELSE 5 END")
             ->orderBy('id')
@@ -537,7 +537,7 @@ class KurikulumController extends Controller
 
         $kurikulums = $query->orderByRaw("CASE jenjang WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
             ->orderBy('kelas')
-            ->orderByRaw('ISNULL(urutan), urutan ASC')
+            ->orderByRaw('CASE WHEN urutan IS NULL THEN 1 ELSE 0 END, urutan ASC')
             ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
             ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 WHEN 'Praktik Kerja Lapangan****' THEN 4 ELSE 5 END")
             ->orderBy('id')
@@ -581,7 +581,7 @@ class KurikulumController extends Controller
 
         $items = $query->orderByRaw("CASE jenjang WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
             ->orderBy('kelas')
-            ->orderByRaw('ISNULL(urutan), urutan ASC')
+            ->orderByRaw('CASE WHEN urutan IS NULL THEN 1 ELSE 0 END, urutan ASC')
             ->orderByRaw("CASE COALESCE(kategori, 'A. KELOMPOK MATA PELAJARAN UMUM') WHEN 'A. KELOMPOK MATA PELAJARAN UMUM' THEN 1 WHEN 'B. KELOMPOK MATA PELAJARAN KEJURUAN' THEN 2 ELSE 3 END")
             ->orderByRaw("CASE COALESCE(sub_kategori, '') WHEN 'Dasar-dasar Program Keahlian' THEN 1 WHEN 'Mata Pelajaran [Konsentrasi Keahlian]***' THEN 2 WHEN 'Mata Pelajaran Pilihan****' THEN 3 WHEN 'Praktik Kerja Lapangan****' THEN 4 ELSE 5 END")
             ->orderBy('id')

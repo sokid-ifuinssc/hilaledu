@@ -13,10 +13,26 @@ return new class extends Migration
     public function up(): void
     {
         // Remove columns from jenis_pelanggarans
-        Schema::table('jenis_pelanggarans', function (Blueprint $table) {
-            $table->dropColumn('kategori_pelanggaran_id');
-            $table->dropColumn('kode');
-        });
+        // Drop index first (required for SQLite compatibility before dropping column)
+        if (Schema::hasColumn('jenis_pelanggarans', 'kategori_pelanggaran_id')) {
+            try {
+                Schema::table('jenis_pelanggarans', function (Blueprint $table) {
+                    $table->dropIndex('jenis_pelanggarans_kategori_pelanggaran_id_index');
+                });
+            } catch (\Exception $e) {
+                // Index might not exist, continue
+            }
+
+            Schema::table('jenis_pelanggarans', function (Blueprint $table) {
+                $table->dropColumn('kategori_pelanggaran_id');
+            });
+        }
+
+        if (Schema::hasColumn('jenis_pelanggarans', 'kode')) {
+            Schema::table('jenis_pelanggarans', function (Blueprint $table) {
+                $table->dropColumn('kode');
+            });
+        }
 
         // Drop kategori_pelanggarans table
         Schema::dropIfExists('kategori_pelanggarans');

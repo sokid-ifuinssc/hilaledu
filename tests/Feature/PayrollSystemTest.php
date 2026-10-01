@@ -142,12 +142,15 @@ class PayrollSystemTest extends TestCase
         ]);
 
         $response->assertRedirect(route('superadmin.payroll.setting.index'));
+        // Untuk guru, gaji_pokok selalu 0 (guru berbasis honor per jam, bukan gaji pokok)
         $this->assertDatabaseHas('payroll_settings', [
             'user_id'        => $this->guru->id,
-            'gaji_pokok'     => 2000000,
+            'gaji_pokok'     => 0,          // guru tidak punya gaji pokok
+            'honor_per_jam'  => 40000,      // guru menggunakan honor per jam
             'nomor_rekening' => '7199998888',
         ]);
     }
+
 
     public function test_superadmin_can_create_periode_and_auto_generate_payrolls()
     {

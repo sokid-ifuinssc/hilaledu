@@ -42,11 +42,12 @@ class MonolithVerificationTest extends TestCase
         $this->actingAs($user)->get(route('bk.dashboard'))->assertStatus(200);
         $this->actingAs($user)->get(route('bk.pelanggaran.index'))->assertStatus(200);
         $this->actingAs($user)->get(route('bk.poin.index'))->assertStatus(200);
-        $this->actingAs($user)->get(route('bk.kategori-pelanggaran.index'))->assertStatus(200);
+        // bk.kategori-pelanggaran sudah dihapus (skema disederhanakan, diganti jenis-pelanggaran)
         $this->actingAs($user)->get(route('bk.jenis-pelanggaran.index'))->assertStatus(200);
         $this->actingAs($user)->get(route('bk.progres.index'))->assertStatus(200);
         $this->actingAs($user)->get(route('bk.laporan.index'))->assertStatus(200);
     }
+
 
     public function test_superadmin_can_access_prakerin_modules(): void
     {

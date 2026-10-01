@@ -5,13 +5,13 @@
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
-        <a href="{{ route('admin.guru.index') }}" class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors">
+        <a href="{{ route('admin.gurus.index') }}" class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors">
             <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
             Kembali ke Daftar Guru
         </a>
     </div>
 
-    <form method="POST" action="{{ route('admin.guru.update', $guru->id) }}" class="space-y-6">
+    <form method="POST" action="{{ route('admin.gurus.update', $guru->id) }}" class="space-y-6">
         @csrf
         @method('PUT')
 
@@ -136,7 +136,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-3">
-            <a href="{{ route('admin.guru.index') }}" class="btn-secondary">Batal</a>
+            <a href="{{ route('admin.gurus.index') }}" class="btn-secondary">Batal</a>
             <button type="submit" class="btn-primary">Simpan Perubahan</button>
         </div>
     </form>

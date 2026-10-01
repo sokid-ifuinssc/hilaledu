@@ -789,5 +789,8 @@
         </div>
     </div>
 
+    <!-- Ekosistem Aplikasi Terhubung -->
+    <x-ekosistem-apps />
+
 </div>
 @endsection

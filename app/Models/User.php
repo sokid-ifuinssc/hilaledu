@@ -101,6 +101,15 @@ class User extends Authenticatable
     }
 
     /**
+     * Override refresh to clear custom property caches.
+     */
+    public function refresh()
+    {
+        $this->cachedTugasTambahan = null;
+        return parent::refresh();
+    }
+
+    /**
      * Cache untuk hasil getTugasTambahanAttribute
      */
     protected $cachedTugasTambahan = null;
@@ -120,12 +129,8 @@ class User extends Authenticatable
             // 1. Cek Penugasan Kepala Sekolah
             try {
                 if (\Illuminate\Support\Facades\Schema::hasTable('pengaturan_sekolah')) {
-                    // Gunakan cache statis agar tidak query berulang jika dipanggil oleh user berbeda (optional)
-                    static $settingCache = null;
-                    if ($settingCache === null) {
-                        $settingCache = \App\Models\PengaturanSekolah::first() ?? false;
-                    }
-                    if ($settingCache && $settingCache->kepala_sekolah_id == $this->id) {
+                    $setting = \App\Models\PengaturanSekolah::first();
+                    if ($setting && $setting->kepala_sekolah_id == $this->id) {
                         if (!in_array('Kepala Sekolah', $list)) {
                             $list[] = 'Kepala Sekolah';
                         }
@@ -177,6 +182,7 @@ class User extends Authenticatable
     {
         $normalized = self::normalizeTugasTambahan($value);
         $this->attributes['tugas_tambahan'] = json_encode($normalized);
+        $this->cachedTugasTambahan = null; // Reset cache agar accessor mengembalikan nilai terbaru
     }
 
     /**

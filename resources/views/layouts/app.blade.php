@@ -852,12 +852,6 @@
                         </a>
                     </li>
                     <li class="sidebar-nav-item">
-                        <a href="{{ route('admin.mapel.index') }}" class="sidebar-nav-link {{ request()->routeIs('*.mapel.*') ? 'active' : '' }}">
-                            <i class="bi bi-journal-bookmark-fill" style="color:#10b981;"></i>
-                            <span>Mata Pelajaran</span>
-                        </a>
-                    </li>
-                    <li class="sidebar-nav-item">
                         <a href="{{ route('superadmin.master.tugas-tambahan') }}" class="sidebar-nav-link {{ request()->routeIs('superadmin.master.tugas-tambahan*') ? 'active' : '' }}">
                             <i class="bi bi-award" style="color:#10b981;"></i>
                             <span>Tugas Tambahan Guru</span>

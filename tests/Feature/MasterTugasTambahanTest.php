@@ -120,4 +120,62 @@ class MasterTugasTambahanTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Pembina Pramuka');
     }
+
+    public function test_guru_edit_page_loads_without_error()
+    {
+        TugasTambahan::create([
+            'nama'      => 'Pembina PMR',
+            'kategori'  => 'Kesiswaan',
+            'is_aktif'  => true,
+        ]);
+
+        $guru = User::factory()->create([
+            'name'           => 'Guru Budi, M.Pd',
+            'username'       => 'budi_guru',
+            'email'          => 'budi@hilaledu.test',
+            'role'           => 'guru',
+            'tugas_tambahan' => ['Pembina PMR'],
+            'is_active'      => true,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->get(route('superadmin.guru.edit', $guru));
+
+        $response->assertStatus(200);
+        $response->assertSee('Edit Data Guru');
+        $response->assertSee('Guru Budi, M.Pd');
+        $response->assertSee('Pembina PMR');
+        $response->assertDontSee('Undefined variable $roles');
+    }
+
+    public function test_guru_update_saves_data()
+    {
+        $guru = User::factory()->create([
+            'name'           => 'Guru Asli',
+            'username'       => 'guru_asli',
+            'email'          => 'asli@hilaledu.test',
+            'role'           => 'guru',
+            'is_active'      => true,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->put(route('superadmin.guru.update', $guru), [
+                'name'           => 'Guru Asli Updated, S.Kom',
+                'username'       => 'guru_asli',
+                'email'          => 'asli_baru@hilaledu.test',
+                'nip'            => '198701012020011001',
+                'no_hp'          => '081234567890',
+                'jenis_kelamin'  => 'L',
+                'jabatan_utama'  => 'Guru Kejuruan',
+                'tugas_tambahan' => ['Koordinator PKL'],
+                'is_active'      => '1',
+            ]);
+
+        $response->assertRedirect(route('superadmin.guru.index'));
+        $guru->refresh();
+        $this->assertEquals('Guru Asli Updated, S.Kom', $guru->name);
+        $this->assertEquals('asli_baru@hilaledu.test', $guru->email);
+        $this->assertEquals('198701012020011001', $guru->nip);
+        $this->assertContains('Koordinator PKL', $guru->tugas_tambahan);
+    }
 }

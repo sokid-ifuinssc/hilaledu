@@ -71,7 +71,15 @@ class GuruController extends Controller
         $kelases  = \App\Models\Kelas::where('is_aktif', true)->orderBy('nama_kelas')->get();
         $daftarTugasTambahan = self::getDaftarTugasTambahan();
 
-        return view('admin.guru.create', compact('jurusans', 'kelases', 'daftarTugasTambahan'));
+        $roles = collect([
+            (object)['name' => 'guru_bk', 'label' => 'Guru BK'],
+            (object)['name' => 'wali_kelas', 'label' => 'Wali Kelas'],
+            (object)['name' => 'kaprog', 'label' => 'Kaprog'],
+            (object)['name' => 'kepala_sekolah', 'label' => 'Kepala Sekolah'],
+            (object)['name' => 'waka_kesiswaan', 'label' => 'Waka Kesiswaan'],
+        ]);
+
+        return view('admin.guru.create', compact('jurusans', 'kelases', 'daftarTugasTambahan', 'roles'));
     }
 
     public function store(Request $request)
@@ -141,7 +149,16 @@ class GuruController extends Controller
         $kelases  = \App\Models\Kelas::where('is_aktif', true)->orderBy('nama_kelas')->get();
         $daftarTugasTambahan = self::getDaftarTugasTambahan();
 
-        return view('admin.guru.edit', compact('guru', 'jurusans', 'kelases', 'daftarTugasTambahan'));
+        // Roles fallback untuk kompatibilitas tampilan penugasan peran sistem BK
+        $roles = collect([
+            (object)['name' => 'guru_bk', 'label' => 'Guru BK'],
+            (object)['name' => 'wali_kelas', 'label' => 'Wali Kelas'],
+            (object)['name' => 'kaprog', 'label' => 'Kaprog'],
+            (object)['name' => 'kepala_sekolah', 'label' => 'Kepala Sekolah'],
+            (object)['name' => 'waka_kesiswaan', 'label' => 'Waka Kesiswaan'],
+        ]);
+
+        return view('admin.guru.edit', compact('guru', 'jurusans', 'kelases', 'daftarTugasTambahan', 'roles'));
     }
 
     public function update(Request $request, User $guru)

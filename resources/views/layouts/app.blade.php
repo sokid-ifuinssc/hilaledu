@@ -1015,7 +1015,8 @@
                         <div class="sidebar-dropdown-menu {{ request()->routeIs('keuangan.*') ? 'show' : '' }}" id="menuKeuangan">
                             <ul class="sidebar-submenu">
                                 <li><a href="{{ route('keuangan.dashboard') }}" class="{{ request()->routeIs('keuangan.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Keuangan</a></li>
-                                <li><a href="{{ route('keuangan.tagihan.index') }}" class="{{ request()->routeIs('keuangan.tagihan.*') ? 'active' : '' }}"><i class="bi bi-receipt me-1"></i> Tagihan Siswa</a></li>
+                                <li><a href="{{ route('keuangan.tagihan.index', ['tab' => 'master']) }}" class="{{ request()->routeIs('keuangan.tagihan.*') && request('tab') === 'master' ? 'active' : '' }}"><i class="bi bi-database me-1"></i> Master Tagihan</a></li>
+                                <li><a href="{{ route('keuangan.tagihan.index') }}" class="{{ request()->routeIs('keuangan.tagihan.*') && request('tab') !== 'master' ? 'active' : '' }}"><i class="bi bi-receipt me-1"></i> Tagihan Siswa</a></li>
                                 <li><a href="{{ route('keuangan.pembayaran.index') }}" class="{{ request()->routeIs('keuangan.pembayaran.*') ? 'active' : '' }}"><i class="bi bi-credit-card me-1"></i> Data Pembayaran</a></li>
                             </ul>
                         </div>

@@ -140,6 +140,7 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @forelse($penerimaan as $item)
                         @php
                             $isJam = $item->tipe === 'per_jam' || $item->kode === 'HJM01' || str_contains(strtolower($item->nama), 'jam mengajar') || str_contains(strtolower($item->nama), 'honor jam');
                             $isTransport = $item->tipe === 'per_kehadiran' || $item->kode === 'TK01' || str_contains(strtolower($item->nama), 'transport');

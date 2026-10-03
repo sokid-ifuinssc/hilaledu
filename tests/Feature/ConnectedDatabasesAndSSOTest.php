@@ -259,30 +259,27 @@ class ConnectedDatabasesAndSSOTest extends TestCase
     }
 
     /**
-     * Test dashboard setiap peran menampilkan card ekosistem aplikasi Akademik & Tracer Study.
+     * Test dashboard setiap peran tidak menampilkan card ekosistem aplikasi (dihapus pada semua role).
      */
     public function test_dashboards_render_connected_applications(): void
     {
         // 1. Dashboard Guru
         $guruRes = $this->actingAs($this->guru)->get('/guru/dashboard');
         $guruRes->assertStatus(200);
-        $guruRes->assertSee('Akademik');
-        $guruRes->assertSee('Tracer Study');
-        $guruRes->assertSee('Alumni & Tracer', false);
+        $guruRes->assertDontSee('Ekosistem Aplikasi Terhubung');
+        $guruRes->assertDontSee('Alumni & Tracer');
 
         // 2. Dashboard Siswa
         $siswaRes = $this->actingAs($this->siswa)->get('/siswa/dashboard');
         $siswaRes->assertStatus(200);
-        $siswaRes->assertSee('Akademik');
-        $siswaRes->assertSee('Tracer Study');
-        $siswaRes->assertSee('Alumni & Karir', false);
+        $siswaRes->assertDontSee('Ekosistem Aplikasi Terhubung');
+        $siswaRes->assertDontSee('Alumni & Karir');
 
         // 3. Dashboard Tendik
         $tendikRes = $this->actingAs($this->tendik)->get('/tendik/dashboard');
         $tendikRes->assertStatus(200);
-        $tendikRes->assertSee('Akademik');
-        $tendikRes->assertSee('Tracer Study');
-        $tendikRes->assertSee('Alumni & BKK', false);
+        $tendikRes->assertDontSee('Ekosistem Aplikasi Terhubung');
+        $tendikRes->assertDontSee('Alumni & BKK');
 
         // 4. Landing Page (sekarang redirect)
         auth()->logout();

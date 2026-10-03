@@ -107,7 +107,7 @@
                                     @endif
                                 </td>
                                 <td class="pe-4 text-end">
-                                    <a href="{{ route('superadmin.payroll.periode.slip', [$p->periode_id, $p->id]) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <a href="{{ route('superadmin.payroll.periode.slip', [$p->payroll_periode_id ?? $p->periode_id, $p->id]) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-printer"></i>
                                     </a>
                                 </td>

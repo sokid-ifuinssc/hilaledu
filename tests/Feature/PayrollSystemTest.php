@@ -295,4 +295,46 @@ class PayrollSystemTest extends TestCase
         // Guru lain belum absen di Oktober 2026 -> tetap 0 hari
         $this->assertEquals(0, $this->tendik->getHariHadirBulan(10, 2026));
     }
+
+    public function test_superadmin_can_access_payroll_report_and_print_slip()
+    {
+        $periode = PayrollPeriode::create([
+            'bulan'              => 10,
+            'tahun'              => 2026,
+            'nama_periode'       => 'Oktober 2026 Report Test',
+            'tanggal_mulai'      => '2026-10-01',
+            'tanggal_selesai'    => '2026-10-31',
+            'tanggal_pembayaran' => '2026-10-25',
+            'status'             => 'draft',
+        ]);
+
+        $payroll = Payroll::create([
+            'payroll_periode_id'  => $periode->id,
+            'user_id'             => $this->guru->id,
+            'nomor_slip'          => 'SLIP/REPORT/001',
+            'gaji_pokok'          => 0,
+            'total_honor_jam'     => 1000000,
+            'total_tunjangan'     => 200000,
+            'total_penerimaan'    => 1200000,
+            'total_potongan'      => 50000,
+            'gaji_bersih'         => 1150000,
+            'jumlah_jam_mengajar' => 24,
+            'jumlah_kehadiran'    => 12,
+            'status'              => 'paid',
+        ]);
+
+        // Verifikasi accessor periode_id
+        $this->assertEquals($periode->id, $payroll->periode_id);
+
+        // Akses halaman laporan
+        $response = $this->actingAs($this->superadmin)->get(route('superadmin.payroll.laporan.index'));
+        $response->assertStatus(200);
+        $response->assertSee('SLIP/REPORT/001');
+        $response->assertSee(route('superadmin.payroll.periode.slip', [$payroll->payroll_periode_id, $payroll->id]));
+
+        // Akses cetak slip
+        $slipRes = $this->actingAs($this->superadmin)->get(route('superadmin.payroll.periode.slip', [$payroll->payroll_periode_id, $payroll->id]));
+        $slipRes->assertStatus(200);
+        $slipRes->assertSee($this->guru->name);
+    }
 }

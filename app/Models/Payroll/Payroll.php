@@ -49,6 +49,11 @@ class Payroll extends Model
         return $this->belongsTo(PayrollPeriode::class, 'payroll_periode_id');
     }
 
+    public function getPeriodeIdAttribute(): ?int
+    {
+        return $this->payroll_periode_id;
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

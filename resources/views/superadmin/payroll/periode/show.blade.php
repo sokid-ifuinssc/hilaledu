@@ -91,7 +91,10 @@
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('superadmin.payroll.periode.rekap', $periode) }}" target="_blank" class="btn btn-outline-info btn-sm fw-semibold px-3" style="border-radius: 10px;">
-                <i class="bi bi-printer-fill me-1"></i> Cetak Rekapitulasi Gaji
+                <i class="bi bi-printer me-1"></i> Cetak Rekapitulasi Gaji
+            </a>
+            <a href="{{ route('superadmin.payroll.periode.slip_all_guru', $periode) }}" target="_blank" class="btn btn-outline-success btn-sm fw-semibold px-3" style="border-radius: 10px;" title="Cetak slip gaji seluruh guru masing-masing per lembar">
+                <i class="bi bi-printer-fill me-1"></i> Cetak Slip Gaji Guru (Semua)
             </a>
 
             @if($periode->status !== 'paid')
@@ -249,9 +252,9 @@
                                     {{ ucfirst($p->status) }}
                                 </span>
                             </td>
-                            <td class="text-end">
-                                <a href="{{ route('superadmin.payroll.periode.slip', [$periode, $p]) }}" target="_blank" class="btn btn-sm btn-outline-info me-1" style="border-radius: 8px;" title="Cetak Slip Gaji">
-                                    <i class="bi bi-printer"></i>
+                            <td class="text-end text-nowrap">
+                                <a href="{{ route('superadmin.payroll.periode.slip', [$periode, $p]) }}" target="_blank" class="btn btn-sm btn-outline-info me-1" style="border-radius: 8px;" title="Cetak Slip Gaji {{ $p->user->name }}">
+                                    <i class="bi bi-printer me-1"></i> Slip
                                 </a>
                                 @if($periode->status !== 'paid')
                                     <a href="{{ route('superadmin.payroll.periode.slip.edit', [$periode, $p]) }}" class="btn btn-sm btn-outline-warning" style="border-radius: 8px;" title="Sesuaikan Rincian Slip">

@@ -158,29 +158,14 @@ class PayrollPeriodeController extends Controller
                     }
                 }
 
-                // --- 2. SINKRONISASI KEHADIRAN & TRANSPORT BERDASARKAN TANGGAL UNIK ---
-                // Guru: dihubungkan dengan tanggal hadir (PresensiHarianGuru) dan/atau pembuatan laporan KBM (LaporanKbm)
-                // "jika dalam satu hari itu ada lebih dari satu mapel tetap dihitungnya satu hari"
-                
-                // Ambil tanggal dari Presensi Harian Guru
-                $presensiDates = \App\Models\PresensiHarianGuru::where('guru_user_id', $pegawai->id)
-                    ->whereMonth('tanggal', $periode->bulan)
-                    ->whereYear('tanggal', $periode->tahun)
-                    ->where(function($q) {
-                        $q->whereIn('status_masuk', ['Hadir', 'hadir', 'Terlambat', 'terlambat'])
-                          ->orWhereNotNull('jam_masuk');
-                    })
-                    ->pluck('tanggal')
-                    ->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'));
-
-                // Ambil tanggal realisasi dari Laporan KBM
-                $kbmDates = \App\Models\LaporanKbm::where('guru_user_id', $pegawai->id)
-                    ->whereMonth('tanggal_realisasi', $periode->bulan)
-                    ->whereYear('tanggal_realisasi', $periode->tahun)
-                    ->pluck('tanggal_realisasi')
-                    ->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'));
-
-                $uniqueDates = $presensiDates->concat($kbmDates)->unique()->filter()->values();
+                // --- 2. SINKRONISASI KEHADIRAN & TRANSPORT ---
+                // Guru: hanya hari ketika ada jadwal mengajar DAN guru hadir yang dihitung.
+                // Beberapa mapel dalam satu hari tetap dihitung 1 hari (tanggal unik).
+                // Hari tanpa jadwal mengajar tidak dihitung walaupun guru hadir.
+                $uniqueDates = collect();
+                if ($isGuru) {
+                    $uniqueDates = $this->hitungTanggalHadirMengajar($pegawai->id, (int) $periode->bulan, (int) $periode->tahun);
+                }
                 $kehadiran = $uniqueDates->count();
 
                 $payroll->nomor_slip          = $nomorSlip;
@@ -235,7 +220,7 @@ class PayrollPeriodeController extends Controller
                             'nama_komponen' => 'Uang Transport Kehadiran / KBM',
                             'jenis'         => 'penerimaan',
                             'nominal'       => $totalTransport,
-                            'keterangan'    => "{$kehadiran} Hari Hadir/Laporan KBM x Rp " . number_format($tarifTransport, 0, ',', '.'),
+                            'keterangan'    => "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.'),
                         ]);
                     }
                 } else {
@@ -342,6 +327,54 @@ class PayrollPeriodeController extends Controller
     }
 
     /**
+     * Hitung tanggal unik (Y-m-d) saat guru HADIR pada hari yang ada jadwal mengajarnya.
+     * Sumber hadir: absensi per jadwal (AbsensiGuru), laporan KBM, dan presensi harian guru.
+     * Presensi harian hanya dihitung jika hari tersebut memang ada jadwal mengajar guru.
+     */
+    private function hitungTanggalHadirMengajar(int $guruId, int $bulan, int $tahun): \Illuminate\Support\Collection
+    {
+        $namaHari = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
+
+        $hariAdaJadwal = \App\Models\JadwalPelajaran::where('guru_user_id', $guruId)
+            ->where('tahun_ajaran', PengaturanSekolah::getActiveTahunAjaran())
+            ->where('semester', PengaturanSekolah::getActiveSemester())
+            ->pluck('hari')
+            ->map(fn ($h) => strtolower(trim($h)))
+            ->unique()
+            ->all();
+
+        $adaJadwal = fn (string $tanggal) => in_array(
+            strtolower($namaHari[\Carbon\Carbon::parse($tanggal)->dayOfWeekIso]),
+            $hariAdaJadwal,
+            true
+        );
+        $fmt = fn ($d) => \Carbon\Carbon::parse($d)->format('Y-m-d');
+
+        // Absensi per jadwal mengajar (otomatis sudah terkait jadwal)
+        $absensi = \App\Models\AbsensiGuru::where('guru_user_id', $guruId)
+            ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)
+            ->whereIn('status', ['hadir', 'terlambat'])
+            ->pluck('tanggal')->map($fmt);
+
+        // Laporan KBM = guru benar-benar mengajar
+        $kbm = \App\Models\LaporanKbm::where('guru_user_id', $guruId)
+            ->whereMonth('tanggal_realisasi', $bulan)->whereYear('tanggal_realisasi', $tahun)
+            ->pluck('tanggal_realisasi')->map($fmt);
+
+        // Presensi harian: hanya jika di hari itu ada jadwal mengajar
+        $presensi = \App\Models\PresensiHarianGuru::where('guru_user_id', $guruId)
+            ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)
+            ->where(function ($q) {
+                $q->whereIn('status_masuk', ['hadir', 'terlambat', 'hadir_sesuai_jam', 'Hadir', 'Terlambat'])
+                  ->orWhereNotNull('jam_masuk');
+            })
+            ->pluck('tanggal')->map($fmt)
+            ->filter($adaJadwal);
+
+        return $absensi->concat($kbm)->concat($presensi)->filter()->unique()->sort()->values();
+    }
+
+    /**
      * Edit satu slip gaji individu (misal ada penambahan bonus atau potongan insidentil)
      */
     public function editSlip(PayrollPeriode $periode, Payroll $payroll)
@@ -356,6 +389,7 @@ class PayrollPeriodeController extends Controller
             'metode_pembayaran' => 'required|in:transfer,tunai',
             'status'            => 'required|in:draft,approved,paid',
             'catatan'           => 'nullable|string',
+            'jumlah_kehadiran'  => 'nullable|integer|min:0|max:31',
             'items'             => 'nullable|array',
             'items.*.nama'      => 'required|string|max:150',
             'items.*.jenis'     => 'required|in:penerimaan,potongan',
@@ -366,12 +400,24 @@ class PayrollPeriodeController extends Controller
         $payroll->metode_pembayaran = $validated['metode_pembayaran'];
         $payroll->status            = $validated['status'];
         $payroll->catatan           = $validated['catatan'];
+
+        // Koreksi manual jumlah hari hadir mengajar (khusus guru) → transport dihitung ulang
+        $kehadiranBerubah = false;
+        if ($payroll->user && $payroll->user->role === 'guru'
+            && isset($validated['jumlah_kehadiran'])
+            && (int) $validated['jumlah_kehadiran'] !== (int) $payroll->jumlah_kehadiran) {
+            $payroll->jumlah_kehadiran = (int) $validated['jumlah_kehadiran'];
+            $kehadiranBerubah = true;
+        }
         $payroll->save();
 
         // Update items
         $payroll->items()->delete();
         if (!empty($validated['items'])) {
             foreach ($validated['items'] as $item) {
+                if ($kehadiranBerubah && $item['nama'] === 'Uang Transport Kehadiran / KBM') {
+                    continue; // diganti hasil hitung ulang di bawah
+                }
                 if ((float) $item['nominal'] >= 0) {
                     PayrollItem::create([
                         'payroll_id'    => $payroll->id,
@@ -381,6 +427,20 @@ class PayrollPeriodeController extends Controller
                         'keterangan'    => $item['ket'] ?? null,
                     ]);
                 }
+            }
+        }
+
+        if ($kehadiranBerubah) {
+            $tarif = (float) ($payroll->user->payrollSetting->transport_per_hari ?? 20000);
+            $total = $payroll->jumlah_kehadiran * $tarif;
+            if ($total > 0) {
+                PayrollItem::create([
+                    'payroll_id'    => $payroll->id,
+                    'nama_komponen' => 'Uang Transport Kehadiran / KBM',
+                    'jenis'         => 'penerimaan',
+                    'nominal'       => $total,
+                    'keterangan'    => "{$payroll->jumlah_kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarif, 0, ',', '.') . ' (dikoreksi manual)',
+                ]);
             }
         }
 
@@ -430,6 +490,24 @@ class PayrollPeriodeController extends Controller
         $sekolah = PengaturanSekolah::getSetting();
 
         return view('superadmin.payroll.periode.slip', compact('periode', 'payroll', 'sekolah'));
+    }
+
+    /**
+     * Tampilan Cetak Seluruh Slip Gaji Guru (Masing-masing guru terpisah per lembar)
+     */
+    public function printAllGuruSlip(PayrollPeriode $periode)
+    {
+        $payrolls = $periode->payrolls()
+            ->whereHas('user', fn($q) => $q->where('role', 'guru'))
+            ->with(['user', 'items', 'user.payrollSetting'])
+            ->join('users', 'payrolls.user_id', '=', 'users.id')
+            ->orderBy('users.name')
+            ->select('payrolls.*')
+            ->get();
+
+        $sekolah = PengaturanSekolah::getSetting();
+
+        return view('superadmin.payroll.periode.slip_all_guru', compact('periode', 'payrolls', 'sekolah'));
     }
 
     /**

@@ -101,6 +101,28 @@
                         </div>
                     </div>
 
+                    @if($payroll->user->role === 'guru')
+                        <div class="p-3 mb-4 rounded-3 border border-emerald-200 bg-emerald-50">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <small class="text-slate-500 d-block">Jumlah Jam Mengajar</small>
+                                    <span class="fw-bold text-slate-900 fs-5">{{ $payroll->jumlah_jam_mengajar }} JP</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-slate-700 fw-medium small mb-1">Hari Hadir Mengajar (Transport)</label>
+                                    <input type="number" name="jumlah_kehadiran" class="form-control" min="0" max="31"
+                                           value="{{ old('jumlah_kehadiran', $payroll->jumlah_kehadiran) }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-slate-600 d-block">
+                                        Otomatis dari kehadiran pada hari ada jadwal mengajar (beberapa mapel sehari = 1 hari).
+                                        Ubah angka ini bila ada kekeliruan; nominal transport dihitung ulang saat disimpan.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <h6 class="text-slate-900 fw-bold mb-3">
                         <i class="bi bi-list-check text-success me-2"></i>Daftar Item Komponen Pada Slip Ini
                     </h6>

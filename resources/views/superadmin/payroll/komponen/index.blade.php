@@ -87,6 +87,32 @@
         </div>
     @endif
 
+    {{-- Search Bar Pencarian Komponen Gaji --}}
+    <div class="card bg-white border border-slate-200 shadow-sm p-3 mb-4" style="border-radius: 14px;">
+        <form method="GET" action="{{ route('superadmin.payroll.komponen.index') }}" class="row g-2 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-slate-400" style="border-radius: 10px 0 0 10px;">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="search" id="searchKomponenInput" class="form-control border-start-0 search-input" 
+                           placeholder="Ketik untuk mencari komponen gaji (nama, kode, tipe, atau keterangan)..." 
+                           value="{{ request('search') }}" style="border-radius: 0 10px 10px 0;">
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-secondary flex-grow-1" style="border-radius: 10px;">
+                    <i class="bi bi-search me-1"></i> Cari
+                </button>
+                @if(request('search'))
+                    <a href="{{ route('superadmin.payroll.komponen.index') }}" class="btn btn-outline-secondary" style="border-radius: 10px;" title="Reset Pencarian">
+                        <i class="bi bi-x-lg me-1"></i> Reset
+                    </a>
+                @endif
+            </div>
+        </form>
+    </div>
+
     {{-- Tabel Penerimaan --}}
     <div class="section-card mb-4">
         <div class="section-header">
@@ -115,7 +141,7 @@
                 </thead>
                 <tbody>
                     @forelse($penerimaan as $item)
-                        <tr>
+                        <tr class="komponen-row">
                             <td><span class="badge bg-slate-100 text-slate-800 border border-slate-300 font-monospace">{{ $item->kode }}</span></td>
                             <td class="fw-semibold text-slate-900">{{ $item->nama }}</td>
                             <td>
@@ -237,7 +263,7 @@
                 </thead>
                 <tbody>
                     @forelse($potongan as $item)
-                        <tr>
+                        <tr class="komponen-row">
                             <td><span class="badge bg-slate-100 text-slate-800 border border-slate-300 font-monospace">{{ $item->kode }}</span></td>
                             <td class="fw-semibold text-slate-900">{{ $item->nama }}</td>
                             <td>
@@ -391,4 +417,25 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchKomponenInput');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.komponen-row');
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            if (query === '' || text.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
 @endsection

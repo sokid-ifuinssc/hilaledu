@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class PayrollKomponenController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // 1. Auto-sync tugas tambahan dari akademik ke komponen payroll
         $tugasTambahanList = \App\Models\TugasTambahan::where('is_aktif', true)->get();
@@ -27,8 +27,27 @@ class PayrollKomponenController extends Controller
             );
         }
 
-        $penerimaan = PayrollKomponen::where('jenis', 'penerimaan')->orderBy('kode')->get();
-        $potongan   = PayrollKomponen::where('jenis', 'potongan')->orderBy('kode')->get();
+        $queryPenerimaan = PayrollKomponen::where('jenis', 'penerimaan');
+        $queryPotongan   = PayrollKomponen::where('jenis', 'potongan');
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $queryPenerimaan->where(function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('kode', 'like', "%{$search}%")
+                  ->orWhere('keterangan', 'like', "%{$search}%")
+                  ->orWhere('tipe', 'like', "%{$search}%");
+            });
+            $queryPotongan->where(function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('kode', 'like', "%{$search}%")
+                  ->orWhere('keterangan', 'like', "%{$search}%")
+                  ->orWhere('tipe', 'like', "%{$search}%");
+            });
+        }
+
+        $penerimaan = $queryPenerimaan->orderBy('kode')->get();
+        $potongan   = $queryPotongan->orderBy('kode')->get();
 
         return view('superadmin.payroll.komponen.index', compact('penerimaan', 'potongan'));
     }

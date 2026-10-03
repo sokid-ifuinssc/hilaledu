@@ -230,6 +230,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
         Route::post('/periode/{periode}/finalize', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'finalize'])->name('periode.finalize');
         Route::post('/periode/{periode}/mark-paid', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'markPaid'])->name('periode.mark-paid');
         Route::get('/periode/{periode}/rekap', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'printRekap'])->name('periode.rekap');
+        Route::get('/periode/{periode}/slip-all-guru', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'printAllGuruSlip'])->name('periode.slip_all_guru');
         Route::get('/periode/{periode}/slip/{payroll}', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'printSlip'])->name('periode.slip');
         Route::get('/periode/{periode}/slip/{payroll}/edit', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'editSlip'])->name('periode.slip.edit');
         Route::put('/periode/{periode}/slip/{payroll}', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'updateSlip'])->name('periode.slip.update');
@@ -610,6 +611,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/jadwal/matrix/truncate', [JadwalMatrixController::class, 'truncateMatrix'])->name('jadwal.matrix.truncate');
         Route::get('/jadwal/matrix/print', [JadwalMatrixController::class, 'printMatrix'])->name('jadwal.matrix.print');
         Route::get('/jadwal/sk-mengajar/print', [JadwalMatrixController::class, 'printSkMengajar'])->name('jadwal.sk_mengajar.print');
+        Route::get('/jadwal/sk-jam-mengajar/print', [JadwalMatrixController::class, 'printSkMengajar'])->name('jadwal.sk_jam_mengajar.print');
+        Route::get('/jadwal/sk-tugas-tambahan/print', [JadwalMatrixController::class, 'printSkTugasTambahan'])->name('jadwal.sk_tugas_tambahan.print');
 
         // Pengaturan Jadwal Per Hari (UI Simpel: pilih hari → isi mapel per jam)
         Route::get('/jadwal/atur', [JadwalMatrixController::class, 'aturJadwal'])->name('jadwal.atur');
@@ -682,6 +685,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/jadwal/matrix/truncate', [JadwalMatrixController::class, 'truncateMatrix'])->name('jadwal.matrix.truncate');
         Route::get('/jadwal/matrix/print', [JadwalMatrixController::class, 'printMatrix'])->name('jadwal.matrix.print');
         Route::get('/jadwal/sk-mengajar/print', [JadwalMatrixController::class, 'printSkMengajar'])->name('jadwal.sk_mengajar.print');
+        Route::get('/jadwal/sk-jam-mengajar/print', [JadwalMatrixController::class, 'printSkMengajar'])->name('jadwal.sk_jam_mengajar.print');
+        Route::get('/jadwal/sk-tugas-tambahan/print', [JadwalMatrixController::class, 'printSkTugasTambahan'])->name('jadwal.sk_tugas_tambahan.print');
 
         // Pengaturan Jadwal Per Hari (UI Simpel: pilih hari → isi mapel per jam)
         Route::get('/jadwal/atur', [JadwalMatrixController::class, 'aturJadwal'])->name('jadwal.atur');

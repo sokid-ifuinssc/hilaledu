@@ -736,7 +736,22 @@ class JadwalMatrixController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.jadwal.sk_mengajar_print', compact('gurus', 'tahun', 'semester'));
+        return view('admin.jadwal.sk_jam_mengajar_print', compact('gurus', 'tahun', 'semester'));
+    }
+
+    public function printSkTugasTambahan(Request $request)
+    {
+        $tahun = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        $gurus = \App\Models\User::where('role', 'guru')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->filter(fn ($g) => !empty($g->tugas_tambahan))
+            ->values();
+
+        return view('admin.jadwal.sk_tugas_tambahan_print', compact('gurus', 'tahun', 'semester'));
     }
 
     public function truncateMatrix(Request $request)

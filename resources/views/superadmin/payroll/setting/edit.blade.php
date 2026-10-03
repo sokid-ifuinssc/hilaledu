@@ -128,14 +128,6 @@
                     </h6>
 
                     @if($user->role === 'guru')
-                        {{-- Gaji Pokok Guru Ditiadakan / Diganti Jam Mengajar --}}
-                        <div class="alert alert-info border-0 bg-info-subtle text-info-emphasis rounded-3 p-3 mb-4 d-flex align-items-center gap-3">
-                            <i class="bi bi-info-circle-fill fs-3 text-info"></i>
-                            <div>
-                                <strong class="d-block mb-1">Gaji Pokok Ditiadakan untuk Guru Pendidik</strong>
-                                <span class="small">Sesuai kebijakan sekolah, penghasilan pokok guru dihitung murni dari akumulasi <strong>Jumlah Jam Mengajar &times; Honor per Jam</strong>.</span>
-                            </div>
-                        </div>
                         <input type="hidden" name="gaji_pokok" id="input_gaji_pokok" value="0">
 
                         <div class="row g-3 mb-4">

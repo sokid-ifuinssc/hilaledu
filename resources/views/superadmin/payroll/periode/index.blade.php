@@ -82,8 +82,9 @@
                         <th>Total Potongan</th>
                         <th>Total Bersih (THP)</th>
                         <th>Status</th>
-                        <th>Tanggal Pembayaran</th>
-                        <th class="text-end">Aksi</th>
+                        <th>Tampil di Guru</th>
+                        <th>Tanggal Bayar</th>
+                        <th class="text-end" style="min-width: 170px;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -114,22 +115,41 @@
                                     @endif
                                 </span>
                             </td>
+                            <td>
+                                @if($periode->tampil_ke_guru)
+                                    <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-1">
+                                        <i class="bi bi-eye-fill me-1"></i> Tampil di Guru
+                                    </span>
+                                @else
+                                    <span class="badge bg-slate-200 text-slate-600 border border-slate-300 px-2 py-1">
+                                        <i class="bi bi-eye-slash-fill me-1"></i> Disembunyikan
+                                    </span>
+                                @endif
+                            </td>
                             <td class="text-slate-600">
                                 {{ $periode->tanggal_pembayaran ? $periode->tanggal_pembayaran->format('d M Y') : '-' }}
                             </td>
-                            <td class="text-end">
+                            <td class="text-end text-nowrap">
                                 <a href="{{ route('superadmin.payroll.periode.show', $periode) }}" class="btn btn-sm btn-outline-success me-1 fw-medium" style="border-radius: 8px;">
                                     <i class="bi bi-folder2-open me-1"></i> Buka
                                 </a>
-                                @if($periode->status === 'draft')
-                                    <form action="{{ route('superadmin.payroll.periode.destroy', $periode) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus periode ini beserta seluruh slip di dalamnya?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="Hapus Periode">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                @endif
+
+                                {{-- Toggle Visibilitas Guru --}}
+                                <form action="{{ route('superadmin.payroll.periode.toggle_tampil_guru', $periode) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm {{ $periode->tampil_ke_guru ? 'btn-outline-secondary' : 'btn-outline-primary' }} me-1" style="border-radius: 8px;" title="{{ $periode->tampil_ke_guru ? 'Klik untuk sembunyikan periode ini dari halaman guru' : 'Klik untuk tampilkan periode ini pada halaman guru' }}">
+                                        <i class="bi {{ $periode->tampil_ke_guru ? 'bi-eye-slash' : 'bi-eye' }}"></i>
+                                    </button>
+                                </form>
+
+                                {{-- Hapus Periode (bisa untuk draft maupun data dummy contoh) --}}
+                                <form action="{{ route('superadmin.payroll.periode.destroy', $periode) }}" method="POST" class="d-inline" onsubmit="return confirm('PERINGATAN: Yakin ingin menghapus periode \'{{ $periode->nama_periode }}\' beserta seluruh data slip gaji di dalamnya? Tindakan ini tidak dapat dibatalkan.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="Hapus Periode">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                     @empty

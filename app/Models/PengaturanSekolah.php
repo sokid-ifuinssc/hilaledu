@@ -89,6 +89,87 @@ class PengaturanSekolah extends Model
         return $this->belongsTo(User::class, 'kepala_sekolah_id');
     }
 
+    /**
+     * Ambil nama Kepala Sekolah secara dinamis dari relasi atau penugasan user di database
+     */
+    public function getKepalaSekolahAttribute($value): string
+    {
+        if (!empty($value)) {
+            return $value;
+        }
+        if ($this->kepala_sekolah_id) {
+            $user = User::find($this->kepala_sekolah_id);
+            if ($user) {
+                return $user->name;
+            }
+        }
+        $kepsek = User::where('is_active', true)->get()->first(function($u) {
+            return in_array('Kepala Sekolah', $u->daftar_jabatan) || $u->jabatan_utama === 'Kepala Sekolah';
+        });
+        if ($kepsek) {
+            return $kepsek->name;
+        }
+        return 'Muhammad Mansyur, S.Pt';
+    }
+
+    /**
+     * Ambil NIP / NUPTK Kepala Sekolah
+     */
+    public function getNipKepalaSekolahAttribute($value): string
+    {
+        if (!empty($value) && $value !== '-') {
+            return $value;
+        }
+        if ($this->kepala_sekolah_id) {
+            $user = User::find($this->kepala_sekolah_id);
+            if ($user && !empty($user->nip)) {
+                return $user->nip;
+            }
+        }
+        $kepsek = User::where('is_active', true)->get()->first(function($u) {
+            return in_array('Kepala Sekolah', $u->daftar_jabatan) || $u->jabatan_utama === 'Kepala Sekolah';
+        });
+        if ($kepsek && !empty($kepsek->nip)) {
+            return $kepsek->nip;
+        }
+        return '6942767668130350';
+    }
+
+    /**
+     * Ambil user yang ditugaskan sebagai Bendahara Sekolah / Keuangan dari database
+     */
+    public static function getBendaharaSekolah(): ?User
+    {
+        return User::where('is_active', true)
+            ->whereIn('role', ['guru', 'tendik', 'keuangan'])
+            ->get()
+            ->first(function($u) {
+                foreach ($u->daftar_jabatan as $j) {
+                    if (stripos($j, 'bendahara') !== false) {
+                        return true;
+                    }
+                }
+                return $u->role === 'keuangan';
+            });
+    }
+
+    /**
+     * URL Logo Sekolah yang selalu valid dan aman dari error 404
+     */
+    public function getLogoUrlAttribute(): string
+    {
+        if (!empty($this->logo) && file_exists(public_path('storage/' . $this->logo))) {
+            return asset('storage/' . $this->logo);
+        }
+        if (file_exists(public_path('images/logo_smk.png'))) {
+            return asset('images/logo_smk.png');
+        }
+        if (file_exists(public_path('images/logo.png'))) {
+            return asset('images/logo.png');
+        }
+        return asset('images/logo.jpg');
+    }
+
     public static function normalizeTahunAjaran(?string $ta): string
     {
         if (empty($ta)) return '2026/2027';

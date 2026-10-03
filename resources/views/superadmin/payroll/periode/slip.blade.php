@@ -350,9 +350,12 @@
         <div class="watermark">HILAL EDU</div>
 
         <div class="header">
-            <div class="header-left">
-                <div class="school-name">{{ strtoupper($sekolah->nama_sekolah ?? 'SMK PLUS AL HILAL') }}</div>
-                <div class="school-address">Terakreditasi "B" - Sistem Informasi Manajemen Akademik & Kepegawaian</div>
+            <div class="header-left" style="display: flex; align-items: center; gap: 14px;">
+                <img src="{{ $sekolah->logo_url }}" alt="Logo" style="height: 52px; width: 52px; object-fit: contain;">
+                <div>
+                    <div class="school-name">{{ strtoupper($sekolah->nama_sekolah ?? 'SMK PLUS AL HILAL') }}</div>
+                    <div class="school-address">Terakreditasi "B" - Sistem Informasi Manajemen Akademik & Kepegawaian</div>
+                </div>
             </div>
             <div class="header-right">
                 <div class="document-title">SLIP GAJI & BISYARAH PEGAWAI</div>
@@ -468,6 +471,9 @@
             </div>
         </div>
 
+        @php
+            $bendahara = \App\Models\PengaturanSekolah::getBendaharaSekolah();
+        @endphp
         <div class="footer">
             <div class="notes">
                 <h4>Catatan:</h4>
@@ -480,8 +486,8 @@
                 <div class="signature-date">Arjawinangun, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}</div>
                 <div class="signature-role">Bendahara Sekolah</div>
                 
-                <div class="signature-name">Elin Tamaya, S.E</div>
-                <div class="signature-nip">NUPTK: -</div>
+                <div class="signature-name">{{ $bendahara ? ($bendahara->nama_lengkap ?? $bendahara->name) : 'Elin Tamaya, S.E' }}</div>
+                <div class="signature-nip">NUPTK: {{ $bendahara?->nip ?? '-' }}</div>
             </div>
         </div>
     </div>

@@ -393,4 +393,69 @@ class PayrollSystemTest extends TestCase
         $skTugasRes->assertSee('Wali Kelas X RPL 1'); // Tugas tambahan guru ini
         $skTugasRes->assertDontSee($this->tendik->name); // Hanya untuk diri sendiri
     }
+
+    public function test_admin_can_toggle_visibility_and_delete_periode()
+    {
+        // 1. Buat periode baru
+        $periode = PayrollPeriode::create([
+            'bulan'          => 7,
+            'tahun'          => 2026,
+            'nama_periode'   => 'Juli 2026',
+            'status'         => 'draft',
+            'tampil_ke_guru' => true,
+            'created_by'     => $this->superadmin->id,
+        ]);
+
+        $this->actingAs($this->superadmin)->post(route('superadmin.payroll.periode.generate', $periode));
+
+        // Verifikasi tampil di halaman guru
+        $resGuru = $this->actingAs($this->guru)->get(route('guru.payroll.index'));
+        $resGuru->assertSee('Juli 2026');
+
+        // 2. Admin sembunyikan dari halaman guru
+        $toggleRes = $this->actingAs($this->superadmin)->post(route('superadmin.payroll.periode.toggle_tampil_guru', $periode));
+        $toggleRes->assertSessionHas('success');
+        $this->assertFalse($periode->fresh()->tampil_ke_guru);
+
+        // Verifikasi TIDAK muncul lagi di riwayat transaksi guru
+        $this->flushSession();
+        $resGuruHidden = $this->actingAs($this->guru)->get(route('guru.payroll.index'));
+        $resGuruHidden->assertDontSee('Juli 2026');
+
+        // 3. Admin hapus periode
+        $delRes = $this->actingAs($this->superadmin)->delete(route('superadmin.payroll.periode.destroy', $periode));
+        $delRes->assertRedirect(route('superadmin.payroll.periode.index'));
+        $this->assertDatabaseMissing('payroll_periodes', ['id' => $periode->id]);
+    }
+
+    public function test_print_reports_contain_dynamic_bendahara_and_kepala_sekolah()
+    {
+        $periode = PayrollPeriode::create([
+            'bulan'          => 10,
+            'tahun'          => 2026,
+            'nama_periode'   => 'Oktober 2026',
+            'status'         => 'draft',
+            'tampil_ke_guru' => true,
+            'created_by'     => $this->superadmin->id,
+        ]);
+        $this->actingAs($this->superadmin)->post(route('superadmin.payroll.periode.generate', $periode));
+        $payroll = $periode->payrolls()->first();
+
+        // 1. Slip Gaji
+        $slipRes = $this->actingAs($this->superadmin)->get(route('superadmin.payroll.periode.slip', [$periode, $payroll]));
+        $slipRes->assertStatus(200);
+        $slipRes->assertSee('Bendahara Sekolah');
+
+        // 2. Rekapitulasi Gaji
+        $rekapRes = $this->actingAs($this->superadmin)->get(route('superadmin.payroll.periode.rekap', $periode));
+        $rekapRes->assertStatus(200);
+        $rekapRes->assertSee('Kepala Sekolah');
+        $rekapRes->assertSee('Bendahara Sekolah');
+
+        // 3. Laporan Keuangan
+        $keuanganRes = $this->actingAs($this->superadmin)->get(route('keuangan.laporan.print', ['bulan' => 10, 'tahun' => 2026]));
+        $keuanganRes->assertStatus(200);
+        $keuanganRes->assertSee('Kepala Sekolah');
+        $keuanganRes->assertSee('Bendahara Sekolah');
+    }
 }

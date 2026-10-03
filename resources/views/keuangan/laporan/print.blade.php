@@ -33,11 +33,17 @@
         }
     </style>
 </head>
+@php
+    $sekolah = \App\Models\PengaturanSekolah::getSetting();
+    $bendahara = \App\Models\PengaturanSekolah::getBendaharaSekolah();
+@endphp
 <body>
-    <div class="header">
-        <h1>SMK Plus Al Hilal</h1>
-        <h2>Laporan Keuangan & Tagihan Siswa</h2>
-        <p>Jl. Raya Pembangunan No. 1, Kabupaten Cirebon, Jawa Barat</p>
+    <div class="header" style="position: relative; padding-left: 95px; text-align: left; min-height: 80px;">
+        <img src="{{ $sekolah->logo_url }}" alt="Logo" style="position: absolute; left: 5px; top: 0; width: 75px; height: 75px; object-fit: contain;">
+        <div style="font-size: 11pt; font-weight: bold; letter-spacing: 1px; color: #444;">YAYASAN AL HILAL CIREBON</div>
+        <h1 style="margin: 0; font-size: 16pt; font-weight: bold;">{{ strtoupper($sekolah->nama_sekolah ?? 'SMK PLUS AL HILAL') }}</h1>
+        <h2 style="margin: 2px 0; font-size: 13pt;">Laporan Keuangan & Rekapitulasi Tagihan Siswa</h2>
+        <p style="margin: 0; font-size: 10pt; color: #333;">{{ $sekolah->alamat ?? 'Jl. H. Manshur No 7 Lap. Bima Rembes, Ds. Tegalgubug, Kec. Arjawinangun, Kab. Cirebon' }} | Telp: {{ $sekolah->telepon ?? '-' }}</p>
     </div>
 
     <div class="report-title">
@@ -110,19 +116,19 @@
     </table>
 
     <div class="footer">
-        <div class="signature-box">
+        <div class="signature-box" style="float: right;">
+            <p>Arjawinangun, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}</p>
+            <p><strong>Bendahara Sekolah / Keuangan</strong></p>
+            <div class="signature-space"></div>
+            <p style="font-weight: bold; text-decoration: underline;">{{ $bendahara ? ($bendahara->nama_lengkap ?? $bendahara->name) : 'Elin Tamaya, S.E' }}</p>
+            <p>{{ $bendahara?->nip ? 'NUPTK: ' . $bendahara->nip : 'NUPTK: -' }}</p>
+        </div>
+        <div class="signature-box" style="float: left;">
             <p>Mengetahui,</p>
             <p><strong>Kepala Sekolah</strong></p>
             <div class="signature-space"></div>
-            <p>_______________________</p>
-            <p>NIP. </p>
-        </div>
-        <div class="signature-box" style="float: left;">
-            <p>Cirebon, {{ date('d F Y') }}</p>
-            <p><strong>Bendahara Sekolah</strong></p>
-            <div class="signature-space"></div>
-            <p>_______________________</p>
-            <p>NIP. </p>
+            <p style="font-weight: bold; text-decoration: underline;">{{ $sekolah->kepala_sekolah }}</p>
+            <p>{{ $sekolah->nip_kepala_sekolah ? 'NUPTK/NIP: ' . $sekolah->nip_kepala_sekolah : 'NUPTK: -' }}</p>
         </div>
         <div style="clear: both;"></div>
     </div>

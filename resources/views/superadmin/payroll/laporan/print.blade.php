@@ -96,12 +96,23 @@
         }
     </style>
 </head>
+@php
+    $sekolah = \App\Models\PengaturanSekolah::getSetting();
+    $bendahara = \App\Models\PengaturanSekolah::getBendaharaSekolah();
+@endphp
 <body>
     <button class="btn-print" onclick="window.print()" style="position:fixed; top:20px; right:20px; padding:10px 20px; background:#059669; color:#fff; border:none; border-radius:5px; cursor:pointer;">Cetak Laporan</button>
 
-    <div class="header">
-        <h2>REKAPITULASI PENGGAJIAN & BISYARAH</h2>
-        <p>SMK Plus Al Hilal - Laporan Hasil Filter</p>
+    <div class="header" style="position: relative; padding-left: 85px; text-align: left; min-height: 75px; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+        <img src="{{ $sekolah->logo_url }}" alt="Logo" style="position: absolute; left: 0; top: 0; width: 70px; height: 70px; object-fit: contain;">
+        <div style="font-size: 11pt; font-weight: bold; letter-spacing: 0.5px; color: #444;">YAYASAN AL HILAL CIREBON</div>
+        <h2 style="margin: 0; font-size: 15pt; font-weight: bold;">{{ strtoupper($sekolah->nama_sekolah ?? 'SMK PLUS AL HILAL') }}</h2>
+        <p style="margin: 2px 0 0 0; font-size: 9.5pt; color: #555;">{{ $sekolah->alamat ?? 'Jl. H. Manshur No 7 Lap. Bima Rembes, Ds. Tegalgubug, Kec. Arjawinangun, Kab. Cirebon' }}</p>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 15px;">
+        <h3 style="margin: 0; text-transform: uppercase; font-size: 13pt;">REKAPITULASI PENGGAJIAN & BISYARAH</h3>
+        <p style="margin: 3px 0 0 0; font-size: 10pt; color: #666;">Laporan Hasil Rekapitulasi Pembayaran Gaji</p>
     </div>
 
     <table>
@@ -163,16 +174,26 @@
         @endif
     </table>
 
-    <div class="footer">
+    <div class="footer" style="display: flex; justify-content: space-between; margin-top: 40px;">
         <div class="signature">
             <div class="signature-title">
-                Cirebon, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
                 Mengetahui,<br>
-                <strong>Bendahara / Kepala Sekolah</strong>
+                <strong>Kepala Sekolah</strong>
             </div>
-            <div>
-                <strong>___________________________</strong><br>
-                NIP. 
+            <div style="margin-top: 60px;">
+                <strong><u>{{ $sekolah->kepala_sekolah }}</u></strong><br>
+                {{ $sekolah->nip_kepala_sekolah ? 'NUPTK: ' . $sekolah->nip_kepala_sekolah : 'NUPTK: -' }}
+            </div>
+        </div>
+
+        <div class="signature">
+            <div class="signature-title">
+                Arjawinangun, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
+                <strong>Bendahara Sekolah / Keuangan</strong>
+            </div>
+            <div style="margin-top: 60px;">
+                <strong><u>{{ $bendahara ? ($bendahara->nama_lengkap ?? $bendahara->name) : 'Elin Tamaya, S.E' }}</u></strong><br>
+                {{ $bendahara?->nip ? 'NUPTK: ' . $bendahara->nip : 'NUPTK: -' }}
             </div>
         </div>
     </div>

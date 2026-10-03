@@ -229,6 +229,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
         Route::post('/periode/{periode}/generate', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'generate'])->name('periode.generate');
         Route::post('/periode/{periode}/finalize', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'finalize'])->name('periode.finalize');
         Route::post('/periode/{periode}/mark-paid', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'markPaid'])->name('periode.mark-paid');
+        Route::post('/periode/{periode}/toggle-tampil-guru', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'toggleTampilGuru'])->name('periode.toggle_tampil_guru');
         Route::get('/periode/{periode}/rekap', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'printRekap'])->name('periode.rekap');
         Route::get('/periode/{periode}/slip-all-guru', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'printAllGuruSlip'])->name('periode.slip_all_guru');
         Route::get('/periode/{periode}/slip/{payroll}', [\App\Http\Controllers\SuperAdmin\Payroll\PayrollPeriodeController::class, 'printSlip'])->name('periode.slip');

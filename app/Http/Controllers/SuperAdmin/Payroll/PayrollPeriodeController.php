@@ -513,12 +513,30 @@ class PayrollPeriodeController extends Controller
     }
 
     /**
-     * Hapus Periode
+     * Toggle Visibilitas Periode ke Guru & Tendik
+     */
+    public function toggleTampilGuru(PayrollPeriode $periode)
+    {
+        $periode->tampil_ke_guru = !$periode->tampil_ke_guru;
+        $periode->save();
+
+        $statusText = $periode->tampil_ke_guru ? 'ditampilkan ke guru & tendik' : 'disembunyikan dari guru & tendik';
+        return back()->with('success', "Periode '{$periode->nama_periode}' berhasil {$statusText}.");
+    }
+
+    /**
+     * Hapus Periode beserta seluruh slip gaji di dalamnya
      */
     public function destroy(PayrollPeriode $periode)
     {
         $nama = $periode->nama_periode;
-        $periode->delete();
+        DB::transaction(function() use ($periode) {
+            foreach ($periode->payrolls as $p) {
+                $p->items()->delete();
+                $p->delete();
+            }
+            $periode->delete();
+        });
 
         return redirect()->route('superadmin.payroll.periode.index')
             ->with('success', "Periode '{$nama}' berhasil dihapus.");

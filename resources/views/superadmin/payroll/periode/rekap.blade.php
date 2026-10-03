@@ -105,7 +105,8 @@
 
     <div class="report-container">
         {{-- Kop Resmi Sekolah --}}
-        <div class="kop-header">
+        <div class="kop-header" style="position: relative; padding-left: 80px; min-height: 75px;">
+            <img src="{{ $sekolah->logo_url }}" alt="Logo" style="position: absolute; left: 0; top: 0; width: 68px; height: 68px; object-fit: contain;">
             <div class="kop-yayasan">YAYASAN AL HILAL CIREBON</div>
             <div class="kop-sekolah">{{ $sekolah->nama_sekolah ?? 'SMK PLUS AL HILAL' }}</div>
             <div class="kop-alamat">
@@ -157,7 +158,7 @@
                             <td class="text-center">{{ $index + 1 }}</td>
                             <td class="fw-semibold">
                                 {{ $p->user->name }}
-                                <div class="text-muted small" style="font-size:0.72rem;">NIP: {{ $p->user->nip ?? '-' }}</div>
+                                <div class="text-muted small" style="font-size:0.72rem;">NUPTK/NIP: {{ $p->user->nip ?? '-' }}</div>
                             </td>
                             <td>
                                 {{ ucfirst($p->user->role) }}
@@ -192,24 +193,38 @@
             </table>
         </div>
 
+        @php
+            $bendahara = \App\Models\PengaturanSekolah::getBendaharaSekolah();
+        @endphp
         {{-- Tanda Tangan --}}
         <div class="d-flex justify-content-between text-center mt-5" style="font-size:0.85rem;">
             <div>
                 Mengetahui,<br>
+                <strong>Kepala Sekolah</strong>
+                <div style="height: 60px;"></div>
+                <div style="border-bottom:1px solid #333; display:inline-block; min-width:180px; font-weight:bold;">
+                    {{ $sekolah->kepala_sekolah }}
+                </div>
+                <div class="text-muted small">NUPTK: {{ $sekolah->nip_kepala_sekolah }}</div>
+            </div>
+
+            <div>
+                Menyetujui,<br>
                 <strong>Ketua Yayasan Al Hilal Cirebon</strong>
-                <div style="height: 70px;"></div>
-                <div style="border-bottom:1px solid #333; display:inline-block; min-width:180px;">
+                <div style="height: 60px;"></div>
+                <div style="border-bottom:1px solid #333; display:inline-block; min-width:180px; font-weight:bold;">
                     KH. Mukhammad Mansyur, S.Pt
                 </div>
             </div>
 
             <div>
-                Cirebon, {{ date('d F Y') }}<br>
+                Arjawinangun, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
                 <strong>Bendahara Sekolah / Keuangan</strong>
-                <div style="height: 70px;"></div>
-                <div style="border-bottom:1px solid #333; display:inline-block; min-width:180px;">
-                    Bendahara HilalEdu
+                <div style="height: 60px;"></div>
+                <div style="border-bottom:1px solid #333; display:inline-block; min-width:180px; font-weight:bold;">
+                    {{ $bendahara ? ($bendahara->nama_lengkap ?? $bendahara->name) : 'Elin Tamaya, S.E' }}
                 </div>
+                <div class="text-muted small">NUPTK: {{ $bendahara?->nip ?? '-' }}</div>
             </div>
         </div>
     </div>

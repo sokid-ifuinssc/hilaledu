@@ -124,6 +124,24 @@
                     <i class="bi bi-check-all me-1"></i> Telah Dibayar ({{ $periode->tanggal_pembayaran?->format('d/m/Y') }})
                 </span>
             @endif
+
+            {{-- Toggle Visibilitas Guru --}}
+            <form action="{{ route('superadmin.payroll.periode.toggle_tampil_guru', $periode) }}" method="POST" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-sm {{ $periode->tampil_ke_guru ? 'btn-outline-secondary' : 'btn-outline-primary' }} fw-semibold px-3" style="border-radius: 10px;" title="{{ $periode->tampil_ke_guru ? 'Sembunyikan dari guru' : 'Tampilkan ke guru' }}">
+                    <i class="bi {{ $periode->tampil_ke_guru ? 'bi-eye-slash' : 'bi-eye' }} me-1"></i>
+                    {{ $periode->tampil_ke_guru ? 'Sembunyikan dr Guru' : 'Tampilkan ke Guru' }}
+                </button>
+            </form>
+
+            {{-- Hapus Periode --}}
+            <form action="{{ route('superadmin.payroll.periode.destroy', $periode) }}" method="POST" class="d-inline" onsubmit="return confirm('PERINGATAN: Yakin ingin menghapus periode \'{{ $periode->nama_periode }}\' beserta seluruh data slip gaji di dalamnya? Tindakan ini tidak dapat dibatalkan.');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-outline-danger btn-sm fw-semibold px-2" style="border-radius: 10px;" title="Hapus Periode">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
         </div>
     </div>
 

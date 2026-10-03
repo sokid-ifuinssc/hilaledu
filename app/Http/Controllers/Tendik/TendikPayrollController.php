@@ -18,6 +18,7 @@ class TendikPayrollController extends Controller
         $payrolls = Payroll::where('user_id', $user->id)
             ->with(['periode', 'items'])
             ->join('payroll_periodes', 'payrolls.payroll_periode_id', '=', 'payroll_periodes.id')
+            ->where('payroll_periodes.tampil_ke_guru', true)
             ->orderByDesc('payroll_periodes.tahun')
             ->orderByDesc('payroll_periodes.bulan')
             ->select('payrolls.*')
@@ -27,6 +28,8 @@ class TendikPayrollController extends Controller
 
         $totalDiterima = Payroll::where('user_id', $user->id)
             ->whereIn('payrolls.status', ['approved', 'paid'])
+            ->join('payroll_periodes', 'payrolls.payroll_periode_id', '=', 'payroll_periodes.id')
+            ->where('payroll_periodes.tampil_ke_guru', true)
             ->sum('gaji_bersih');
 
         return view('tendik.payroll.index', compact('payrolls', 'setting', 'totalDiterima'));
@@ -39,6 +42,10 @@ class TendikPayrollController extends Controller
     {
         if ($payroll->user_id !== auth()->id()) {
             abort(403, 'Anda tidak berhak melihat slip gaji orang lain.');
+        }
+
+        if ($payroll->periode && !$payroll->periode->tampil_ke_guru) {
+            abort(403, 'Periode slip gaji ini sedang disembunyikan atau belum dipublikasikan oleh pengelola.');
         }
 
         $payroll->load(['periode', 'items', 'user', 'user.payrollSetting']);

@@ -184,7 +184,7 @@
                                 {{ $p->periode->tahun }}
                             </td>
                             <td>
-                                <span class="text-slate-800">Tanpa Perubahan</span>
+                                <span class="text-slate-800 fw-medium">{{ $p->catatan ?: 'Tanpa Perubahan' }}</span>
                                 @if($p->status === 'paid')
                                     <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300 ms-1 px-2 py-0.5" style="font-size: 0.70rem;">
                                         Lunas
@@ -193,10 +193,26 @@
                                     <span class="badge bg-blue-100 text-blue-800 border border-blue-300 ms-1 px-2 py-0.5" style="font-size: 0.70rem;">
                                         Disetujui
                                     </span>
+                                @else
+                                    <span class="badge bg-amber-100 text-amber-800 border border-amber-300 ms-1 px-2 py-0.5" style="font-size: 0.70rem;">
+                                        Draft
+                                    </span>
                                 @endif
                             </td>
-                            <td class="text-slate-500">
-                                {{ $p->status === 'paid' ? 'Terverifikasi' : '-' }}
+                            <td>
+                                @if($p->status === 'paid')
+                                    <span class="badge bg-emerald-50 text-emerald-700 border border-emerald-300 px-2 py-1" title="Divalidasi oleh Bendahara Sekolah dan Disahkan oleh Kepala Sekolah">
+                                        <i class="bi bi-patch-check-fill text-emerald-600 me-1"></i> Terverifikasi
+                                    </span>
+                                @elseif($p->status === 'approved')
+                                    <span class="badge bg-blue-50 text-blue-700 border border-blue-300 px-2 py-1" title="Divalidasi oleh Bendahara Sekolah">
+                                        <i class="bi bi-check-circle-fill text-blue-600 me-1"></i> Terverifikasi
+                                    </span>
+                                @else
+                                    <span class="badge bg-slate-100 text-slate-500 border border-slate-300 px-2 py-1">
+                                        <i class="bi bi-hourglass-split me-1"></i> Menunggu Verifikasi
+                                    </span>
+                                @endif
                             </td>
                             <td class="text-end text-nowrap">
                                 <button type="button" 
@@ -303,6 +319,32 @@
                                                 <small class="text-slate-500">Penerimaan bersih yang disalurkan</small>
                                             </div>
                                             <span class="fw-bold fs-3 text-emerald-700">Rp {{ number_format($p->gaji_bersih, 0, ',', '.') }}</span>
+                                        </div>
+
+                                        {{-- Informasi Validasi & Pengesahan --}}
+                                        <div class="mt-3 p-3 bg-slate-50 rounded-3 border border-slate-200 small">
+                                            <div class="row g-2">
+                                                <div class="col-md-6">
+                                                    <span class="text-muted d-block">Status Validasi Keuangan:</span>
+                                                    <strong class="text-slate-800">
+                                                        @if($p->status === 'paid' || $p->status === 'approved')
+                                                            <i class="bi bi-check-circle-fill text-success me-1"></i> Terverifikasi oleh Bendahara Sekolah (Elin Tamaya, S.E)
+                                                        @else
+                                                            <i class="bi bi-hourglass-split text-warning me-1"></i> Menunggu Verifikasi Bendahara
+                                                        @endif
+                                                    </strong>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <span class="text-muted d-block">Pengesahan Pimpinan:</span>
+                                                    <strong class="text-slate-800">
+                                                        @if($p->status === 'paid')
+                                                            <i class="bi bi-check-circle-fill text-success me-1"></i> Disahkan oleh Kepala Sekolah
+                                                        @else
+                                                            <i class="bi bi-dash-circle text-muted me-1"></i> Menunggu Pengesahan
+                                                        @endif
+                                                    </strong>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="modal-footer border-top bg-slate-50 rounded-bottom-4 d-flex justify-content-between">

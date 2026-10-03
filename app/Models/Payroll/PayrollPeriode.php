@@ -19,6 +19,7 @@ class PayrollPeriode extends Model
         'tanggal_selesai',
         'tanggal_pembayaran',
         'status',
+        'tampil_ke_guru',
         'total_penerimaan',
         'total_potongan',
         'total_dibayarkan',
@@ -31,6 +32,7 @@ class PayrollPeriode extends Model
         return [
             'bulan'              => 'integer',
             'tahun'              => 'integer',
+            'tampil_ke_guru'     => 'boolean',
             'tanggal_mulai'      => 'date',
             'tanggal_selesai'    => 'date',
             'tanggal_pembayaran' => 'date',

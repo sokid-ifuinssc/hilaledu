@@ -16,15 +16,13 @@ class GuruPayrollController extends Controller
     {
         $user = auth()->user();
 
-        // Pastikan periode standar (Agustus, September, Oktober 2026) tersedia
-        $this->ensureDefaultPeriodsExist();
-
-        // Pastikan akun guru memiliki record payroll untuk periode yang ada
+        // Sinkronkan payroll guru hanya untuk periode yang diizinkan tampil ke guru
         $this->syncGuruPayrolls($user);
 
         $query = Payroll::where('user_id', $user->id)
             ->with(['periode', 'items'])
             ->join('payroll_periodes', 'payrolls.payroll_periode_id', '=', 'payroll_periodes.id')
+            ->where('payroll_periodes.tampil_ke_guru', true)
             ->orderByDesc('payroll_periodes.tahun')
             ->orderByDesc('payroll_periodes.bulan')
             ->select('payrolls.*');
@@ -50,37 +48,15 @@ class GuruPayrollController extends Controller
 
         $totalDiterima = Payroll::where('user_id', $user->id)
             ->whereIn('payrolls.status', ['approved', 'paid'])
+            ->join('payroll_periodes', 'payrolls.payroll_periode_id', '=', 'payroll_periodes.id')
+            ->where('payroll_periodes.tampil_ke_guru', true)
             ->sum('gaji_bersih');
 
         return view('guru.payroll.index', compact('payrolls', 'setting', 'totalDiterima'));
     }
 
     /**
-     * Pastikan periode standar tahun ajaran berjalan tersedia (Agustus 2026, September 2026, Oktober 2026)
-     */
-    private function ensureDefaultPeriodsExist(): void
-    {
-        $defaultPeriods = [
-            ['bulan' => 8,  'tahun' => 2026, 'nama_periode' => 'Agustus 2026',   'status' => 'paid',  'tanggal_pembayaran' => '2026-08-25'],
-            ['bulan' => 9,  'tahun' => 2026, 'nama_periode' => 'September 2026', 'status' => 'paid',  'tanggal_pembayaran' => '2026-09-25'],
-            ['bulan' => 10, 'tahun' => 2026, 'nama_periode' => 'Oktober 2026',   'status' => 'draft', 'tanggal_pembayaran' => null],
-        ];
-
-        foreach ($defaultPeriods as $dp) {
-            \App\Models\Payroll\PayrollPeriode::firstOrCreate(
-                ['bulan' => $dp['bulan'], 'tahun' => $dp['tahun']],
-                [
-                    'nama_periode'       => $dp['nama_periode'],
-                    'status'             => $dp['status'],
-                    'tanggal_pembayaran' => $dp['tanggal_pembayaran'],
-                    'created_by'         => auth()->id(),
-                ]
-            );
-        }
-    }
-
-    /**
-     * Buatkan atau sinkronkan slip gaji guru untuk setiap periode
+     * Buatkan atau sinkronkan slip gaji guru untuk setiap periode yang diizinkan tampil
      * Hari hadir mengajar dihitung secara DINAMIS berdasarkan data absensi harian riil
      */
     private function syncGuruPayrolls($user): void
@@ -90,7 +66,10 @@ class GuruPayrollController extends Controller
             $setting = \App\Models\Payroll\PayrollSetting::syncTunjanganForUser($user);
         }
 
-        $periodes = \App\Models\Payroll\PayrollPeriode::orderByDesc('tahun')->orderByDesc('bulan')->get();
+        $periodes = \App\Models\Payroll\PayrollPeriode::where('tampil_ke_guru', true)
+            ->orderByDesc('tahun')
+            ->orderByDesc('bulan')
+            ->get();
 
         foreach ($periodes as $periode) {
             $payroll = Payroll::firstOrNew([
@@ -256,6 +235,10 @@ class GuruPayrollController extends Controller
     {
         if ($payroll->user_id !== auth()->id()) {
             abort(403, 'Anda tidak berhak melihat slip gaji orang lain.');
+        }
+
+        if ($payroll->periode && !$payroll->periode->tampil_ke_guru) {
+            abort(403, 'Periode slip gaji ini sedang disembunyikan atau belum dipublikasikan oleh pengelola.');
         }
 
         $payroll->load(['periode', 'items', 'user', 'user.payrollSetting']);

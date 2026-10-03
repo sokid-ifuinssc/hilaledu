@@ -224,7 +224,7 @@
                             </td>
                             <td>
                                 <div class="fw-bold text-slate-900">{{ $p->user->name }}</div>
-                                <small class="text-slate-500">NIP: {{ $p->user->nip ?? '-' }}</small>
+                                <small class="text-slate-500">{{ $p->user->role === 'guru' ? 'NUPTK' : 'NIP' }}: {{ $p->user->nip ?? '-' }}</small>
                             </td>
                             <td>
                                 @if($p->user->role === 'guru')

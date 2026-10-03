@@ -56,7 +56,7 @@
             <td width="18%">{{ $tugas ?: 'Seluruh Tugas' }}</td>
         </tr>
         <tr>
-            <td>NIP / ID Guru</td>
+            <td>NUPTK / ID Guru</td>
             <td>:</td>
             <td>{{ $user->nip ?: ($user->nuptk ?: '-') }}</td>
             <td>Bulan / Periode</td>
@@ -116,7 +116,7 @@
                 Guru Pengemban Tugas,<br>
                 <div class="signature-space"></div>
                 <strong><u>{{ $user->name }}</u></strong><br>
-                NIP. {{ $user->nip ?: '-' }}
+                NUPTK. {{ $user->nip ?: '-' }}
             </td>
         </tr>
     </table>

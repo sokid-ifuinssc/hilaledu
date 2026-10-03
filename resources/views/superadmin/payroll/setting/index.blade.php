@@ -143,7 +143,7 @@
                             <td>
                                 <div class="fw-bold text-slate-900">{{ $pegawai->name }}</div>
                                 <small class="text-slate-500">
-                                    NIP: {{ $pegawai->nip ?? '-' }} &bull; {{ $pegawai->username }}
+                                    {{ $isGuru ? 'NUPTK' : 'NIP' }}: {{ $pegawai->nip ?? '-' }} &bull; {{ $pegawai->username }}
                                 </small>
                             </td>
                             <td>
@@ -174,8 +174,9 @@
                             <td>
                                 @if($isGuru)
                                     <div class="text-emerald-700 fw-semibold">Rp {{ number_format($setting->transport_per_hari ?? 20000, 0, ',', '.') }}<span class="small text-slate-500">/hari</span></div>
-                                    <small class="text-emerald-700 fw-medium">
-                                        <i class="bi bi-calendar-check"></i> {{ $setting->hari_transport_default ?: ($pegawai->total_hari_mengajar ?: 16) }} Hari DB
+                                    @php $hadirBulan = $pegawai->hari_hadir_bulan_ini; @endphp
+                                    <small class="{{ $hadirBulan > 0 ? 'text-emerald-700 fw-medium' : 'text-slate-500' }}">
+                                        <i class="bi bi-calendar-check {{ $hadirBulan > 0 ? 'text-success' : 'text-muted' }}"></i> {{ $hadirBulan }} Hari Hadir Dinamis
                                     </small>
                                 @else
                                     <span class="text-emerald-700 fw-semibold">Rp {{ number_format($tunjKehadiran, 0, ',', '.') }}</span>

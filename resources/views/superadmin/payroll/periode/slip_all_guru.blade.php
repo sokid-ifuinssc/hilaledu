@@ -392,7 +392,7 @@
                         <div class="info-value">: {{ $payroll->user->name }}</div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label">NIP / NIY</div>
+                        <div class="info-label">NUPTK</div>
                         <div class="info-value">: {{ $payroll->user->nip ?? '-' }}</div>
                     </div>
                     <div class="info-row">
@@ -513,7 +513,7 @@
                     <div class="signature-role">Bendahara Sekolah</div>
                     
                     <div class="signature-name">Elin Tamaya, S.E</div>
-                    <div class="signature-nip">NIP/NUPTK: -</div>
+                    <div class="signature-nip">NUPTK: -</div>
                 </div>
             </div>
         </div>

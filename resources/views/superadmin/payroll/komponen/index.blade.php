@@ -140,10 +140,24 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($penerimaan as $item)
-                        <tr class="komponen-row">
-                            <td><span class="badge bg-slate-100 text-slate-800 border border-slate-300 font-monospace">{{ $item->kode }}</span></td>
-                            <td class="fw-semibold text-slate-900">{{ $item->nama }}</td>
+                        @php
+                            $isJam = $item->tipe === 'per_jam' || $item->kode === 'HJM01' || str_contains(strtolower($item->nama), 'jam mengajar') || str_contains(strtolower($item->nama), 'honor jam');
+                            $isTransport = $item->tipe === 'per_kehadiran' || $item->kode === 'TK01' || str_contains(strtolower($item->nama), 'transport');
+                        @endphp
+                        <tr class="komponen-row {{ $isJam ? 'table-primary bg-primary bg-opacity-10' : ($isTransport ? 'table-success bg-success bg-opacity-10' : '') }}">
+                            <td><span class="badge {{ $isJam ? 'bg-primary text-white' : ($isTransport ? 'bg-success text-white' : 'bg-slate-100 text-slate-800 border border-slate-300') }} font-monospace">{{ $item->kode }}</span></td>
+                            <td class="fw-semibold text-slate-900">
+                                {{ $item->nama }}
+                                @if($isJam)
+                                    <span class="badge bg-primary text-white ms-1" style="font-size: 0.70rem;">
+                                        <i class="bi bi-clock-history me-1"></i>Komponen Jam (Prioritas #1)
+                                    </span>
+                                @elseif($isTransport)
+                                    <span class="badge bg-success text-white ms-1" style="font-size: 0.70rem;">
+                                        <i class="bi bi-geo-alt me-1"></i>Komponen Transport (Prioritas #2)
+                                    </span>
+                                @endif
+                            </td>
                             <td>
                                 <span class="badge bg-slate-100 text-slate-700 border border-slate-200">
                                     {{ ucfirst(str_replace('_', ' ', $item->tipe)) }}

@@ -80,7 +80,7 @@
                 <dl class="space-y-2.5 text-sm">
                     <div class="flex justify-between py-1 border-b border-gray-50">
                         <dt class="text-gray-500">NUPTK</dt>
-                        <dd class="font-medium text-gray-800 font-mono">{{ $guru->nuptk_display }}</dd>
+                        <dd class="font-medium text-gray-800 font-mono">{{ $guru->nip ?: ($guru->nuptk ?: '-') }}</dd>
                     </div>
                     <div class="flex justify-between py-1 border-b border-gray-50">
                         <dt class="text-gray-500">Jenis Kelamin</dt>

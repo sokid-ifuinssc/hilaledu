@@ -56,7 +56,7 @@
             <td width="18%">{{ \Carbon\Carbon::parse($bulan . '-01')->isoFormat('MMMM Y') }}</td>
         </tr>
         <tr>
-            <td>NIP / ID Guru</td>
+            <td>NUPTK / ID Guru</td>
             <td>:</td>
             <td>{{ $user->nip ?: $user->username }}</td>
             <td>Total Kehadiran</td>
@@ -120,7 +120,7 @@
                 Guru Bersangkutan,<br>
                 <div class="signature-space"></div>
                 <strong><u>{{ $user->name }}</u></strong><br>
-                NIP. {{ $user->nip ?: '-' }}
+                NUPTK. {{ $user->nip ?: '-' }}
             </td>
         </tr>
     </table>

@@ -267,7 +267,7 @@
                 Guru Mata Pelajaran,<br>
                 <div class="signature-space"></div>
                 <strong><u>{{ $mingguEfektif->guru?->name ?? 'Guru Pengampu' }}</u></strong><br>
-                NIP. {{ $mingguEfektif->guru->nip ?? '-' }}
+                NUPTK. {{ $mingguEfektif->guru->nip ?? '-' }}
             </td>
         </tr>
     </table>

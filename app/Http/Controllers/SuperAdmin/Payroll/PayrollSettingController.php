@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin\Payroll;
 
 use App\Http\Controllers\Controller;
+use App\Models\Payroll\PayrollKomponen;
 use App\Models\Payroll\PayrollSetting;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -42,33 +43,114 @@ class PayrollSettingController extends Controller
 
         $isGuru = $user->role === 'guru';
         $jamPenugasan = $isGuru ? $user->total_jam_mengajar : 0;
-        $hariPenugasan = $isGuru ? $user->total_hari_mengajar : 0;
+        $hadirBulanIni = $isGuru ? $user->hari_hadir_bulan_ini : 0;
 
-        $setting = $user->payrollSetting ?? new PayrollSetting([
-            'user_id'                => $user->id,
-            'gaji_pokok'             => $isGuru ? 0 : 1800000,
-            'honor_per_jam'          => $isGuru ? 35000 : 0,
-            'jam_mengajar_default'   => $jamPenugasan ?: ($isGuru ? 24 : 0),
-            'tunjangan_jabatan'      => 0,
-            'detail_tunjangan_tugas' => [],
-            'tunjangan_kehadiran'    => $isGuru ? 0 : 250000,
-            'transport_per_hari'     => 20000,
-            'hari_transport_default' => $hariPenugasan ?: ($isGuru ? 16 : 0),
-            'tunjangan_lain'         => 0,
-            'potongan_bpjs'          => 45000,
-            'potongan_koperasi'      => 50000,
-            'potongan_lain'          => 25000,
-            'atas_nama_rekening'     => $user->name,
-        ]);
+        // Ambil nilai default dari Master Komponen Gaji yang aktif
+        $masterHonorJam = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('tipe', 'per_jam')
+                  ->orWhere('kode', 'HJM01')
+                  ->orWhere('nama', 'like', '%jam%mengajar%')
+                  ->orWhere('nama', 'like', '%honor%jam%');
+            })->value('nominal_default') ?? 35000);
+
+        $masterTransport = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('tipe', 'per_kehadiran')
+                  ->orWhere('kode', 'TK01')
+                  ->orWhere('nama', 'like', '%transport%');
+            })->value('nominal_default') ?? 20000);
+
+        $masterGajiPokok = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('kode', 'GP01')
+                  ->orWhere('nama', 'like', '%pokok%');
+            })->value('nominal_default') ?? 1800000);
+
+        $masterTunjanganKehadiran = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('kode', 'TK01')
+                  ->orWhere('nama', 'like', '%kehadiran%');
+            })->value('nominal_default') ?? 250000);
+
+        $masterBpjs = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('kode', 'PBP01')
+                  ->orWhere('nama', 'like', '%bpjs%');
+            })->value('nominal_default') ?? 45000);
+
+        $masterKoperasi = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('kode', 'PKOP01')
+                  ->orWhere('nama', 'like', '%koperasi%');
+            })->value('nominal_default') ?? 50000);
+
+        $masterPotonganLain = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('kode', 'PINF01')
+                  ->orWhere('nama', 'like', '%infaq%')
+                  ->orWhere('nama', 'like', '%kas%');
+            })->value('nominal_default') ?? 25000);
+
+        // Ambil seluruh master komponen untuk pemetaan tugas tambahan
+        $allMaster = PayrollKomponen::where('is_aktif', true)->get();
+        $masterKomponenMap = [];
+        foreach ($allMaster as $mk) {
+            $masterKomponenMap[trim(mb_strtolower($mk->nama))] = (float) $mk->nominal_default;
+        }
+        $allTugas = \App\Models\TugasTambahan::where('is_aktif', true)->get();
+        foreach ($allTugas as $tt) {
+            $k = trim(mb_strtolower($tt->nama));
+            if (!isset($masterKomponenMap[$k]) || $masterKomponenMap[$k] == 0) {
+                $masterKomponenMap[$k] = (float) $tt->nominal_gaji;
+            }
+        }
+
+        $setting = $user->payrollSetting;
+        if (!$setting) {
+            $setting = new PayrollSetting([
+                'user_id'                => $user->id,
+                'gaji_pokok'             => $isGuru ? 0 : $masterGajiPokok,
+                'honor_per_jam'          => $isGuru ? $masterHonorJam : 0,
+                'jam_mengajar_default'   => $jamPenugasan ?: ($isGuru ? 24 : 0),
+                'tunjangan_jabatan'      => 0,
+                'detail_tunjangan_tugas' => [],
+                'tunjangan_kehadiran'    => $isGuru ? 0 : $masterTunjanganKehadiran,
+                'transport_per_hari'     => $masterTransport,
+                'hari_transport_default' => 0, // Dihitung dinamis dari presensi riil harian
+                'tunjangan_lain'         => 0,
+                'potongan_bpjs'          => $masterBpjs,
+                'potongan_koperasi'      => $masterKoperasi,
+                'potongan_lain'          => $masterPotonganLain,
+                'atas_nama_rekening'     => $user->name,
+            ]);
+        } else {
+            // Otomatis isi nilai master komponen jika pada setting guru belum diset (>0) atau bernilai 0
+            if ($isGuru && ((float)$setting->honor_per_jam <= 0)) {
+                $setting->honor_per_jam = $masterHonorJam;
+            }
+            if ((float)$setting->transport_per_hari <= 0) {
+                $setting->transport_per_hari = $masterTransport;
+            }
+            if ((float)$setting->potongan_bpjs <= 0 && $masterBpjs > 0) {
+                $setting->potongan_bpjs = $masterBpjs;
+            }
+            if ((float)$setting->potongan_koperasi <= 0 && $masterKoperasi > 0) {
+                $setting->potongan_koperasi = $masterKoperasi;
+            }
+            if ((float)$setting->potongan_lain <= 0 && $masterPotonganLain > 0) {
+                $setting->potongan_lain = $masterPotonganLain;
+            }
+        }
 
         // Jika guru dan jam penugasan ditemukan di database, sinkronkan nilai default jam mengajar jika belum diset
         if ($isGuru && $jamPenugasan > 0 && !$setting->exists) {
             $setting->jam_mengajar_default = $jamPenugasan;
         }
 
-        // Jika guru dan hari penugasan ditemukan di database, sinkronkan nilai default hari transport jika belum ada
-        if ($isGuru && empty($setting->hari_transport_default)) {
-            $setting->hari_transport_default = $hariPenugasan ?: 16;
+        // Jangan default ke 16 hari! Biarkan 0 jika belum diset agar dihitung dinamis dari presensi riil
+        if ($isGuru && !isset($setting->hari_transport_default)) {
+            $setting->hari_transport_default = 0;
         }
 
         // Untuk guru, pastikan gaji pokok bernilai 0
@@ -81,7 +163,37 @@ class PayrollSettingController extends Controller
             ->reject(fn($t) => in_array($t, ['Guru', 'Tendik', 'Guru Pengajar', 'Siswa']))
             ->values();
 
-        return view('superadmin.payroll.setting.edit', compact('user', 'setting', 'daftarTugas'));
+        // Otomatis terisi nilai master komponen untuk setiap tugas tambahan yang diemban guru
+        $detailTugas = is_array($setting->detail_tunjangan_tugas) ? $setting->detail_tunjangan_tugas : [];
+        $hasNewDefault = false;
+        foreach ($daftarTugas as $tugas) {
+            $key = trim(mb_strtolower($tugas));
+            $masterNominal = $masterKomponenMap[$key] ?? 0;
+            // Jika belum ada di detail atau bernilai 0 tetapi di master komponen sudah ada nilainya:
+            if ((!isset($detailTugas[$tugas]) || (float)$detailTugas[$tugas] <= 0) && $masterNominal > 0) {
+                $detailTugas[$tugas] = $masterNominal;
+                $hasNewDefault = true;
+            }
+        }
+        if ($hasNewDefault) {
+            $setting->detail_tunjangan_tugas = $detailTugas;
+            $setting->tunjangan_jabatan = array_sum($detailTugas);
+        }
+
+        return view('superadmin.payroll.setting.edit', compact(
+            'user', 
+            'setting', 
+            'daftarTugas', 
+            'hadirBulanIni',
+            'masterHonorJam', 
+            'masterTransport', 
+            'masterGajiPokok', 
+            'masterTunjanganKehadiran', 
+            'masterBpjs', 
+            'masterKoperasi', 
+            'masterPotonganLain', 
+            'masterKomponenMap'
+        ));
     }
 
     public function update(Request $request, User $user)
@@ -150,7 +262,7 @@ class PayrollSettingController extends Controller
         $validated['detail_tunjangan_tugas'] = $detailTugas;
         $validated['tunjangan_jabatan']      = $totalTunjanganJabatan;
         $validated['transport_per_hari']     = $validated['transport_per_hari'] ?? 20000;
-        $validated['hari_transport_default'] = $validated['hari_transport_default'] ?? ($isGuru ? ($user->total_hari_mengajar ?: 16) : 0);
+        $validated['hari_transport_default'] = isset($validated['hari_transport_default']) ? (int) $validated['hari_transport_default'] : 0;
         $validated['tunjangan_lain']         = $validated['tunjangan_lain'] ?? 0;
         $validated['potongan_bpjs']          = $validated['potongan_bpjs'] ?? 0;
         $validated['potongan_koperasi']      = $validated['potongan_koperasi'] ?? 0;

@@ -46,7 +46,7 @@
             <table class="text-sm mb-4">
                 <tr><td class="pr-4 py-0.5">Nama Guru</td><td class="pr-2">:</td><td class="font-bold">{{ $guru->name }}</td></tr>
                 @if(!empty($guru->nip))
-                <tr><td class="pr-4 py-0.5">NIP/NIY</td><td class="pr-2">:</td><td>{{ $guru->nip }}</td></tr>
+                <tr><td class="pr-4 py-0.5">NUPTK</td><td class="pr-2">:</td><td>{{ $guru->nip }}</td></tr>
                 @endif
             </table>
 
@@ -85,7 +85,7 @@
                     <p class="text-sm font-bold">Kepala Sekolah</p>
                     <div class="h-24"></div>
                     <p class="text-sm font-bold underline">{{ $setting->kepalaSekolah->name ?? '.....................................' }}</p>
-                    <p class="text-xs">NIP/NIY: {{ $setting->kepalaSekolah->nip ?? '-' }}</p>
+                    <p class="text-xs">NUPTK: {{ $setting->kepalaSekolah->nip ?? '-' }}</p>
                 </div>
             </div>
         </div>

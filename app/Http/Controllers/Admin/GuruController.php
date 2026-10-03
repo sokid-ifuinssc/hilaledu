@@ -118,7 +118,7 @@ class GuruController extends Controller
         ], [
             'username.unique'   => 'Username sudah digunakan.',
             'email.unique'      => 'Email sudah digunakan.',
-            'nip.unique'        => 'NIP/NUPTK sudah terdaftar.',
+            'nip.unique'        => 'NUPTK sudah terdaftar.',
             'password.min'      => 'Password minimal 6 karakter.',
             'password.confirmed'=> 'Konfirmasi password tidak cocok.',
         ]);

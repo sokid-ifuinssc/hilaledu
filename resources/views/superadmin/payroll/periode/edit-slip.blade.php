@@ -55,8 +55,8 @@
                     <span class="text-slate-900 fw-bold fs-6">{{ $payroll->user->name }}</span>
                 </div>
                 <div class="mb-2">
-                    <small class="text-slate-500 d-block">Peran / NIP</small>
-                    <span class="text-slate-700">{{ ucfirst($payroll->user->role) }} &bull; NIP: {{ $payroll->user->nip ?? '-' }}</span>
+                    <small class="text-slate-500 d-block">Peran / {{ $payroll->user->role === 'guru' ? 'NUPTK' : 'NIP' }}</small>
+                    <span class="text-slate-700">{{ ucfirst($payroll->user->role) }} &bull; {{ $payroll->user->role === 'guru' ? 'NUPTK' : 'NIP' }}: {{ $payroll->user->nip ?? '-' }}</span>
                 </div>
                 <div class="mb-3">
                     <small class="text-slate-500 d-block">Tugas Tambahan & Jabatan</small>

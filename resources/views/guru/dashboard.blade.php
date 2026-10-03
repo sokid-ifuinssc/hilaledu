@@ -97,6 +97,9 @@
                 </div>
             </div>
             <div class="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0 justify-end">
+                <a href="{{ route('guru.payroll.index') }}" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 hover:text-white text-xs font-bold transition border border-emerald-400/30 flex items-center justify-center gap-1.5" title="Riwayat Transaksi & Cetak Slip Gaji">
+                    <i class="bi bi-wallet2"></i> Riwayat Gaji
+                </a>
                 <a href="{{ route('guru.profile.edit') }}" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-xs font-bold transition border border-white/10 flex items-center justify-center gap-1.5">
                     <i class="bi-person-gear"></i> Profil Saya
                 </a>

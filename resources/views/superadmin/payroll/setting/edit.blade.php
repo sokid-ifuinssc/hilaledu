@@ -44,11 +44,16 @@
 <div class="container-fluid py-3">
 
     {{-- Breadcrumb & Back --}}
-    <div class="d-flex align-items-center gap-2 mb-4">
-        <a href="{{ route('superadmin.payroll.setting.index') }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 10px;">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Pegawai
-        </a>
-        <h5 class="text-slate-900 fw-bold mb-0 ms-2">Pengaturan Gaji: {{ $user->name }}</h5>
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('superadmin.payroll.setting.index') }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 10px;">
+                <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Pegawai
+            </a>
+            <h5 class="text-slate-900 fw-bold mb-0 ms-2">Pengaturan Gaji: {{ $user->name }}</h5>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-success shadow-sm" onclick="applyAllMasterDefaults()" style="border-radius: 10px; font-weight: 600;" title="Sinkronkan seluruh input dengan nilai standar Master Komponen Gaji">
+            <i class="bi bi-magic me-1"></i> Otomatis Isi dari Master Komponen
+        </button>
     </div>
 
     <div class="row">
@@ -60,7 +65,7 @@
                         <i class="bi bi-person-fill"></i>
                     </div>
                     <h5 class="text-slate-900 fw-bold mb-1">{{ $user->name }}</h5>
-                    <p class="text-slate-500 small mb-2">NIP: {{ $user->nip ?? '-' }} &bull; {{ $user->username }}</p>
+                    <p class="text-slate-500 small mb-2">{{ $user->role === 'guru' ? 'NUPTK' : 'NIP' }}: {{ $user->nip ?? '-' }} &bull; {{ $user->username }}</p>
                     @if($user->role === 'guru')
                         <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1">Guru Pendidik</span>
                     @else
@@ -81,10 +86,16 @@
 
                     <div class="p-3 mb-3 bg-emerald-50 rounded-3 border border-emerald-200">
                         <div class="d-flex align-items-center justify-content-between">
-                            <span class="small fw-semibold text-emerald-800"><i class="bi bi-calendar-check me-1"></i> Hari Hadir Mengajar:</span>
-                            <span class="badge bg-success fs-6">{{ $user->total_hari_mengajar }} Hari</span>
+                            <span class="small fw-semibold text-emerald-800"><i class="bi bi-calendar-check me-1"></i> Kehadiran Bulan Ini:</span>
+                            <span class="badge {{ ($hadirBulanIni ?? 0) > 0 ? 'bg-success' : 'bg-secondary' }} fs-6">{{ $hadirBulanIni ?? 0 }} Hari</span>
                         </div>
-                        <small class="text-emerald-700 d-block mt-1">Jadwal hari aktif mengajar dalam sebulan (asumsi 4 pekan).</small>
+                        <small class="text-emerald-700 d-block mt-1" style="font-size: 0.73rem;">
+                            @if(($hadirBulanIni ?? 0) > 0)
+                                <i class="bi bi-check-circle-fill text-success"></i> Terisi dinamis dari presensi harian & KBM bulan {{ \Carbon\Carbon::now()->isoFormat('MMMM Y') }}.
+                            @else
+                                <i class="bi bi-info-circle text-muted"></i> Terhitung dinamis sesuai absen harian. Belum ada presensi bulan {{ \Carbon\Carbon::now()->isoFormat('MMMM Y') }} (0 hari).
+                            @endif
+                        </small>
                     </div>
                 @endif
 
@@ -146,7 +157,14 @@
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
                                     <input type="number" name="honor_per_jam" id="input_honor_per_jam" class="form-control calc-trigger" value="{{ old('honor_per_jam', (int)$setting->honor_per_jam) }}" required min="0">
                                 </div>
-                                <small class="text-slate-500">Standar honor per jam tatap muka</small>
+                                <div class="d-flex align-items-center justify-content-between mt-1">
+                                    <small class="text-slate-500">Standar honor per jam tatap muka</small>
+                                    @if(isset($masterHonorJam) && $masterHonorJam > 0)
+                                        <button type="button" class="badge bg-slate-100 text-slate-700 border border-slate-200 p-1 text-decoration-none" style="cursor: pointer;" onclick="document.getElementById('input_honor_per_jam').value = {{ (int)$masterHonorJam }}; calculateTotals();" title="Terapkan nilai Master Komponen">
+                                            <i class="bi bi-database me-1 text-primary"></i>Master: Rp {{ number_format($masterHonorJam, 0, ',', '.') }}
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
 
                             <div class="col-md-6">
@@ -170,25 +188,35 @@
                                 <label class="form-label text-slate-700 fw-medium small">Transport per Hari (Rp) <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
-                                    <input type="number" name="transport_per_hari" id="input_transport_per_hari" class="form-control calc-trigger" value="{{ old('transport_per_hari', (int)($setting->transport_per_hari ?? 20000)) }}" required min="0">
+                                    <input type="number" name="transport_per_hari" id="input_transport_per_hari" class="form-control calc-trigger" value="{{ old('transport_per_hari', (int)($setting->transport_per_hari ?? $masterTransport ?? 20000)) }}" required min="0">
                                 </div>
-                                <small class="text-slate-500">Standar uang transport per hari hadir mengajar</small>
+                                <div class="d-flex align-items-center justify-content-between mt-1">
+                                    <small class="text-slate-500">Standar uang transport per hari hadir mengajar</small>
+                                    @if(isset($masterTransport) && $masterTransport > 0)
+                                        <button type="button" class="badge bg-slate-100 text-slate-700 border border-slate-200 p-1 text-decoration-none" style="cursor: pointer;" onclick="document.getElementById('input_transport_per_hari').value = {{ (int)$masterTransport }}; calculateTotals();" title="Terapkan nilai Master Komponen">
+                                            <i class="bi bi-database me-1 text-success"></i>Master: Rp {{ number_format($masterTransport, 0, ',', '.') }}
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label text-slate-700 fw-medium small">Jumlah Hari Mengajar <span class="text-danger">*</span></label>
+                                <label class="form-label text-slate-700 fw-medium small">Target / Default Hari Hadir Transport</label>
                                 <div class="input-group">
-                                    <input type="number" name="hari_transport_default" id="input_hari_transport" class="form-control calc-trigger" value="{{ old('hari_transport_default', $setting->hari_transport_default ?: ($user->total_hari_mengajar ?: 16)) }}" required min="0" max="31">
+                                    <input type="number" name="hari_transport_default" id="input_hari_transport" class="form-control calc-trigger" value="{{ old('hari_transport_default', (int)$setting->hari_transport_default) }}" min="0" max="31">
                                     <span class="input-group-text bg-light text-slate-600">Hari</span>
                                 </div>
-                                <div class="d-flex align-items-center gap-1 mt-1">
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.72rem;">
-                                        <i class="bi bi-link-45deg me-1"></i>Database: {{ $user->total_hari_mengajar }} Hari
+                                <div class="d-flex align-items-center justify-content-between mt-1">
+                                    <span class="badge {{ ($hadirBulanIni ?? 0) > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-slate-100 text-slate-600 border border-slate-200' }}" style="font-size: 0.72rem;">
+                                        <i class="bi bi-calendar-check me-1"></i>Aktual Hadir Bulan Ini: {{ $hadirBulanIni ?? 0 }} Hari
                                     </span>
-                                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" style="font-size: 0.72rem;" onclick="document.getElementById('input_hari_transport').value = {{ $user->total_hari_mengajar }}; calculateTotals();">
-                                        Reset ke DB
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" style="font-size: 0.72rem;" onclick="document.getElementById('input_hari_transport').value = {{ $hadirBulanIni ?? 0 }}; calculateTotals();">
+                                        Gunakan Aktual
                                     </button>
                                 </div>
+                                <small class="text-slate-400 d-block mt-1" style="font-size: 0.70rem;">
+                                    *Pada slip gaji bulanan, uang transport terisi otomatis secara dinamis sesuai kehadiran riil guru setiap harinya.
+                                </small>
                             </div>
 
                             <div class="col-md-12">
@@ -209,6 +237,13 @@
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
                                     <input type="number" name="gaji_pokok" id="input_gaji_pokok" class="form-control calc-trigger" value="{{ old('gaji_pokok', (int)$setting->gaji_pokok) }}" required min="0">
                                 </div>
+                                @if(isset($masterGajiPokok) && $masterGajiPokok > 0)
+                                    <div class="d-flex justify-content-end mt-1">
+                                        <button type="button" class="badge bg-slate-100 text-slate-700 border border-slate-200 p-1 text-decoration-none" style="cursor: pointer;" onclick="document.getElementById('input_gaji_pokok').value = {{ (int)$masterGajiPokok }}; calculateTotals();" title="Terapkan nilai Master Komponen">
+                                            <i class="bi bi-database me-1 text-primary"></i>Master: Rp {{ number_format($masterGajiPokok, 0, ',', '.') }}
+                                        </button>
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="col-md-6">
@@ -217,6 +252,13 @@
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
                                     <input type="number" name="tunjangan_kehadiran" id="input_tunjangan_kehadiran" class="form-control calc-trigger" value="{{ old('tunjangan_kehadiran', (int)$setting->tunjangan_kehadiran) }}" min="0">
                                 </div>
+                                @if(isset($masterTunjanganKehadiran) && $masterTunjanganKehadiran > 0)
+                                    <div class="d-flex justify-content-end mt-1">
+                                        <button type="button" class="badge bg-slate-100 text-slate-700 border border-slate-200 p-1 text-decoration-none" style="cursor: pointer;" onclick="document.getElementById('input_tunjangan_kehadiran').value = {{ (int)$masterTunjanganKehadiran }}; calculateTotals();" title="Terapkan nilai Master Komponen">
+                                            <i class="bi bi-database me-1 text-success"></i>Master: Rp {{ number_format($masterTunjanganKehadiran, 0, ',', '.') }}
+                                        </button>
+                                    </div>
+                                @endif
                             </div>
 
                             <input type="hidden" name="honor_per_jam" id="input_honor_per_jam" value="0">
@@ -251,9 +293,13 @@
                             @if(count($daftarTugas) > 0)
                                 @foreach($daftarTugas as $tugas)
                                     @php
-                                        $currentNom = old('tugas_tambahan_nominal.' . $tugas, (int)$setting->getNominalTugas($tugas));
+                                        $tKey = trim(mb_strtolower($tugas));
+                                        $masterVal = $masterKomponenMap[$tKey] ?? 0;
+                                        $savedNom = $setting->getNominalTugas($tugas);
+                                        $initialNom = $savedNom > 0 ? (int)$savedNom : (int)$masterVal;
+                                        $currentNom = old('tugas_tambahan_nominal.' . $tugas, $initialNom);
                                     @endphp
-                                    <div class="duty-item-row">
+                                    <div class="duty-item-row" data-duty-name="{{ $tugas }}" data-master-val="{{ (int)$masterVal }}">
                                         <div class="row align-items-center g-2">
                                             <div class="col-md-6">
                                                 <div class="d-flex align-items-center">
@@ -276,7 +322,14 @@
                                                            placeholder="0 (isi 0 jika non-rutin)" 
                                                            min="0">
                                                 </div>
-                                                <small class="text-slate-400 d-block mt-1" style="font-size: 0.70rem;">Isi 0 jika bukan tunjangan bulanan rutin</small>
+                                                <div class="d-flex align-items-center justify-content-between mt-1">
+                                                    <small class="text-slate-400" style="font-size: 0.70rem;">Isi 0 jika non-rutin</small>
+                                                    @if($masterVal > 0)
+                                                        <button type="button" class="badge bg-slate-100 text-slate-700 border border-slate-200 p-1 text-decoration-none" style="cursor: pointer;" onclick="this.closest('.duty-item-row').querySelector('.input-tugas-nominal').value = {{ (int)$masterVal }}; calculateTotals();" title="Gunakan nilai Master Komponen">
+                                                            <i class="bi bi-database me-1 text-primary"></i>Master: Rp {{ number_format($masterVal, 0, ',', '.') }}
+                                                        </button>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -317,6 +370,13 @@
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
                                     <input type="number" name="potongan_bpjs" id="input_potongan_bpjs" class="form-control calc-trigger" value="{{ old('potongan_bpjs', (int)$setting->potongan_bpjs) }}" min="0">
                                 </div>
+                                @if(isset($masterBpjs) && $masterBpjs > 0)
+                                    <div class="d-flex justify-content-end mt-1">
+                                        <button type="button" class="badge bg-slate-100 text-slate-700 border border-slate-200 p-1 text-decoration-none" style="cursor: pointer;" onclick="document.getElementById('input_potongan_bpjs').value = {{ (int)$masterBpjs }}; calculateTotals();" title="Terapkan nilai Master Komponen">
+                                            <i class="bi bi-database me-1 text-danger"></i>Master: Rp {{ number_format($masterBpjs, 0, ',', '.') }}
+                                        </button>
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="col-md-4">
@@ -325,6 +385,13 @@
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
                                     <input type="number" name="potongan_koperasi" id="input_potongan_koperasi" class="form-control calc-trigger" value="{{ old('potongan_koperasi', (int)$setting->potongan_koperasi) }}" min="0">
                                 </div>
+                                @if(isset($masterKoperasi) && $masterKoperasi > 0)
+                                    <div class="d-flex justify-content-end mt-1">
+                                        <button type="button" class="badge bg-slate-100 text-slate-700 border border-slate-200 p-1 text-decoration-none" style="cursor: pointer;" onclick="document.getElementById('input_potongan_koperasi').value = {{ (int)$masterKoperasi }}; calculateTotals();" title="Terapkan nilai Master Komponen">
+                                            <i class="bi bi-database me-1 text-danger"></i>Master: Rp {{ number_format($masterKoperasi, 0, ',', '.') }}
+                                        </button>
+                                    </div>
+                                @endif
                             </div>
 
                             <div class="col-md-4">
@@ -333,6 +400,13 @@
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
                                     <input type="number" name="potongan_lain" id="input_potongan_lain" class="form-control calc-trigger" value="{{ old('potongan_lain', (int)$setting->potongan_lain) }}" min="0">
                                 </div>
+                                @if(isset($masterPotonganLain) && $masterPotonganLain > 0)
+                                    <div class="d-flex justify-content-end mt-1">
+                                        <button type="button" class="badge bg-slate-100 text-slate-700 border border-slate-200 p-1 text-decoration-none" style="cursor: pointer;" onclick="document.getElementById('input_potongan_lain').value = {{ (int)$masterPotonganLain }}; calculateTotals();" title="Terapkan nilai Master Komponen">
+                                            <i class="bi bi-database me-1 text-danger"></i>Master: Rp {{ number_format($masterPotonganLain, 0, ',', '.') }}
+                                        </button>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -382,6 +456,72 @@
 </div>
 
 <script>
+const masterDefaults = {
+    honorJam: {{ (float)($masterHonorJam ?? 0) }},
+    transport: {{ (float)($masterTransport ?? 0) }},
+    gajiPokok: {{ (float)($masterGajiPokok ?? 0) }},
+    tunjanganKehadiran: {{ (float)($masterTunjanganKehadiran ?? 0) }},
+    bpjs: {{ (float)($masterBpjs ?? 0) }},
+    koperasi: {{ (float)($masterKoperasi ?? 0) }},
+    potonganLain: {{ (float)($masterPotonganLain ?? 0) }}
+};
+
+function applyAllMasterDefaults() {
+    const isGuru = "{{ $user->role }}" === 'guru';
+
+    if (isGuru) {
+        const elHonor = document.getElementById('input_honor_per_jam');
+        if (elHonor && masterDefaults.honorJam > 0) elHonor.value = masterDefaults.honorJam;
+
+        const elTransport = document.getElementById('input_transport_per_hari');
+        if (elTransport && masterDefaults.transport > 0) elTransport.value = masterDefaults.transport;
+    } else {
+        const elGapok = document.getElementById('input_gaji_pokok');
+        if (elGapok && masterDefaults.gajiPokok > 0) elGapok.value = masterDefaults.gajiPokok;
+
+        const elTunjKehadiran = document.getElementById('input_tunjangan_kehadiran');
+        if (elTunjKehadiran && masterDefaults.tunjanganKehadiran > 0) elTunjKehadiran.value = masterDefaults.tunjanganKehadiran;
+    }
+
+    // Tugas tambahan terdaftar (apply master val from row data attribute)
+    document.querySelectorAll('.duty-item-row[data-master-val]').forEach(row => {
+        const masterVal = parseFloat(row.getAttribute('data-master-val')) || 0;
+        const input = row.querySelector('.input-tugas-nominal');
+        if (input && masterVal > 0) {
+            input.value = masterVal;
+        }
+    });
+
+    // Potongan
+    const elBpjs = document.getElementById('input_potongan_bpjs');
+    if (elBpjs && masterDefaults.bpjs > 0) elBpjs.value = masterDefaults.bpjs;
+
+    const elKoperasi = document.getElementById('input_potongan_koperasi');
+    if (elKoperasi && masterDefaults.koperasi > 0) elKoperasi.value = masterDefaults.koperasi;
+
+    const elPotLain = document.getElementById('input_potongan_lain');
+    if (elPotLain && masterDefaults.potonganLain > 0) elPotLain.value = masterDefaults.potonganLain;
+
+    calculateTotals();
+
+    // Feedback notification toast
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show align-items-center text-bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi bi-check-circle-fill me-2"></i> Nilai dari Master Komponen berhasil diterapkan ke form!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close" onclick="this.closest('.toast').remove()"></button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
+
 function formatRupiah(num) {
     return 'Rp ' + Math.max(0, Math.round(num)).toLocaleString('id-ID');
 }

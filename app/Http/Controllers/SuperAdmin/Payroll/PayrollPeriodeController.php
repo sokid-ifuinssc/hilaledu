@@ -328,51 +328,34 @@ class PayrollPeriodeController extends Controller
     }
 
     /**
-     * Hitung tanggal unik (Y-m-d) saat guru HADIR pada hari yang ada jadwal mengajarnya.
-     * Sumber hadir: absensi per jadwal (AbsensiGuru), laporan KBM, dan presensi harian guru.
-     * Presensi harian hanya dihitung jika hari tersebut memang ada jadwal mengajar guru.
+     * Hitung tanggal unik (Y-m-d) saat guru HADIR secara riil pada bulan dan tahun tertentu.
+     * Sumber hadir: presensi harian guru (mandiri/piket), absensi jadwal mengajar, dan laporan KBM.
      */
     private function hitungTanggalHadirMengajar(int $guruId, int $bulan, int $tahun): \Illuminate\Support\Collection
     {
-        $namaHari = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
-
-        $hariAdaJadwal = \App\Models\JadwalPelajaran::where('guru_user_id', $guruId)
-            ->where('tahun_ajaran', PengaturanSekolah::getActiveTahunAjaran())
-            ->where('semester', PengaturanSekolah::getActiveSemester())
-            ->pluck('hari')
-            ->map(fn ($h) => strtolower(trim($h)))
-            ->unique()
-            ->all();
-
-        $adaJadwal = fn (string $tanggal) => in_array(
-            strtolower($namaHari[\Carbon\Carbon::parse($tanggal)->dayOfWeekIso]),
-            $hariAdaJadwal,
-            true
-        );
         $fmt = fn ($d) => \Carbon\Carbon::parse($d)->format('Y-m-d');
 
-        // Absensi per jadwal mengajar (otomatis sudah terkait jadwal)
-        $absensi = \App\Models\AbsensiGuru::where('guru_user_id', $guruId)
-            ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)
-            ->whereIn('status', ['hadir', 'terlambat'])
-            ->pluck('tanggal')->map($fmt);
-
-        // Laporan KBM = guru benar-benar mengajar
-        $kbm = \App\Models\LaporanKbm::where('guru_user_id', $guruId)
-            ->whereMonth('tanggal_realisasi', $bulan)->whereYear('tanggal_realisasi', $tahun)
-            ->pluck('tanggal_realisasi')->map($fmt);
-
-        // Presensi harian: hanya jika di hari itu ada jadwal mengajar
+        // 1. Presensi harian guru (mandiri atau dibantu piket)
         $presensi = \App\Models\PresensiHarianGuru::where('guru_user_id', $guruId)
             ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)
             ->where(function ($q) {
                 $q->whereIn('status_masuk', ['hadir', 'terlambat', 'hadir_sesuai_jam', 'Hadir', 'Terlambat'])
                   ->orWhereNotNull('jam_masuk');
             })
-            ->pluck('tanggal')->map($fmt)
-            ->filter($adaJadwal);
+            ->pluck('tanggal')->map($fmt);
 
-        return $absensi->concat($kbm)->concat($presensi)->filter()->unique()->sort()->values();
+        // 2. Absensi per jadwal mengajar (otomatis terkait kelas)
+        $absensi = \App\Models\AbsensiGuru::where('guru_user_id', $guruId)
+            ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)
+            ->whereIn('status', ['hadir', 'terlambat'])
+            ->pluck('tanggal')->map($fmt);
+
+        // 3. Laporan KBM = guru benar-benar mengajar di kelas
+        $kbm = \App\Models\LaporanKbm::where('guru_user_id', $guruId)
+            ->whereMonth('tanggal_realisasi', $bulan)->whereYear('tanggal_realisasi', $tahun)
+            ->pluck('tanggal_realisasi')->map($fmt);
+
+        return $presensi->concat($absensi)->concat($kbm)->filter()->unique()->sort()->values();
     }
 
     /**

@@ -121,7 +121,7 @@
                 Guru Mata Pelajaran,<br>
                 <div class="signature-space"></div>
                 <strong><u>{{ $laporanKbm->guru?->name ?? 'Guru Pengampu' }}</u></strong><br>
-                NIP. {{ $laporanKbm->guru->nip ?? '-' }}
+                NUPTK. {{ $laporanKbm->guru->nip ?? '-' }}
             </td>
         </tr>
     </table>

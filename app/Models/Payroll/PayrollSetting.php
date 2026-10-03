@@ -75,9 +75,9 @@ class PayrollSetting extends Model
         if ($isGuru) {
             // Untuk guru, gaji pokok ditiadakan (0), diambil dari jam mengajar x honor per jam
             $honorJam = (float) $this->honor_per_jam * (int) $this->jam_mengajar_default;
-            // Estimasi transport: hari mengajar x tarif transport per hari
+            // Estimasi transport: hari hadir mengajar aktual dinamis x tarif transport per hari
             $transportPerHari = (float) ($this->transport_per_hari ?? 20000);
-            $hariTransport = (int) ($this->hari_transport_default ?: ($this->user?->total_hari_mengajar ?: 16));
+            $hariTransport = (int) ($this->hari_transport_default > 0 ? $this->hari_transport_default : ($this->user?->hari_hadir_bulan_ini ?? 0));
             $transport = $transportPerHari * $hariTransport;
 
             return $honorJam + (float) $this->tunjangan_jabatan + $transport + (float) $this->tunjangan_lain;
@@ -112,44 +112,50 @@ class PayrollSetting extends Model
             return null;
         }
 
-        $tunjanganJabatan = 0;
-        $tugas = $user->daftar_jabatan;
-
-        if (!empty($tugas)) {
-            $tunjanganJabatan = \App\Models\TugasTambahan::whereIn('nama', $tugas)
-                ->where('is_aktif', true)
-                ->sum('nominal_gaji');
+        $masterKomponen = \App\Models\Payroll\PayrollKomponen::where('is_aktif', true)->get();
+        $masterMap = [];
+        foreach ($masterKomponen as $mk) {
+            $masterMap[trim(mb_strtolower($mk->nama))] = (float) $mk->nominal_default;
         }
+
+        $masterHonorJam = (float) ($masterKomponen->first(fn($k) => $k->tipe === 'per_jam' || $k->kode === 'HJM01' || str_contains(strtolower($k->nama), 'jam mengajar'))?->nominal_default ?? 35000);
+        $masterTransport = (float) ($masterKomponen->first(fn($k) => $k->tipe === 'per_kehadiran' || $k->kode === 'TK01' || str_contains(strtolower($k->nama), 'transport'))?->nominal_default ?? 20000);
+        $masterGajiPokok = (float) ($masterKomponen->first(fn($k) => $k->kode === 'GP01' || str_contains(strtolower($k->nama), 'gaji pokok'))?->nominal_default ?? 1800000);
+        $masterKehadiran = (float) ($masterKomponen->first(fn($k) => $k->kode === 'TK01' || str_contains(strtolower($k->nama), 'kehadiran'))?->nominal_default ?? 250000);
+        $masterBpjs      = (float) ($masterKomponen->first(fn($k) => $k->kode === 'PBP01' || str_contains(strtolower($k->nama), 'bpjs'))?->nominal_default ?? 45000);
+        $masterKoperasi  = (float) ($masterKomponen->first(fn($k) => $k->kode === 'PKOP01' || str_contains(strtolower($k->nama), 'koperasi'))?->nominal_default ?? 50000);
+        $masterInfaq     = (float) ($masterKomponen->first(fn($k) => $k->kode === 'PINF01' || str_contains(strtolower($k->nama), 'infaq') || str_contains(strtolower($k->nama), 'kas'))?->nominal_default ?? 25000);
+
+        $tugas = $user->daftar_jabatan;
 
         $setting = self::firstOrNew(['user_id' => $user->id]);
         if (!$setting->exists) {
             $isGuru = $user->role === 'guru';
-            $setting->gaji_pokok              = $isGuru ? 0 : 1800000;
-            $setting->honor_per_jam           = $isGuru ? 35000 : 0;
+            $setting->gaji_pokok              = $isGuru ? 0 : $masterGajiPokok;
+            $setting->honor_per_jam           = $isGuru ? $masterHonorJam : 0;
             $setting->jam_mengajar_default    = $isGuru ? ($user->total_jam_mengajar ?: 24) : 0;
-            $setting->tunjangan_kehadiran     = $isGuru ? 0 : 250000;
-            $setting->transport_per_hari      = 20000;
-            $setting->hari_transport_default  = $isGuru ? ($user->total_hari_mengajar ?: 16) : 0;
-            $setting->potongan_bpjs           = 45000;
-            $setting->potongan_koperasi       = 50000;
-            $setting->potongan_lain           = 25000;
+            $setting->tunjangan_kehadiran     = $isGuru ? 0 : $masterKehadiran;
+            $setting->transport_per_hari      = $masterTransport;
+            $setting->hari_transport_default  = 0; // Terhitung dinamis dari presensi riil harian guru
+            $setting->potongan_bpjs           = $masterBpjs;
+            $setting->potongan_koperasi       = $masterKoperasi;
+            $setting->potongan_lain           = $masterInfaq;
             $setting->atas_nama_rekening      = $user->name;
         }
 
-        // Jika belum ada detail_tunjangan_tugas, buat mapping awal
-        if (empty($setting->detail_tunjangan_tugas) && !empty($tugas)) {
-            $detail = [];
+        // Isi dan sinkronkan detail_tunjangan_tugas berdasarkan master komponen
+        $detail = is_array($setting->detail_tunjangan_tugas) ? $setting->detail_tunjangan_tugas : [];
+        if (!empty($tugas)) {
             foreach ($tugas as $t) {
-                if ($t === 'Guru' || $t === 'Tendik') continue;
-                $komp = \App\Models\TugasTambahan::where('nama', $t)->where('is_aktif', true)->first();
-                $detail[$t] = $komp ? (float)$komp->nominal_gaji : 0;
+                if (in_array($t, ['Guru', 'Tendik', 'Guru Pengajar', 'Siswa'])) continue;
+                $key = trim(mb_strtolower($t));
+                $nominal = $masterMap[$key] ?? (float)(\App\Models\TugasTambahan::where('nama', $t)->where('is_aktif', true)->value('nominal_gaji') ?? 0);
+                if (!isset($detail[$t]) || (float)$detail[$t] <= 0) {
+                    $detail[$t] = $nominal;
+                }
             }
             $setting->detail_tunjangan_tugas = $detail;
             $setting->tunjangan_jabatan = array_sum($detail);
-        } else {
-            $setting->tunjangan_jabatan = is_array($setting->detail_tunjangan_tugas) 
-                ? array_sum($setting->detail_tunjangan_tugas) 
-                : $tunjanganJabatan;
         }
         $setting->save();
 

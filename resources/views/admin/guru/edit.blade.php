@@ -88,7 +88,7 @@ select.form-input option { background: #1a2e24; }
         <div class="form-section-title">Data Kepegawaian</div>
         <div class="row g-3">
             <div class="col-md-6">
-                <label class="field-label">NUPTK / NIP</label>
+                <label class="field-label">NUPTK</label>
                 <input type="text" name="nip" class="form-input {{ $errors->has('nip') ? 'is-invalid' : '' }}" value="{{ old('nip', $guru->nip ?? $guru->nuptk) }}" placeholder="Contoh: 1234567890123456 (NUPTK)">
                 @error('nip')<div class="field-error">{{ $message }}</div>@enderror
             </div>

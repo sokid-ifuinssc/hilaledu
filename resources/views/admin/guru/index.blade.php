@@ -92,7 +92,7 @@
                                 </div>
                                 <div>
                                     <div class="font-semibold text-gray-900">{{ $guru->nama_lengkap ?: $guru->name }}</div>
-                                    <div class="text-xs text-gray-500 font-mono">NUPTK/NIP: {{ $guru->nip ?: '-' }}</div>
+                                    <div class="text-xs text-gray-500 font-mono">NUPTK: {{ $guru->nip ?: '-' }}</div>
                                 </div>
                             </div>
                         </td>

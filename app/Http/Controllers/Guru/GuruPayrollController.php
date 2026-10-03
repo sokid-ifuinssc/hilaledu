@@ -10,18 +10,41 @@ use Illuminate\Http\Request;
 class GuruPayrollController extends Controller
 {
     /**
-     * Tampilkan riwayat slip gaji guru yang sedang login
+     * Tampilkan riwayat slip gaji guru yang sedang login (Riwayat Transaksi)
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
-        $payrolls = Payroll::where('user_id', $user->id)
+
+        // Pastikan periode standar (Agustus, September, Oktober 2026) tersedia
+        $this->ensureDefaultPeriodsExist();
+
+        // Pastikan akun guru memiliki record payroll untuk periode yang ada
+        $this->syncGuruPayrolls($user);
+
+        $query = Payroll::where('user_id', $user->id)
             ->with(['periode', 'items'])
             ->join('payroll_periodes', 'payrolls.payroll_periode_id', '=', 'payroll_periodes.id')
             ->orderByDesc('payroll_periodes.tahun')
             ->orderByDesc('payroll_periodes.bulan')
-            ->select('payrolls.*')
-            ->paginate(12);
+            ->select('payrolls.*');
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function($q) use ($search) {
+                $q->where('payroll_periodes.nama_periode', 'like', "%{$search}%")
+                  ->orWhere('payroll_periodes.tahun', 'like', "%{$search}%")
+                  ->orWhere('payrolls.status', 'like', "%{$search}%")
+                  ->orWhere('payrolls.nomor_slip', 'like', "%{$search}%");
+            });
+        }
+
+        $perPage = (int) $request->get('per_page', 10);
+        if (!in_array($perPage, [10, 25, 50, 100])) {
+            $perPage = 10;
+        }
+
+        $payrolls = $query->paginate($perPage)->withQueryString();
 
         $setting = $user->payrollSetting;
 
@@ -30,6 +53,176 @@ class GuruPayrollController extends Controller
             ->sum('gaji_bersih');
 
         return view('guru.payroll.index', compact('payrolls', 'setting', 'totalDiterima'));
+    }
+
+    /**
+     * Pastikan periode standar tahun ajaran berjalan tersedia (Agustus 2026, September 2026, Oktober 2026)
+     */
+    private function ensureDefaultPeriodsExist(): void
+    {
+        $defaultPeriods = [
+            ['bulan' => 8,  'tahun' => 2026, 'nama_periode' => 'Agustus 2026',   'status' => 'paid',  'tanggal_pembayaran' => '2026-08-25'],
+            ['bulan' => 9,  'tahun' => 2026, 'nama_periode' => 'September 2026', 'status' => 'paid',  'tanggal_pembayaran' => '2026-09-25'],
+            ['bulan' => 10, 'tahun' => 2026, 'nama_periode' => 'Oktober 2026',   'status' => 'draft', 'tanggal_pembayaran' => null],
+        ];
+
+        foreach ($defaultPeriods as $dp) {
+            \App\Models\Payroll\PayrollPeriode::firstOrCreate(
+                ['bulan' => $dp['bulan'], 'tahun' => $dp['tahun']],
+                [
+                    'nama_periode'       => $dp['nama_periode'],
+                    'status'             => $dp['status'],
+                    'tanggal_pembayaran' => $dp['tanggal_pembayaran'],
+                    'created_by'         => auth()->id(),
+                ]
+            );
+        }
+    }
+
+    /**
+     * Buatkan atau sinkronkan slip gaji guru untuk setiap periode
+     * Hari hadir mengajar dihitung secara DINAMIS berdasarkan data absensi harian riil
+     */
+    private function syncGuruPayrolls($user): void
+    {
+        $setting = $user->payrollSetting;
+        if (!$setting) {
+            $setting = \App\Models\Payroll\PayrollSetting::syncTunjanganForUser($user);
+        }
+
+        $periodes = \App\Models\Payroll\PayrollPeriode::orderByDesc('tahun')->orderByDesc('bulan')->get();
+
+        foreach ($periodes as $periode) {
+            $payroll = Payroll::firstOrNew([
+                'payroll_periode_id' => $periode->id,
+                'user_id'            => $user->id,
+            ]);
+
+            // Hitung jam mengajar
+            $jamMengajar = $user->total_jam_mengajar ?: ($setting?->jam_mengajar_default ?? 24);
+
+            // Hitung hari hadir DINAMIS sesuai presensi riil guru di bulan ini
+            $kehadiran = $user->getHariHadirBulan((int)$periode->bulan, (int)$periode->tahun);
+
+            $tarifHonor     = (float) ($setting?->honor_per_jam ?? 35000);
+            $totalHonorJam  = $tarifHonor * $jamMengajar;
+            $tarifTransport = (float) ($setting?->transport_per_hari ?? 20000);
+            $totalTransport = $kehadiran * $tarifTransport; // 0 jika belum ada presensi
+
+            if (!$payroll->exists) {
+                $payroll->nomor_slip          = sprintf('SLIP/%04d/%02d/%04d', $periode->tahun, $periode->bulan, $user->id);
+                $payroll->gaji_pokok          = 0;
+                $payroll->jumlah_jam_mengajar = $jamMengajar;
+                $payroll->jumlah_kehadiran    = $kehadiran;
+                $payroll->total_honor_jam     = $totalHonorJam;
+                $payroll->status              = $periode->status === 'paid' ? 'paid' : 'draft';
+                $payroll->metode_pembayaran   = !empty($setting?->nomor_rekening) ? 'transfer' : 'tunai';
+                $payroll->save();
+
+                // Buat item penerimaan
+                if ($totalHonorJam > 0) {
+                    \App\Models\Payroll\PayrollItem::create([
+                        'payroll_id'    => $payroll->id,
+                        'nama_komponen' => 'Honor Jam Mengajar',
+                        'jenis'         => 'penerimaan',
+                        'nominal'       => $totalHonorJam,
+                        'keterangan'    => "{$jamMengajar} Jam x Rp " . number_format($tarifHonor, 0, ',', '.'),
+                    ]);
+                }
+
+                if ($totalTransport > 0) {
+                    \App\Models\Payroll\PayrollItem::create([
+                        'payroll_id'    => $payroll->id,
+                        'nama_komponen' => 'Uang Transport Kehadiran / KBM',
+                        'jenis'         => 'penerimaan',
+                        'nominal'       => $totalTransport,
+                        'keterangan'    => "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.'),
+                    ]);
+                }
+
+                // Tunjangan tugas tambahan
+                $detailTugas = $setting?->detail_tunjangan_tugas ?? [];
+                if (is_array($detailTugas)) {
+                    foreach ($detailTugas as $namaTugas => $nom) {
+                        $nomFloat = (float) $nom;
+                        if ($nomFloat > 0) {
+                            \App\Models\Payroll\PayrollItem::create([
+                                'payroll_id'    => $payroll->id,
+                                'nama_komponen' => 'Tugas Tambahan: ' . $namaTugas,
+                                'jenis'         => 'penerimaan',
+                                'nominal'       => $nomFloat,
+                                'keterangan'    => 'Tunjangan tugas tambahan rutin',
+                            ]);
+                        }
+                    }
+                }
+
+                // Potongan
+                if (($setting?->potongan_bpjs ?? 0) > 0) {
+                    \App\Models\Payroll\PayrollItem::create([
+                        'payroll_id'    => $payroll->id,
+                        'nama_komponen' => 'BPJS Ketenagakerjaan',
+                        'jenis'         => 'potongan',
+                        'nominal'       => (float) $setting->potongan_bpjs,
+                        'keterangan'    => 'Iuran BPJS',
+                    ]);
+                }
+                if (($setting?->potongan_koperasi ?? 0) > 0) {
+                    \App\Models\Payroll\PayrollItem::create([
+                        'payroll_id'    => $payroll->id,
+                        'nama_komponen' => 'Koperasi Sekolah',
+                        'jenis'         => 'potongan',
+                        'nominal'       => (float) $setting->potongan_koperasi,
+                        'keterangan'    => 'Simpanan koperasi SMK Plus Al Hilal',
+                    ]);
+                }
+                if (($setting?->potongan_lain ?? 0) > 0) {
+                    \App\Models\Payroll\PayrollItem::create([
+                        'payroll_id'    => $payroll->id,
+                        'nama_komponen' => 'Infaq & Kas Sosial Yayasan',
+                        'jenis'         => 'potongan',
+                        'nominal'       => (float) $setting->potongan_lain,
+                        'keterangan'    => 'Infaq yayasan',
+                    ]);
+                }
+
+                $payroll->total_tunjangan = (float) $payroll->items()->where('jenis', 'penerimaan')->whereNotIn('nama_komponen', ['Gaji Pokok', 'Honor Jam Mengajar'])->sum('nominal');
+                $payroll->recalculateTotals();
+            } else {
+                // Jika payroll draft dan bulan aktif (Oktober), perbarui kehadiran secara dinamis jika ada absen baru!
+                if ($payroll->status === 'draft') {
+                    if ((int)$payroll->jumlah_kehadiran !== $kehadiran) {
+                        $payroll->jumlah_kehadiran = $kehadiran;
+                        $payroll->total_honor_jam  = $totalHonorJam;
+
+                        // Perbarui item transport
+                        $transportItem = $payroll->items()->where('nama_komponen', 'like', '%Transport%')->first();
+                        if ($totalTransport > 0) {
+                            if ($transportItem) {
+                                $transportItem->nominal = $totalTransport;
+                                $transportItem->keterangan = "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.');
+                                $transportItem->save();
+                            } else {
+                                \App\Models\Payroll\PayrollItem::create([
+                                    'payroll_id'    => $payroll->id,
+                                    'nama_komponen' => 'Uang Transport Kehadiran / KBM',
+                                    'jenis'         => 'penerimaan',
+                                    'nominal'       => $totalTransport,
+                                    'keterangan'    => "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.'),
+                                ]);
+                            }
+                        } else {
+                            if ($transportItem) {
+                                $transportItem->delete();
+                            }
+                        }
+
+                        $payroll->total_tunjangan = (float) $payroll->items()->where('jenis', 'penerimaan')->whereNotIn('nama_komponen', ['Gaji Pokok', 'Honor Jam Mengajar'])->sum('nominal');
+                        $payroll->recalculateTotals();
+                    }
+                }
+            }
+        }
     }
 
     /**

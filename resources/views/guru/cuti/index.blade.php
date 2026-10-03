@@ -49,7 +49,7 @@
                     <tr class="hover:bg-slate-50/70 transition">
                         <td class="px-6 py-4 font-bold text-slate-900">
                             {{ $c->guru?->name ?? 'Guru' }}
-                            <div class="text-[11px] text-slate-400 font-normal">NIP: {{ $c->guru->nip ?? '-' }}</div>
+                            <div class="text-[11px] text-slate-400 font-normal">NUPTK: {{ $c->guru->nip ?? '-' }}</div>
                         </td>
                         <td class="px-4 py-4">
                             <span class="px-2.5 py-1 bg-slate-100 text-slate-800 font-bold rounded-lg text-xs">

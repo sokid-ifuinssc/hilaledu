@@ -441,6 +441,45 @@ class User extends Authenticatable
     }
 
     /**
+     * Hitung total hari hadir aktual dinamis guru pada bulan dan tahun tertentu
+     * Dihitung dari tanggal unik presensi harian guru, absensi mengajar, dan laporan KBM
+     */
+    public function getHariHadirBulan(int $bulan, int $tahun): int
+    {
+        $fmt = fn ($d) => \Carbon\Carbon::parse($d)->format('Y-m-d');
+
+        // 1. Presensi harian guru (mandiri / piket)
+        $presensi = \App\Models\PresensiHarianGuru::where('guru_user_id', $this->id)
+            ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)
+            ->where(function ($q) {
+                $q->whereIn('status_masuk', ['hadir', 'terlambat', 'hadir_sesuai_jam', 'Hadir', 'Terlambat'])
+                  ->orWhereNotNull('jam_masuk');
+            })
+            ->pluck('tanggal')->map($fmt);
+
+        // 2. Absensi mengajar per jadwal
+        $absensi = \App\Models\AbsensiGuru::where('guru_user_id', $this->id)
+            ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)
+            ->whereIn('status', ['hadir', 'terlambat'])
+            ->pluck('tanggal')->map($fmt);
+
+        // 3. Realisasi Laporan KBM
+        $kbm = \App\Models\LaporanKbm::where('guru_user_id', $this->id)
+            ->whereMonth('tanggal_realisasi', $bulan)->whereYear('tanggal_realisasi', $tahun)
+            ->pluck('tanggal_realisasi')->map($fmt);
+
+        return $presensi->concat($absensi)->concat($kbm)->filter()->unique()->count();
+    }
+
+    /**
+     * Total hari hadir aktual dinamis bulan berjalan (misal: Oktober 2026)
+     */
+    public function getHariHadirBulanIniAttribute(): int
+    {
+        return $this->getHariHadirBulan((int) date('n'), (int) date('Y'));
+    }
+
+    /**
      * Ambil daftar Mata Pelajaran yang diampu guru ini berdasarkan:
      * 1. Jadwal Pelajaran aktif (jadwal_pelajarans)
      * 2. Penugasan Kurikulum aktif (kurikulums)

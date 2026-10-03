@@ -27,6 +27,31 @@ class PayrollKomponenController extends Controller
             );
         }
 
+        // Pastikan komponen inti dasar (Honor Jam Mengajar & Transport) tersedia
+        PayrollKomponen::firstOrCreate(
+            ['kode' => 'HJM01'],
+            [
+                'nama'            => 'Honor Jam Mengajar',
+                'jenis'           => 'penerimaan',
+                'tipe'            => 'per_jam',
+                'nominal_default' => 35000,
+                'is_aktif'        => true,
+                'keterangan'      => 'Honor per jam tatap muka pelajaran guru',
+            ]
+        );
+
+        PayrollKomponen::firstOrCreate(
+            ['kode' => 'TK01'],
+            [
+                'nama'            => 'Tunjangan Kehadiran & Transport',
+                'jenis'           => 'penerimaan',
+                'tipe'            => 'per_kehadiran',
+                'nominal_default' => 20000,
+                'is_aktif'        => true,
+                'keterangan'      => 'Uang transportasi dan kehadiran mengajar harian',
+            ]
+        );
+
         $queryPenerimaan = PayrollKomponen::where('jenis', 'penerimaan');
         $queryPotongan   = PayrollKomponen::where('jenis', 'potongan');
 
@@ -46,8 +71,19 @@ class PayrollKomponenController extends Controller
             });
         }
 
-        $penerimaan = $queryPenerimaan->orderBy('kode')->get();
-        $potongan   = $queryPotongan->orderBy('kode')->get();
+        // Komponen Jam Mengajar & Transport dijadikan paling atas pada daftar komponen
+        $penerimaan = $queryPenerimaan
+            ->orderByRaw("
+                CASE 
+                    WHEN tipe = 'per_jam' OR kode = 'HJM01' OR nama LIKE '%Jam Mengajar%' OR nama LIKE '%Honor Jam%' THEN 1
+                    WHEN tipe = 'per_kehadiran' OR kode = 'TK01' OR nama LIKE '%Transport%' THEN 2
+                    WHEN kode = 'GP01' OR nama LIKE '%Gaji Pokok%' THEN 3
+                    ELSE 4
+                END ASC, kode ASC
+            ")
+            ->get();
+
+        $potongan = $queryPotongan->orderBy('kode')->get();
 
         return view('superadmin.payroll.komponen.index', compact('penerimaan', 'potongan'));
     }
@@ -86,6 +122,10 @@ class PayrollKomponenController extends Controller
         $validated['is_aktif'] = $request->boolean('is_aktif', true);
 
         $komponen->update($validated);
+
+        // Jika nama komponen cocok dengan master_tugas_tambahan, update nominal_gaji
+        \App\Models\TugasTambahan::where('nama', $komponen->nama)
+            ->update(['nominal_gaji' => $komponen->nominal_default]);
 
         return redirect()->route('superadmin.payroll.komponen.index')
             ->with('success', 'Komponen gaji berhasil diperbarui.');

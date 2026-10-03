@@ -229,6 +229,9 @@ class PayrollSystemTest extends TestCase
         // 1. Guru akses halaman riwayat slip
         $response = $this->actingAs($this->guru)->get(route('guru.payroll.index'));
         $response->assertStatus(200);
+        $response->assertSee('Riwayat Transaksi');
+        $response->assertSee('Lihat');
+        $response->assertSee('Cetak');
         $response->assertSee('SLIP/2026/12/9991');
         $response->assertSee('1.900.000');
 
@@ -271,5 +274,25 @@ class PayrollSystemTest extends TestCase
         // 3. Tendik -> /tendik/payroll
         $resTendik = $this->actingAs($this->tendik)->get(route('sso.launch', $this->hilalpay));
         $resTendik->assertRedirect(route('tendik.payroll.index'));
+    }
+
+    public function test_dynamic_attendance_reflects_actual_daily_presence()
+    {
+        // 1. Guru sebelum absen di Oktober 2026 -> 0 hari
+        $this->assertEquals(0, $this->guru->getHariHadirBulan(10, 2026));
+
+        // 2. Guru melakukan presensi masuk di tanggal 2026-10-02
+        \App\Models\PresensiHarianGuru::create([
+            'guru_user_id' => $this->guru->id,
+            'tanggal'      => '2026-10-02',
+            'jam_masuk'    => '06:55:00',
+            'status_masuk' => 'hadir',
+        ]);
+
+        // Setelah absen 1 hari -> tepat 1 hari
+        $this->assertEquals(1, $this->guru->getHariHadirBulan(10, 2026));
+
+        // Guru lain belum absen di Oktober 2026 -> tetap 0 hari
+        $this->assertEquals(0, $this->tendik->getHariHadirBulan(10, 2026));
     }
 }

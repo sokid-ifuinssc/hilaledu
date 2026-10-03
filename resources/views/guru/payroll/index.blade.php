@@ -117,61 +117,102 @@
         </div>
     </div>
 
-    {{-- Riwayat Slip Gaji --}}
+    {{-- Riwayat Transaksi Gaji (Sesuai Mockup) --}}
     <div class="section-card">
-        <div class="p-3 px-4 border-bottom border-slate-200 bg-white d-flex align-items-center justify-content-between">
-            <h6 class="text-slate-900 fw-bold mb-0">
-                <i class="bi bi-file-earmark-text text-success me-2"></i>Riwayat Slip Gaji Bulanan
-            </h6>
+        <div class="p-3 px-4 border-bottom border-slate-200 bg-white">
+            <h5 class="text-slate-900 fw-bold mb-0">Riwayat Transaksi</h5>
         </div>
+
+        {{-- Toolbar Controls: Tampilkan Data & Cari --}}
+        <div class="p-3 bg-white border-bottom border-slate-100">
+            <form method="GET" action="{{ route('guru.payroll.index') }}" id="formFilterPayroll">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-slate-600">Tampilkan</span>
+                        <select name="per_page" class="form-select form-select-sm" style="width: auto; border-radius: 8px;" onchange="this.form.submit()">
+                            <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                            <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                            <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
+                        </select>
+                        <span class="small text-slate-600">data</span>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="inputCari" class="small text-slate-600 mb-0">Cari:</label>
+                        <input type="text" 
+                               name="search" 
+                               id="inputCari" 
+                               class="form-control form-control-sm" 
+                               value="{{ request('search') }}" 
+                               placeholder="Cari bulan, tahun..." 
+                               style="width: 220px; border-radius: 8px;">
+                        @if(request('search'))
+                            <a href="{{ route('guru.payroll.index') }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px;">Reset</a>
+                        @endif
+                    </div>
+                </div>
+            </form>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-custom mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th>Nomor Slip</th>
-                        <th>Periode</th>
-                        <th>Gaji Pokok</th>
-                        <th>Honor & Tunjangan</th>
-                        <th>Potongan</th>
-                        <th>Gaji Bersih (THP)</th>
-                        <th>Status</th>
-                        <th>Metode</th>
-                        <th class="text-end">Aksi</th>
+                        <th style="color: #2563eb; width: 22%;">
+                            Bulan <i class="bi bi-arrow-down-up small ms-1"></i>
+                        </th>
+                        <th style="color: #2563eb; width: 18%;">
+                            Tahun <i class="bi bi-arrow-down-up small ms-1"></i>
+                        </th>
+                        <th style="color: #2563eb; width: 25%;">
+                            Status <i class="bi bi-arrow-down-up small ms-1"></i>
+                        </th>
+                        <th style="color: #2563eb; width: 15%;">
+                            Validasi <i class="bi bi-arrow-down-up small ms-1"></i>
+                        </th>
+                        <th class="text-end" style="width: 20%;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($payrolls as $p)
                         <tr>
-                            <td><span class="badge bg-slate-100 text-slate-800 border border-slate-300 font-monospace">{{ $p->nomor_slip }}</span></td>
-                            <td><div class="fw-bold text-slate-900">{{ $p->periode->nama_periode }}</div></td>
-                            <td class="fw-semibold text-slate-800">Rp {{ number_format($p->gaji_pokok, 0, ',', '.') }}</td>
-                            <td class="text-emerald-700 fw-medium">+ Rp {{ number_format($p->total_tunjangan + $p->total_honor_jam, 0, ',', '.') }}</td>
-                            <td class="text-rose-600 fw-medium">- Rp {{ number_format($p->total_potongan, 0, ',', '.') }}</td>
-                            <td>
-                                <span class="fw-bold text-emerald-800 fs-6">Rp {{ number_format($p->gaji_bersih, 0, ',', '.') }}</span>
+                            <td class="fw-semibold text-slate-900">
+                                {{ \App\Models\Payroll\PayrollPeriode::getNamaBulan($p->periode->bulan) }}
+                            </td>
+                            <td class="text-slate-700">
+                                {{ $p->periode->tahun }}
                             </td>
                             <td>
-                                <span class="badge-status badge-{{ $p->status }}">
-                                    @if($p->status === 'paid')
-                                        <i class="bi bi-check-circle-fill me-1"></i> Cair / Lunas
-                                    @elseif($p->status === 'approved')
-                                        <i class="bi bi-check2 me-1"></i> Disetujui
-                                    @else
-                                        <i class="bi bi-clock me-1"></i> Proses
-                                    @endif
-                                </span>
+                                <span class="text-slate-800">Tanpa Perubahan</span>
+                                @if($p->status === 'paid')
+                                    <span class="badge bg-emerald-100 text-emerald-800 border border-emerald-300 ms-1 px-2 py-0.5" style="font-size: 0.70rem;">
+                                        Lunas
+                                    </span>
+                                @elseif($p->status === 'approved')
+                                    <span class="badge bg-blue-100 text-blue-800 border border-blue-300 ms-1 px-2 py-0.5" style="font-size: 0.70rem;">
+                                        Disetujui
+                                    </span>
+                                @endif
                             </td>
-                            <td>
-                                <span class="badge bg-slate-100 text-slate-700 border border-slate-300">
-                                    {{ strtoupper($p->metode_pembayaran) }}
-                                </span>
+                            <td class="text-slate-500">
+                                {{ $p->status === 'paid' ? 'Terverifikasi' : '-' }}
                             </td>
-                            <td class="text-end">
-                                <button type="button" class="btn btn-sm btn-outline-info fw-medium me-1" style="border-radius: 8px;" data-bs-toggle="modal" data-bs-target="#modalRincian{{ $p->id }}">
-                                    <i class="bi bi-info-circle me-1"></i> Rincian
+                            <td class="text-end text-nowrap">
+                                <button type="button" 
+                                        class="btn btn-sm btn-primary px-3 fw-semibold shadow-sm" 
+                                        style="border-radius: 6px; background-color: #0d6efd; border-color: #0d6efd;" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#modalRincian{{ $p->id }}" 
+                                        title="Lihat Rincian Gaji">
+                                    Lihat
                                 </button>
-                                <a href="{{ route('guru.payroll.print', $p) }}" target="_blank" class="btn btn-sm btn-outline-success fw-medium" style="border-radius: 8px;">
-                                    <i class="bi bi-printer me-1"></i> Cetak Slip
+                                <a href="{{ route('guru.payroll.print', $p) }}" 
+                                   target="_blank" 
+                                   class="btn btn-sm btn-outline-success fw-semibold ms-1" 
+                                   style="border-radius: 6px;" 
+                                   title="Cetak Slip Gaji {{ \App\Models\Payroll\PayrollPeriode::getNamaBulan($p->periode->bulan) }} {{ $p->periode->tahun }}">
+                                    <i class="bi bi-printer me-1"></i> Cetak
                                 </a>
                             </td>
                         </tr>
@@ -179,61 +220,95 @@
                         <!-- Modal Rincian Gaji -->
                         <div class="modal fade" id="modalRincian{{ $p->id }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered modal-lg">
-                                <div class="modal-content border-0 rounded-4 shadow-sm">
-                                    <div class="modal-header border-bottom bg-slate-50 rounded-top-4">
-                                        <h5 class="modal-title fw-bold text-slate-800">
-                                            Rincian Bisyarah: {{ $p->periode->nama_periode }}
-                                        </h5>
+                                <div class="modal-content border-0 rounded-4 shadow">
+                                    <div class="modal-header border-bottom bg-slate-50 rounded-top-4 p-3 px-4">
+                                        <div>
+                                            <h5 class="modal-title fw-bold text-slate-900 mb-0">
+                                                Rincian Gaji & Bisyarah: {{ \App\Models\Payroll\PayrollPeriode::getNamaBulan($p->periode->bulan) }} {{ $p->periode->tahun }}
+                                            </h5>
+                                            <small class="text-slate-500 font-monospace">{{ $p->nomor_slip }} &bull; NUPTK: {{ auth()->user()->nip ?? '-' }}</small>
+                                        </div>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body p-4">
+                                        {{-- Ringkasan Kehadiran & Jam Mengajar --}}
+                                        <div class="row g-2 mb-4">
+                                            <div class="col-md-6">
+                                                <div class="p-3 bg-blue-50 rounded-3 border border-blue-200">
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <span class="small fw-semibold text-blue-900"><i class="bi bi-clock-history me-1"></i> Beban Mengajar:</span>
+                                                        <span class="badge bg-primary fs-6">{{ $p->jumlah_jam_mengajar }} Jam</span>
+                                                    </div>
+                                                    <small class="text-blue-700 d-block mt-1">Rp {{ number_format($p->user->payrollSetting?->honor_per_jam ?? 35000, 0, ',', '.') }}/jam tatap muka</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 bg-emerald-50 rounded-3 border border-emerald-200">
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <span class="small fw-semibold text-emerald-900"><i class="bi bi-calendar-check me-1"></i> Kehadiran Riil Mengajar:</span>
+                                                        <span class="badge bg-success fs-6">{{ $p->jumlah_kehadiran }} Hari</span>
+                                                    </div>
+                                                    <small class="text-emerald-700 d-block mt-1">Dihitung dinamis dari presensi harian & KBM per hari</small>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="row g-4">
                                             <!-- Penerimaan -->
                                             <div class="col-md-6">
-                                                <h6 class="fw-bold text-emerald-700 mb-3 border-bottom pb-2">
-                                                    <i class="bi bi-plus-circle me-1"></i> Penerimaan
+                                                <h6 class="fw-bold text-emerald-800 mb-3 border-bottom pb-2 d-flex align-items-center">
+                                                    <i class="bi bi-plus-circle text-success me-2"></i> Rincian Penerimaan
                                                 </h6>
+                                                
                                                 <div class="d-flex justify-content-between mb-2">
-                                                    <span class="text-slate-600">Gaji Pokok</span>
-                                                    <span class="fw-semibold">Rp {{ number_format($p->gaji_pokok, 0, ',', '.') }}</span>
+                                                    <span class="text-slate-600">Honor Jam Mengajar ({{ $p->jumlah_jam_mengajar }} jam)</span>
+                                                    <span class="fw-semibold text-slate-900">Rp {{ number_format($p->total_honor_jam, 0, ',', '.') }}</span>
                                                 </div>
+
+                                                @foreach($p->items->where('jenis', 'penerimaan')->where('nama_komponen', '!=', 'Honor Jam Mengajar') as $item)
                                                 <div class="d-flex justify-content-between mb-2">
-                                                    <span class="text-slate-600">Honor Mengajar ({{ $p->total_jam_mengajar }} jam)</span>
-                                                    <span class="fw-semibold">Rp {{ number_format($p->total_honor_jam, 0, ',', '.') }}</span>
-                                                </div>
-                                                @foreach($p->items->where('jenis', 'penerimaan') as $item)
-                                                <div class="d-flex justify-content-between mb-2">
-                                                    <span class="text-slate-600">{{ $item->nama_komponen }}</span>
-                                                    <span class="fw-semibold">Rp {{ number_format($item->nominal, 0, ',', '.') }}</span>
+                                                    <div>
+                                                        <span class="text-slate-600 d-block">{{ $item->nama_komponen }}</span>
+                                                        @if($item->keterangan)
+                                                            <small class="text-slate-400" style="font-size: 0.72rem;">{{ $item->keterangan }}</small>
+                                                        @endif
+                                                    </div>
+                                                    <span class="fw-semibold text-slate-900">Rp {{ number_format($item->nominal, 0, ',', '.') }}</span>
                                                 </div>
                                                 @endforeach
                                             </div>
+
                                             <!-- Potongan -->
                                             <div class="col-md-6">
-                                                <h6 class="fw-bold text-rose-700 mb-3 border-bottom pb-2">
-                                                    <i class="bi bi-dash-circle me-1"></i> Potongan
+                                                <h6 class="fw-bold text-rose-800 mb-3 border-bottom pb-2 d-flex align-items-center">
+                                                    <i class="bi bi-dash-circle text-danger me-2"></i> Rincian Potongan
                                                 </h6>
                                                 @forelse($p->items->where('jenis', 'potongan') as $item)
                                                 <div class="d-flex justify-content-between mb-2">
                                                     <span class="text-slate-600">{{ $item->nama_komponen }}</span>
-                                                    <span class="fw-semibold text-rose-600">Rp {{ number_format($item->nominal, 0, ',', '.') }}</span>
+                                                    <span class="fw-semibold text-rose-600">- Rp {{ number_format($item->nominal, 0, ',', '.') }}</span>
                                                 </div>
                                                 @empty
-                                                <div class="text-slate-400 text-center py-2 fst-italic">
-                                                    Tidak ada potongan
+                                                <div class="text-slate-400 py-2 fst-italic small">
+                                                    Tidak ada potongan pada periode ini.
                                                 </div>
                                                 @endforelse
                                             </div>
                                         </div>
-                                        <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
-                                            <span class="fw-bold text-slate-800">Total Bisyarah (THP)</span>
-                                            <span class="fw-bold fs-4 text-emerald-700">Rp {{ number_format($p->gaji_bersih, 0, ',', '.') }}</span>
+
+                                        {{-- Total THP --}}
+                                        <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center p-3 bg-light rounded-3">
+                                            <div>
+                                                <span class="fw-bold text-slate-800 d-block">Take Home Pay (Gaji Bersih)</span>
+                                                <small class="text-slate-500">Penerimaan bersih yang disalurkan</small>
+                                            </div>
+                                            <span class="fw-bold fs-3 text-emerald-700">Rp {{ number_format($p->gaji_bersih, 0, ',', '.') }}</span>
                                         </div>
                                     </div>
-                                    <div class="modal-footer border-top bg-slate-50 rounded-bottom-4">
+                                    <div class="modal-footer border-top bg-slate-50 rounded-bottom-4 d-flex justify-content-between">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                                        <a href="{{ route('guru.payroll.print', $p) }}" target="_blank" class="btn btn-success">
-                                            <i class="bi bi-printer me-1"></i> Cetak Slip
+                                        <a href="{{ route('guru.payroll.print', $p) }}" target="_blank" class="btn btn-success fw-bold px-4 shadow-sm">
+                                            <i class="bi bi-printer-fill me-1"></i> Cetak Slip Gaji Sendiri
                                         </a>
                                     </div>
                                 </div>
@@ -241,17 +316,24 @@
                         </div>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-slate-500">
+                            <td colspan="5" class="text-center py-5 text-slate-500">
                                 <i class="bi bi-inbox fs-1 d-block mb-2 text-slate-400"></i>
-                                Belum ada slip gaji yang diterbitkan untuk akun Anda.
+                                Belum ada riwayat transaksi gaji yang diterbitkan untuk akun Anda.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="p-3 border-top border-slate-200 d-flex justify-content-end bg-slate-50">
-            {{ $payrolls->links() }}
+
+        {{-- Footer Informasi & Pagination --}}
+        <div class="p-3 border-top border-slate-200 d-flex flex-wrap align-items-center justify-content-between gap-2 bg-slate-50">
+            <span class="small text-slate-500">
+                Menampilkan {{ $payrolls->firstItem() ?? 0 }} s/d {{ $payrolls->lastItem() ?? 0 }} dari {{ $payrolls->total() }} data
+            </span>
+            <div>
+                {{ $payrolls->links() }}
+            </div>
         </div>
     </div>
 

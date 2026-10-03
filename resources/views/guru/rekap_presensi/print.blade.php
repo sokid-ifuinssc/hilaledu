@@ -57,7 +57,7 @@
             <td width="18%">{{ $bulan ? \Carbon\Carbon::parse($bulan . '-01')->isoFormat('MMMM Y') : "T.A. {$tahunAjaran}" }}</td>
         </tr>
         <tr>
-            <td>NIP / Kode Guru</td>
+            <td>NUPTK / Kode Guru</td>
             <td>:</td>
             <td>{{ $rekap['guru']->nip ?: ($rekap['guru']->kode_guru ? 'Kode ' . $rekap['guru']->kode_guru : '-') }}</td>
             <td>Predikat Kehadiran</td>
@@ -159,7 +159,7 @@
                 Guru Bersangkutan,<br>
                 <div class="signature-space"></div>
                 <strong><u>{{ $rekap['guru']->name }}</u></strong><br>
-                NIP. {{ $rekap['guru']->nip ?: '-' }}
+                NUPTK. {{ $rekap['guru']->nip ?: '-' }}
             </td>
         </tr>
     </table>

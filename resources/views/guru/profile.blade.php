@@ -39,9 +39,7 @@
                         {{ $user->name }}
                     </h1>
                     <p class="text-xs sm:text-sm text-slate-300 flex items-center gap-2 flex-wrap">
-                        <span>NIP: <strong class="text-white">{{ $user->nip ?: 'Non-NIP' }}</strong></span>
-                        <span>&bull;</span>
-                        <span>NUPTK: <strong class="text-white">{{ $user->nuptk ?: ($guruHilal?->nuptk ?: '-') }}</strong></span>
+                        <span>NUPTK: <strong class="text-white">{{ $user->nip ?: ($user->nuptk ?: ($guruHilal?->nuptk ?: '-')) }}</strong></span>
                         <span>&bull;</span>
                         <span class="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 text-[11px] font-bold border border-amber-400/30">
                             ID Database: #{{ $user->id }} (Sistem)
@@ -144,11 +142,11 @@
                            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
                 </div>
 
-                <!-- NIP -->
+                <!-- NUPTK (Identitas Guru) -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Nomor Induk Pegawai (NIP)</label>
-                    <input type="text" name="nip" value="{{ old('nip', $user->nip ?: $guruHilal?->nip) }}"
-                           placeholder="Kosongkan jika Non-NIP"
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">NUPTK (Nomor Unik Pendidik)</label>
+                    <input type="text" name="nip" value="{{ old('nip', $user->nip ?: ($guruHilal?->nip ?: $user->nuptk)) }}"
+                           placeholder="Contoh: 1234567890123456 (NUPTK)"
                            class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition font-mono">
                 </div>
 

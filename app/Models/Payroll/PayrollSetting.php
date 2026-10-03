@@ -104,9 +104,10 @@ class PayrollSetting extends Model
     }
 
     /**
-     * Sinkronkan tunjangan jabatan seorang pegawai berdasarkan seluruh tugas tambahan dan penugasan admin unit
+     * Sinkronkan tunjangan jabatan dan seluruh komponen gaji seorang pegawai dari Master Komponen
+     * @param bool $forceUpdateMaster Jika true, nilai master komponen akan memperbarui setting pegawai
      */
-    public static function syncTunjanganForUser(User $user): ?self
+    public static function syncTunjanganForUser(User $user, bool $forceUpdateMaster = false): ?self
     {
         if (!in_array($user->role, ['guru', 'tendik'])) {
             return null;
@@ -118,19 +119,19 @@ class PayrollSetting extends Model
             $masterMap[trim(mb_strtolower($mk->nama))] = (float) $mk->nominal_default;
         }
 
-        $masterHonorJam = (float) ($masterKomponen->first(fn($k) => $k->tipe === 'per_jam' || $k->kode === 'HJM01' || str_contains(strtolower($k->nama), 'jam mengajar'))?->nominal_default ?? 35000);
+        $masterHonorJam = (float) ($masterKomponen->first(fn($k) => $k->tipe === 'per_jam' || $k->kode === 'HJM01' || str_contains(strtolower($k->nama), 'jam mengajar') || str_contains(strtolower($k->nama), 'honor jam'))?->nominal_default ?? 35000);
         $masterTransport = (float) ($masterKomponen->first(fn($k) => $k->tipe === 'per_kehadiran' || $k->kode === 'TK01' || str_contains(strtolower($k->nama), 'transport'))?->nominal_default ?? 20000);
-        $masterGajiPokok = (float) ($masterKomponen->first(fn($k) => $k->kode === 'GP01' || str_contains(strtolower($k->nama), 'gaji pokok'))?->nominal_default ?? 1800000);
+        $masterGajiPokok = (float) ($masterKomponen->first(fn($k) => $k->kode === 'GP01' || str_contains(strtolower($k->nama), 'gaji pokok') || str_contains(strtolower($k->nama), 'pokok'))?->nominal_default ?? 1800000);
         $masterKehadiran = (float) ($masterKomponen->first(fn($k) => $k->kode === 'TK01' || str_contains(strtolower($k->nama), 'kehadiran'))?->nominal_default ?? 250000);
         $masterBpjs      = (float) ($masterKomponen->first(fn($k) => $k->kode === 'PBP01' || str_contains(strtolower($k->nama), 'bpjs'))?->nominal_default ?? 45000);
         $masterKoperasi  = (float) ($masterKomponen->first(fn($k) => $k->kode === 'PKOP01' || str_contains(strtolower($k->nama), 'koperasi'))?->nominal_default ?? 50000);
         $masterInfaq     = (float) ($masterKomponen->first(fn($k) => $k->kode === 'PINF01' || str_contains(strtolower($k->nama), 'infaq') || str_contains(strtolower($k->nama), 'kas'))?->nominal_default ?? 25000);
 
         $tugas = $user->daftar_jabatan;
+        $isGuru = $user->role === 'guru';
 
         $setting = self::firstOrNew(['user_id' => $user->id]);
         if (!$setting->exists) {
-            $isGuru = $user->role === 'guru';
             $setting->gaji_pokok              = $isGuru ? 0 : $masterGajiPokok;
             $setting->honor_per_jam           = $isGuru ? $masterHonorJam : 0;
             $setting->jam_mengajar_default    = $isGuru ? ($user->total_jam_mengajar ?: 24) : 0;
@@ -141,6 +142,38 @@ class PayrollSetting extends Model
             $setting->potongan_koperasi       = $masterKoperasi;
             $setting->potongan_lain           = $masterInfaq;
             $setting->atas_nama_rekening      = $user->name;
+        } else {
+            // Jika force update aktif atau nilai masih 0 / default lama, sinkronkan nilai dari master
+            if ($forceUpdateMaster) {
+                if ($isGuru) {
+                    $setting->transport_per_hari = $masterTransport;
+                    $setting->gaji_pokok         = 0;
+                    $setting->tunjangan_kehadiran= 0;
+                    if ($masterHonorJam > 0) {
+                        $setting->honor_per_jam  = $masterHonorJam;
+                    }
+                } else {
+                    $setting->gaji_pokok         = $masterGajiPokok;
+                    $setting->tunjangan_kehadiran= $masterKehadiran;
+                }
+                if ($masterBpjs > 0) $setting->potongan_bpjs = $masterBpjs;
+                if ($masterKoperasi > 0) $setting->potongan_koperasi = $masterKoperasi;
+                if ($masterInfaq > 0) $setting->potongan_lain = $masterInfaq;
+            } else {
+                // Auto-fill jika belum diatur (>0)
+                if ($isGuru && ((float)$setting->transport_per_hari <= 0)) {
+                    $setting->transport_per_hari = $masterTransport;
+                }
+                if ($isGuru && ((float)$setting->honor_per_jam <= 0)) {
+                    $setting->honor_per_jam = $masterHonorJam;
+                }
+                if (!$isGuru && ((float)$setting->gaji_pokok <= 0)) {
+                    $setting->gaji_pokok = $masterGajiPokok;
+                }
+                if (!$isGuru && ((float)$setting->tunjangan_kehadiran <= 0)) {
+                    $setting->tunjangan_kehadiran = $masterKehadiran;
+                }
+            }
         }
 
         // Isi dan sinkronkan detail_tunjangan_tugas berdasarkan master komponen
@@ -150,7 +183,9 @@ class PayrollSetting extends Model
                 if (in_array($t, ['Guru', 'Tendik', 'Guru Pengajar', 'Siswa'])) continue;
                 $key = trim(mb_strtolower($t));
                 $nominal = $masterMap[$key] ?? (float)(\App\Models\TugasTambahan::where('nama', $t)->where('is_aktif', true)->value('nominal_gaji') ?? 0);
-                if (!isset($detail[$t]) || (float)$detail[$t] <= 0) {
+                if ($forceUpdateMaster && $nominal > 0) {
+                    $detail[$t] = $nominal;
+                } elseif (!isset($detail[$t]) || (float)$detail[$t] <= 0) {
                     $detail[$t] = $nominal;
                 }
             }
@@ -159,6 +194,85 @@ class PayrollSetting extends Model
         }
         $setting->save();
 
+        // Sinkronkan juga ke payroll yang masih berstatus draft agar langsung terlihat oleh guru
+        $draftPayrolls = Payroll::where('user_id', $user->id)->where('status', 'draft')->get();
+        foreach ($draftPayrolls as $dp) {
+            $periode = $dp->periode;
+            if (!$periode) continue;
+
+            $jamMengajar = $user->total_jam_mengajar ?: ($setting->jam_mengajar_default ?: 24);
+            $kehadiran = $user->getHariHadirBulan((int)$periode->bulan, (int)$periode->tahun);
+
+            $tarifHonor = (float) $setting->honor_per_jam;
+            $totalHonor = $isGuru ? ($jamMengajar * $tarifHonor) : 0;
+            $tarifTransport = (float) ($isGuru ? $setting->transport_per_hari : $setting->tunjangan_kehadiran);
+            $totalTransport = $isGuru ? ($kehadiran * $tarifTransport) : $tarifTransport;
+
+            $dp->jumlah_jam_mengajar = $jamMengajar;
+            $dp->jumlah_kehadiran = $kehadiran;
+            $dp->total_honor_jam = $totalHonor;
+            $dp->save();
+
+            // Perbarui item honor jam
+            if ($isGuru && $totalHonor > 0) {
+                $itemHonor = $dp->items()->where('nama_komponen', 'Honor Jam Mengajar')->first();
+                if ($itemHonor) {
+                    $itemHonor->update([
+                        'nominal' => $totalHonor,
+                        'keterangan' => "{$jamMengajar} Jam x Rp " . number_format($tarifHonor, 0, ',', '.'),
+                    ]);
+                } else {
+                    PayrollItem::create([
+                        'payroll_id'    => $dp->id,
+                        'nama_komponen' => 'Honor Jam Mengajar',
+                        'jenis'         => 'penerimaan',
+                        'nominal'       => $totalHonor,
+                        'keterangan'    => "{$jamMengajar} Jam x Rp " . number_format($tarifHonor, 0, ',', '.'),
+                    ]);
+                }
+            }
+
+            // Perbarui item transport & tunjangan kehadiran
+            $itemTransport = $dp->items()->where(function($q) {
+                $q->where('nama_komponen', 'like', '%transport%')
+                  ->orWhere('nama_komponen', 'like', '%kehadiran%');
+            })->first();
+
+            $namaKomp = $isGuru ? 'Uang Transport Kehadiran / KBM' : 'Tunjangan Kehadiran & Transport';
+            $ketKomp  = $isGuru ? "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.') : 'Uang transport dan kehadiran';
+
+            if ($itemTransport) {
+                $itemTransport->update([
+                    'nominal'    => $totalTransport,
+                    'keterangan' => $ketKomp,
+                ]);
+            } elseif ($totalTransport > 0) {
+                PayrollItem::create([
+                    'payroll_id'    => $dp->id,
+                    'nama_komponen' => $namaKomp,
+                    'jenis'         => 'penerimaan',
+                    'nominal'       => $totalTransport,
+                    'keterangan'    => $ketKomp,
+                ]);
+            }
+
+            $dp->recalculateTotals();
+        }
+
         return $setting;
+    }
+
+    /**
+     * Sinkronkan seluruh pegawai dari master komponen
+     */
+    public static function syncAllFromMasterKomponen(bool $forceUpdateMaster = true): int
+    {
+        $pegawais = User::whereIn('role', ['guru', 'tendik'])->get();
+        $count = 0;
+        foreach ($pegawais as $pegawai) {
+            self::syncTunjanganForUser($pegawai, $forceUpdateMaster);
+            $count++;
+        }
+        return $count;
     }
 }

@@ -104,8 +104,11 @@ class PayrollKomponenController extends Controller
 
         PayrollKomponen::create($validated);
 
+        // Otomatis hubungkan dan perbarui pengaturan gaji pegawai & slip draft guru
+        \App\Models\Payroll\PayrollSetting::syncAllFromMasterKomponen(true);
+
         return redirect()->route('superadmin.payroll.komponen.index')
-            ->with('success', 'Komponen gaji berhasil ditambahkan.');
+            ->with('success', 'Komponen gaji berhasil ditambahkan dan otomatis terhubung ke pengaturan gaji pegawai.');
     }
 
     public function update(Request $request, PayrollKomponen $komponen)
@@ -127,13 +130,19 @@ class PayrollKomponenController extends Controller
         \App\Models\TugasTambahan::where('nama', $komponen->nama)
             ->update(['nominal_gaji' => $komponen->nominal_default]);
 
+        // Otomatis hubungkan dan perbarui pengaturan gaji pegawai & slip draft guru
+        \App\Models\Payroll\PayrollSetting::syncAllFromMasterKomponen(true);
+
         return redirect()->route('superadmin.payroll.komponen.index')
-            ->with('success', 'Komponen gaji berhasil diperbarui.');
+            ->with('success', 'Komponen gaji berhasil diperbarui dan otomatis disinkronkan ke seluruh pengaturan gaji pegawai.');
     }
 
     public function destroy(PayrollKomponen $komponen)
     {
         $komponen->delete();
+
+        // Otomatis hubungkan dan perbarui pengaturan gaji pegawai & slip draft guru
+        \App\Models\Payroll\PayrollSetting::syncAllFromMasterKomponen(true);
 
         return redirect()->route('superadmin.payroll.komponen.index')
             ->with('success', 'Komponen gaji berhasil dihapus.');
@@ -142,6 +151,8 @@ class PayrollKomponenController extends Controller
     public function toggleActive(PayrollKomponen $komponen)
     {
         $komponen->update(['is_aktif' => !$komponen->is_aktif]);
+
+        \App\Models\Payroll\PayrollSetting::syncAllFromMasterKomponen(true);
 
         return back()->with('success', 'Status komponen gaji berhasil diubah.');
     }

@@ -96,7 +96,13 @@
                     </p>
                 </div>
             </div>
-            <div class="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0 justify-end">
+            <div class="flex items-center flex-wrap gap-2 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0 justify-end">
+                <a href="{{ route('guru.penugasan.sk_mengajar.print') }}" target="_blank" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 hover:text-white text-xs font-bold transition border border-indigo-400/30 flex items-center justify-center gap-1.5" title="Cetak Lampiran SK Jam Mengajar Pribadi">
+                    <i class="bi bi-printer"></i> SK Mengajar
+                </a>
+                <a href="{{ route('guru.penugasan.sk_tugas_tambahan.print') }}" target="_blank" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 hover:text-white text-xs font-bold transition border border-amber-400/30 flex items-center justify-center gap-1.5" title="Cetak Lampiran SK Tugas Tambahan Pribadi">
+                    <i class="bi bi-file-earmark-text"></i> SK Tugas Tambahan
+                </a>
                 <a href="{{ route('guru.payroll.index') }}" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 hover:text-white text-xs font-bold transition border border-emerald-400/30 flex items-center justify-center gap-1.5" title="Riwayat Transaksi & Cetak Slip Gaji">
                     <i class="bi bi-wallet2"></i> Riwayat Gaji
                 </a>

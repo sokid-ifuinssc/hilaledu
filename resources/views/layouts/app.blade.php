@@ -1122,7 +1122,23 @@
                 </div>
                 <ul class="sidebar-nav">
                     <li class="sidebar-nav-item"><a href="{{ route('guru.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('guru.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2" style="color:#10b981;"></i><span>Beranda Guru</span></a></li>
-                    <li class="sidebar-nav-item"><a href="{{ route('guru.penugasan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.penugasan.*') ? 'active' : '' }}"><i class="bi bi-briefcase-fill" style="color:#fb923c;"></i><span>Penugasan Guru</span></a></li>
+                    <li class="sidebar-nav-item">
+                        <button type="button" 
+                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('guru.penugasan.*') ? 'active' : '' }}" 
+                                onclick="toggleSidebarDropdown('menuPenugasanAdmin')" 
+                                aria-expanded="{{ request()->routeIs('guru.penugasan.*') ? 'true' : 'false' }}">
+                            <i class="bi bi-briefcase-fill" style="color:#fb923c;"></i>
+                            <span>Penugasan & SK Guru</span>
+                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                        </button>
+                        <div class="sidebar-dropdown-menu {{ request()->routeIs('guru.penugasan.*') ? 'show' : '' }}" id="menuPenugasanAdmin">
+                            <ul class="sidebar-submenu">
+                                <li><a href="{{ route('guru.penugasan.index') }}" class="{{ request()->routeIs('guru.penugasan.index') ? 'active' : '' }}"><i class="bi bi-info-circle me-1"></i> Informasi Penugasan</a></li>
+                                <li><a href="{{ route('guru.penugasan.sk_mengajar.print') }}" target="_blank"><i class="bi bi-printer me-1" style="color:#6366f1;"></i> Cetak SK Mengajar</a></li>
+                                <li><a href="{{ route('guru.penugasan.sk_tugas_tambahan.print') }}" target="_blank"><i class="bi bi-file-earmark-text me-1" style="color:#f59e0b;"></i> Cetak SK Tugas Tambahan</a></li>
+                            </ul>
+                        </div>
+                    </li>
                     <li class="sidebar-nav-item"><a href="{{ route('guru.kalender.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.kalender.*') ? 'active' : '' }}"><i class="bi bi-calendar-event" style="color:#38bdf8;"></i><span>Kalender Akademik</span></a></li>
 
                     @if($hasMapelAdmin)
@@ -1188,8 +1204,23 @@
                             $hasMapel = auth()->user()->getMapelDiampu()->count() > 0;
                         @endphp
                         
-                        <div class="sidebar-section-title mt-3">Tugas Akademik</div>
-                        <li class="sidebar-nav-item"><a href="{{ route('guru.penugasan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.penugasan.*') ? 'active' : '' }}"><i class="bi bi-briefcase-fill" style="color:#fb923c;"></i><span>Penugasan Guru</span></a></li>
+                        <li class="sidebar-nav-item">
+                            <button type="button" 
+                                    class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('guru.penugasan.*') ? 'active' : '' }}" 
+                                    onclick="toggleSidebarDropdown('menuPenugasanGuru')" 
+                                    aria-expanded="{{ request()->routeIs('guru.penugasan.*') ? 'true' : 'false' }}">
+                                <i class="bi bi-briefcase-fill" style="color:#fb923c;"></i>
+                                <span>Penugasan & SK Guru</span>
+                                <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                            </button>
+                            <div class="sidebar-dropdown-menu {{ request()->routeIs('guru.penugasan.*') ? 'show' : '' }}" id="menuPenugasanGuru">
+                                <ul class="sidebar-submenu">
+                                    <li><a href="{{ route('guru.penugasan.index') }}" class="{{ request()->routeIs('guru.penugasan.index') ? 'active' : '' }}"><i class="bi bi-info-circle me-1"></i> Informasi Penugasan</a></li>
+                                    <li><a href="{{ route('guru.penugasan.sk_mengajar.print') }}" target="_blank"><i class="bi bi-printer me-1" style="color:#6366f1;"></i> Cetak SK Mengajar</a></li>
+                                    <li><a href="{{ route('guru.penugasan.sk_tugas_tambahan.print') }}" target="_blank"><i class="bi bi-file-earmark-text me-1" style="color:#f59e0b;"></i> Cetak SK Tugas Tambahan</a></li>
+                                </ul>
+                            </div>
+                        </li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.kalender.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.kalender.*') ? 'active' : '' }}"><i class="bi bi-calendar-event" style="color:#38bdf8;"></i><span>Kalender Akademik</span></a></li>
                         
                         @if($hasMapel)

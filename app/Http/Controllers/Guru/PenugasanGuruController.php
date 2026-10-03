@@ -231,4 +231,38 @@ class PenugasanGuruController extends Controller
         return redirect()->route('guru.penugasan.index', ['tab' => 'tambahan'])
             ->with('success', 'Rencana program kerja berhasil dihapus.');
     }
+
+    /**
+     * Cetak Lampiran SK Jam Mengajar khusus untuk guru yang sedang login
+     */
+    public function printSkMengajar(Request $request)
+    {
+        $guru = Auth::user();
+        $tahun = PengaturanSekolah::getActiveTahunAjaran();
+        $semester = PengaturanSekolah::getActiveSemester();
+
+        $guru->load(['kurikulums' => function ($q) use ($tahun, $semester) {
+            $q->where('tahun_ajaran', $tahun)
+              ->where('semester', $semester)
+              ->with('mataPelajaran');
+        }]);
+
+        $gurus = collect([$guru]);
+
+        return view('admin.jadwal.sk_jam_mengajar_print', compact('gurus', 'tahun', 'semester'));
+    }
+
+    /**
+     * Cetak Lampiran SK Tugas Tambahan khusus untuk guru yang sedang login
+     */
+    public function printSkTugasTambahan(Request $request)
+    {
+        $guru = Auth::user();
+        $tahun = PengaturanSekolah::getActiveTahunAjaran();
+        $semester = PengaturanSekolah::getActiveSemester();
+
+        $gurus = collect([$guru]);
+
+        return view('admin.jadwal.sk_tugas_tambahan_print', compact('gurus', 'tahun', 'semester'));
+    }
 }

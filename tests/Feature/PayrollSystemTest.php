@@ -337,4 +337,60 @@ class PayrollSystemTest extends TestCase
         $slipRes->assertStatus(200);
         $slipRes->assertSee($this->guru->name);
     }
+
+    public function test_master_component_updates_propagate_to_teacher_settings_and_draft_payroll()
+    {
+        // 1. Buat atau ambil komponen transport
+        $komponenTransport = PayrollKomponen::firstOrCreate(
+            ['kode' => 'TK01'],
+            [
+                'nama'            => 'Tunjangan Kehadiran & Transport',
+                'jenis'           => 'penerimaan',
+                'tipe'            => 'per_kehadiran',
+                'nominal_default' => 20000,
+                'is_aktif'        => true,
+            ]
+        );
+
+        // 2. Superadmin update nominal transport menjadi 27500
+        $response = $this->actingAs($this->superadmin)->put(route('superadmin.payroll.komponen.update', $komponenTransport), [
+            'nama'            => 'Tunjangan Kehadiran & Transport',
+            'jenis'           => 'penerimaan',
+            'tipe'            => 'per_kehadiran',
+            'nominal_default' => 27500,
+            'is_aktif'        => 1,
+        ]);
+        $response->assertRedirect(route('superadmin.payroll.komponen.index'));
+
+        // 3. Verifikasi setting guru langsung terhubung dan terupdate nominal transportnya
+        $settingGuru = PayrollSetting::where('user_id', $this->guru->id)->first();
+        $this->assertNotNull($settingGuru);
+        $this->assertEquals(27500, (float)$settingGuru->transport_per_hari);
+
+        // 4. Verifikasi di halaman pengaturan gaji superadmin menampilkan nominal baru
+        $settingIndex = $this->actingAs($this->superadmin)->get(route('superadmin.payroll.setting.index'));
+        $settingIndex->assertStatus(200);
+        $settingIndex->assertSee('27.500');
+
+        // 5. Verifikasi di halaman riwayat gaji guru otomatis menampilkan komponen transport dengan tarif baru
+        $guruPayrollIndex = $this->actingAs($this->guru)->get(route('guru.payroll.index'));
+        $guruPayrollIndex->assertStatus(200);
+        $guruPayrollIndex->assertSee('27.500');
+    }
+
+    public function test_guru_can_print_personal_sk_mengajar_and_sk_tugas_tambahan()
+    {
+        // 1. Cetak SK Jam Mengajar pribadi guru
+        $skMengajarRes = $this->actingAs($this->guru)->get(route('guru.penugasan.sk_mengajar.print'));
+        $skMengajarRes->assertStatus(200);
+        $skMengajarRes->assertSee($this->guru->name);
+        $skMengajarRes->assertDontSee($this->tendik->name); // Hanya untuk diri sendiri
+
+        // 2. Cetak SK Tugas Tambahan pribadi guru
+        $skTugasRes = $this->actingAs($this->guru)->get(route('guru.penugasan.sk_tugas_tambahan.print'));
+        $skTugasRes->assertStatus(200);
+        $skTugasRes->assertSee($this->guru->name);
+        $skTugasRes->assertSee('Wali Kelas X RPL 1'); // Tugas tambahan guru ini
+        $skTugasRes->assertDontSee($this->tendik->name); // Hanya untuk diri sendiri
+    }
 }

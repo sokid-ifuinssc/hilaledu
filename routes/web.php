@@ -456,6 +456,8 @@ Route::middleware('auth')->group(function () {
 
         // Menu Informasi Penugasan Guru (Mengajar & Tugas Tambahan)
         Route::get('/penugasan', [PenugasanGuruController::class, 'index'])->name('penugasan.index');
+        Route::get('/penugasan/sk-mengajar/print', [PenugasanGuruController::class, 'printSkMengajar'])->name('penugasan.sk_mengajar.print');
+        Route::get('/penugasan/sk-tugas-tambahan/print', [PenugasanGuruController::class, 'printSkTugasTambahan'])->name('penugasan.sk_tugas_tambahan.print');
         Route::post('/penugasan/program-kerja', [PenugasanGuruController::class, 'storeProgramKerja'])->name('penugasan.program-kerja.store');
         Route::delete('/penugasan/program-kerja/{programKerja}', [PenugasanGuruController::class, 'destroyProgramKerja'])->name('penugasan.program-kerja.destroy');
 

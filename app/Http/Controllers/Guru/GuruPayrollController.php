@@ -104,9 +104,24 @@ class GuruPayrollController extends Controller
             // Hitung hari hadir DINAMIS sesuai presensi riil guru di bulan ini
             $kehadiran = $user->getHariHadirBulan((int)$periode->bulan, (int)$periode->tahun);
 
-            $tarifHonor     = (float) ($setting?->honor_per_jam ?? 35000);
+            $masterHonorJam = (float) (\App\Models\Payroll\PayrollKomponen::where('is_aktif', true)
+                ->where(function($q) {
+                    $q->where('tipe', 'per_jam')
+                      ->orWhere('kode', 'HJM01')
+                      ->orWhere('nama', 'like', '%jam%mengajar%')
+                      ->orWhere('nama', 'like', '%honor%jam%');
+                })->value('nominal_default') ?? 35000);
+
+            $masterTransport = (float) (\App\Models\Payroll\PayrollKomponen::where('is_aktif', true)
+                ->where(function($q) {
+                    $q->where('tipe', 'per_kehadiran')
+                      ->orWhere('kode', 'TK01')
+                      ->orWhere('nama', 'like', '%transport%');
+                })->value('nominal_default') ?? 20000);
+
+            $tarifHonor     = (float) (($setting?->honor_per_jam > 0) ? $setting->honor_per_jam : $masterHonorJam);
             $totalHonorJam  = $tarifHonor * $jamMengajar;
-            $tarifTransport = (float) ($setting?->transport_per_hari ?? 20000);
+            $tarifTransport = (float) (($setting?->transport_per_hari > 0) ? $setting->transport_per_hari : $masterTransport);
             $totalTransport = $kehadiran * $tarifTransport; // 0 jika belum ada presensi
 
             if (!$payroll->exists) {
@@ -119,26 +134,23 @@ class GuruPayrollController extends Controller
                 $payroll->metode_pembayaran   = !empty($setting?->nomor_rekening) ? 'transfer' : 'tunai';
                 $payroll->save();
 
-                // Buat item penerimaan
-                if ($totalHonorJam > 0) {
-                    \App\Models\Payroll\PayrollItem::create([
-                        'payroll_id'    => $payroll->id,
-                        'nama_komponen' => 'Honor Jam Mengajar',
-                        'jenis'         => 'penerimaan',
-                        'nominal'       => $totalHonorJam,
-                        'keterangan'    => "{$jamMengajar} Jam x Rp " . number_format($tarifHonor, 0, ',', '.'),
-                    ]);
-                }
+                // Buat item penerimaan: Honor Jam Mengajar
+                \App\Models\Payroll\PayrollItem::create([
+                    'payroll_id'    => $payroll->id,
+                    'nama_komponen' => 'Honor Jam Mengajar',
+                    'jenis'         => 'penerimaan',
+                    'nominal'       => $totalHonorJam,
+                    'keterangan'    => "{$jamMengajar} Jam x Rp " . number_format($tarifHonor, 0, ',', '.'),
+                ]);
 
-                if ($totalTransport > 0) {
-                    \App\Models\Payroll\PayrollItem::create([
-                        'payroll_id'    => $payroll->id,
-                        'nama_komponen' => 'Uang Transport Kehadiran / KBM',
-                        'jenis'         => 'penerimaan',
-                        'nominal'       => $totalTransport,
-                        'keterangan'    => "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.'),
-                    ]);
-                }
+                // Buat item penerimaan: Uang Transport Kehadiran (selalu tampilkan agar guru tahu tarif transport per hari)
+                \App\Models\Payroll\PayrollItem::create([
+                    'payroll_id'    => $payroll->id,
+                    'nama_komponen' => 'Uang Transport Kehadiran / KBM',
+                    'jenis'         => 'penerimaan',
+                    'nominal'       => $totalTransport,
+                    'keterangan'    => "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.'),
+                ]);
 
                 // Tunjangan tugas tambahan
                 $detailTugas = $setting?->detail_tunjangan_tugas ?? [];
@@ -189,37 +201,49 @@ class GuruPayrollController extends Controller
                 $payroll->total_tunjangan = (float) $payroll->items()->where('jenis', 'penerimaan')->whereNotIn('nama_komponen', ['Gaji Pokok', 'Honor Jam Mengajar'])->sum('nominal');
                 $payroll->recalculateTotals();
             } else {
-                // Jika payroll draft dan bulan aktif (Oktober), perbarui kehadiran secara dinamis jika ada absen baru!
+                // Jika payroll draft, perbarui kehadiran dan tarif transport/honor secara dinamis!
                 if ($payroll->status === 'draft') {
-                    if ((int)$payroll->jumlah_kehadiran !== $kehadiran) {
-                        $payroll->jumlah_kehadiran = $kehadiran;
-                        $payroll->total_honor_jam  = $totalHonorJam;
+                    $payroll->jumlah_jam_mengajar = $jamMengajar;
+                    $payroll->jumlah_kehadiran    = $kehadiran;
+                    $payroll->total_honor_jam     = $totalHonorJam;
+                    $payroll->save();
 
-                        // Perbarui item transport
-                        $transportItem = $payroll->items()->where('nama_komponen', 'like', '%Transport%')->first();
-                        if ($totalTransport > 0) {
-                            if ($transportItem) {
-                                $transportItem->nominal = $totalTransport;
-                                $transportItem->keterangan = "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.');
-                                $transportItem->save();
-                            } else {
-                                \App\Models\Payroll\PayrollItem::create([
-                                    'payroll_id'    => $payroll->id,
-                                    'nama_komponen' => 'Uang Transport Kehadiran / KBM',
-                                    'jenis'         => 'penerimaan',
-                                    'nominal'       => $totalTransport,
-                                    'keterangan'    => "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.'),
-                                ]);
-                            }
-                        } else {
-                            if ($transportItem) {
-                                $transportItem->delete();
-                            }
-                        }
-
-                        $payroll->total_tunjangan = (float) $payroll->items()->where('jenis', 'penerimaan')->whereNotIn('nama_komponen', ['Gaji Pokok', 'Honor Jam Mengajar'])->sum('nominal');
-                        $payroll->recalculateTotals();
+                    // Perbarui item Honor Jam Mengajar
+                    $honorItem = $payroll->items()->where('nama_komponen', 'Honor Jam Mengajar')->first();
+                    if ($honorItem) {
+                        $honorItem->update([
+                            'nominal'    => $totalHonorJam,
+                            'keterangan' => "{$jamMengajar} Jam x Rp " . number_format($tarifHonor, 0, ',', '.'),
+                        ]);
+                    } else {
+                        \App\Models\Payroll\PayrollItem::create([
+                            'payroll_id'    => $payroll->id,
+                            'nama_komponen' => 'Honor Jam Mengajar',
+                            'jenis'         => 'penerimaan',
+                            'nominal'       => $totalHonorJam,
+                            'keterangan'    => "{$jamMengajar} Jam x Rp " . number_format($tarifHonor, 0, ',', '.'),
+                        ]);
                     }
+
+                    // Perbarui item transport (selalu tampilkan)
+                    $transportItem = $payroll->items()->where('nama_komponen', 'like', '%Transport%')->first();
+                    if ($transportItem) {
+                        $transportItem->update([
+                            'nominal'    => $totalTransport,
+                            'keterangan' => "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.'),
+                        ]);
+                    } else {
+                        \App\Models\Payroll\PayrollItem::create([
+                            'payroll_id'    => $payroll->id,
+                            'nama_komponen' => 'Uang Transport Kehadiran / KBM',
+                            'jenis'         => 'penerimaan',
+                            'nominal'       => $totalTransport,
+                            'keterangan'    => "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.'),
+                        ]);
+                    }
+
+                    $payroll->total_tunjangan = (float) $payroll->items()->where('jenis', 'penerimaan')->whereNotIn('nama_komponen', ['Gaji Pokok', 'Honor Jam Mengajar'])->sum('nominal');
+                    $payroll->recalculateTotals();
                 }
             }
         }

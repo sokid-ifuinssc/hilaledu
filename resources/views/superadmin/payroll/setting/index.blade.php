@@ -64,10 +64,10 @@
             <h5 class="text-slate-900 fw-bold mb-0 ms-2">Pengaturan Gaji Guru & Tendik</h5>
         </div>
         <div class="d-flex gap-2">
-            <form action="{{ route('superadmin.payroll.setting.sync-tugas-tambahan') }}" method="POST" class="d-inline" onsubmit="return confirm('Otomatis perbarui tunjangan jabatan seluruh guru dan tendik berdasarkan tugas tambahan (Wali Kelas, Kaprog, Kepsek, Wakasek, Admin Modul)?');">
+            <form action="{{ route('superadmin.payroll.setting.sync-tugas-tambahan') }}" method="POST" class="d-inline" onsubmit="return confirm('Sinkronkan seluruh komponen gaji (Honor Jam, Transport, Gaji Pokok, Tunjangan Tugas Tambahan, dan Potongan) untuk semua pegawai dengan nilai Master Komponen terbaru?');">
                 @csrf
                 <button type="submit" class="btn btn-warning fw-semibold shadow-sm text-dark" style="border-radius: 10px;">
-                    <i class="bi bi-arrow-repeat me-1"></i> Auto-Sync Tunjangan Tugas Tambahan
+                    <i class="bi bi-arrow-repeat me-1"></i> Sinkronkan Seluruh Komponen Master
                 </button>
             </form>
         </div>
@@ -128,11 +128,12 @@
                     @forelse($pegawais as $pegawai)
                         @php
                             $setting = $pegawai->payrollSetting;
-                            $gajiPokok = $setting ? (float)$setting->gaji_pokok : 0;
-                            $honorPerJam = $setting ? (float)$setting->honor_per_jam : 0;
+                            $gajiPokok = $setting && (float)$setting->gaji_pokok > 0 ? (float)$setting->gaji_pokok : $masterGajiPokok;
+                            $honorPerJam = $setting && (float)$setting->honor_per_jam > 0 ? (float)$setting->honor_per_jam : $masterHonorJam;
                             $jamDefault = $setting ? (int)$setting->jam_mengajar_default : 0;
                             $tunjJabatan = $setting ? (float)$setting->tunjangan_jabatan : 0;
-                            $tunjKehadiran = $setting ? (float)$setting->tunjangan_kehadiran : 0;
+                            $tunjKehadiran = $setting && (float)$setting->tunjangan_kehadiran > 0 ? (float)$setting->tunjangan_kehadiran : $masterKehadiran;
+                            $transportPerHari = $setting && (float)$setting->transport_per_hari > 0 ? (float)$setting->transport_per_hari : $masterTransport;
                             $tunjLain = $setting ? (float)$setting->tunjangan_lain : 0;
                             $totalPotongan = $setting ? ((float)$setting->potongan_bpjs + (float)$setting->potongan_koperasi + (float)$setting->potongan_lain) : 0;
                             $isGuru = $pegawai->role === 'guru';
@@ -173,7 +174,7 @@
                             <td class="text-emerald-700 fw-semibold">Rp {{ number_format($tunjJabatan, 0, ',', '.') }}</td>
                             <td>
                                 @if($isGuru)
-                                    <div class="text-emerald-700 fw-semibold">Rp {{ number_format($setting->transport_per_hari ?? 20000, 0, ',', '.') }}<span class="small text-slate-500">/hari</span></div>
+                                    <div class="text-emerald-700 fw-semibold">Rp {{ number_format($transportPerHari, 0, ',', '.') }}<span class="small text-slate-500">/hari</span></div>
                                     @php $hadirBulan = $pegawai->hari_hadir_bulan_ini; @endphp
                                     <small class="{{ $hadirBulan > 0 ? 'text-emerald-700 fw-medium' : 'text-slate-500' }}">
                                         <i class="bi bi-calendar-check {{ $hadirBulan > 0 ? 'text-success' : 'text-muted' }}"></i> {{ $hadirBulan }} Hari Hadir Dinamis

@@ -32,7 +32,42 @@ class PayrollSettingController extends Controller
         $totalGuru   = User::where('role', 'guru')->count();
         $totalTendik = User::where('role', 'tendik')->count();
 
-        return view('superadmin.payroll.setting.index', compact('pegawais', 'totalGuru', 'totalTendik'));
+        $masterHonorJam = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('tipe', 'per_jam')
+                  ->orWhere('kode', 'HJM01')
+                  ->orWhere('nama', 'like', '%jam%mengajar%')
+                  ->orWhere('nama', 'like', '%honor%jam%');
+            })->value('nominal_default') ?? 35000);
+
+        $masterTransport = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('tipe', 'per_kehadiran')
+                  ->orWhere('kode', 'TK01')
+                  ->orWhere('nama', 'like', '%transport%');
+            })->value('nominal_default') ?? 20000);
+
+        $masterGajiPokok = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('kode', 'GP01')
+                  ->orWhere('nama', 'like', '%pokok%');
+            })->value('nominal_default') ?? 1800000);
+
+        $masterKehadiran = (float) (PayrollKomponen::where('is_aktif', true)
+            ->where(function($q) {
+                $q->where('kode', 'TK01')
+                  ->orWhere('nama', 'like', '%kehadiran%');
+            })->value('nominal_default') ?? 250000);
+
+        return view('superadmin.payroll.setting.index', compact(
+            'pegawais', 
+            'totalGuru', 
+            'totalTendik',
+            'masterHonorJam',
+            'masterTransport',
+            'masterGajiPokok',
+            'masterKehadiran'
+        ));
     }
 
     public function edit(User $user)
@@ -268,29 +303,26 @@ class PayrollSettingController extends Controller
         $validated['potongan_koperasi']      = $validated['potongan_koperasi'] ?? 0;
         $validated['potongan_lain']          = $validated['potongan_lain'] ?? 0;
 
-        PayrollSetting::updateOrCreate(
+        $setting = PayrollSetting::updateOrCreate(
             ['user_id' => $user->id],
             $validated
         );
+
+        // Sinkronkan ke draft payroll aktif user ini
+        PayrollSetting::syncTunjanganForUser($user, false);
 
         return redirect()->route('superadmin.payroll.setting.index')
             ->with('success', "Pengaturan gaji untuk {$user->name} berhasil diperbarui.");
     }
 
     /**
-     * Hitung otomatis & sinkronkan tunjangan jabatan berdasarkan data tugas tambahan guru saat ini.
+     * Hitung otomatis & sinkronkan seluruh komponen gaji berdasarkan Master Komponen dan data tugas tambahan saat ini.
      */
     public function syncTugasTambahan()
     {
-        $pegawais = User::whereIn('role', ['guru', 'tendik'])->get();
-        $updated = 0;
-
-        foreach ($pegawais as $p) {
-            PayrollSetting::syncTunjanganForUser($p);
-            $updated++;
-        }
+        $updated = PayrollSetting::syncAllFromMasterKomponen(true);
 
         return redirect()->route('superadmin.payroll.setting.index')
-            ->with('success', "Berhasil mensinkronkan tunjangan jabatan untuk {$updated} pendidik & tendik.");
+            ->with('success', "Berhasil mensinkronkan seluruh komponen gaji (Honor Jam, Transport, Gaji Pokok, Tunjangan Tugas Tambahan, dan Potongan) untuk {$updated} pendidik & tendik.");
     }
 }

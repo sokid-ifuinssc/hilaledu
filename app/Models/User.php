@@ -413,6 +413,34 @@ class User extends Authenticatable
     }
 
     /**
+     * Hitung total hari mengajar aktif guru berdasarkan jadwal resmi dalam sebulan (asumsi 4 pekan)
+     */
+    public function getTotalHariMengajarAttribute(): int
+    {
+        $tahun = \App\Models\PengaturanSekolah::getActiveTahunAjaran();
+        $semester = \App\Models\PengaturanSekolah::getActiveSemester();
+
+        $hariUnikCount = \App\Models\JadwalPelajaran::where('guru_user_id', $this->id)
+            ->when($tahun, fn($q) => $q->where('tahun_ajaran', $tahun))
+            ->when($semester, fn($q) => $q->where('semester', $semester))
+            ->pluck('hari')
+            ->map(fn($h) => strtolower(trim($h)))
+            ->unique()
+            ->count();
+
+        if ($hariUnikCount > 0) {
+            return $hariUnikCount * 4; // 4 pekan per bulan
+        }
+
+        $jam = $this->total_jam_mengajar;
+        if ($jam > 0) {
+            return min(24, max(4, (int) ceil(($jam / 6) * 4)));
+        }
+
+        return 0;
+    }
+
+    /**
      * Ambil daftar Mata Pelajaran yang diampu guru ini berdasarkan:
      * 1. Jadwal Pelajaran aktif (jadwal_pelajarans)
      * 2. Penugasan Kurikulum aktif (kurikulums)

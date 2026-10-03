@@ -174,7 +174,9 @@
                             <td>
                                 @if($isGuru)
                                     <div class="text-emerald-700 fw-semibold">Rp {{ number_format($setting->transport_per_hari ?? 20000, 0, ',', '.') }}<span class="small text-slate-500">/hari</span></div>
-                                    <small class="text-slate-400" style="font-size: 0.72rem;">Sesuai kehadiran/KBM</small>
+                                    <small class="text-emerald-700 fw-medium">
+                                        <i class="bi bi-calendar-check"></i> {{ $setting->hari_transport_default ?: ($pegawai->total_hari_mengajar ?: 16) }} Hari DB
+                                    </small>
                                 @else
                                     <span class="text-emerald-700 fw-semibold">Rp {{ number_format($tunjKehadiran, 0, ',', '.') }}</span>
                                 @endif

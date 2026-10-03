@@ -71,12 +71,20 @@
                 <hr class="border-slate-200 my-3">
 
                 @if($user->role === 'guru')
-                    <div class="p-3 mb-3 bg-blue-50 rounded-3 border border-blue-200">
+                    <div class="p-3 mb-2 bg-blue-50 rounded-3 border border-blue-200">
                         <div class="d-flex align-items-center justify-content-between">
-                            <span class="small fw-semibold text-blue-800"><i class="bi bi-clock-history me-1"></i> Jam Mengajar Database:</span>
+                            <span class="small fw-semibold text-blue-800"><i class="bi bi-clock-history me-1"></i> Jam Mengajar:</span>
                             <span class="badge bg-primary fs-6">{{ $user->total_jam_mengajar }} Jam</span>
                         </div>
                         <small class="text-blue-600 d-block mt-1">Terhubung dari alokasi kurikulum & penugasan mengajar aktif.</small>
+                    </div>
+
+                    <div class="p-3 mb-3 bg-emerald-50 rounded-3 border border-emerald-200">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="small fw-semibold text-emerald-800"><i class="bi bi-calendar-check me-1"></i> Hari Hadir Mengajar:</span>
+                            <span class="badge bg-success fs-6">{{ $user->total_hari_mengajar }} Hari</span>
+                        </div>
+                        <small class="text-emerald-700 d-block mt-1">Jadwal hari aktif mengajar dalam sebulan (asumsi 4 pekan).</small>
                     </div>
                 @endif
 
@@ -110,7 +118,7 @@
                         Rp {{ number_format($setting->estimasiGajiBersihAttribute(), 0, ',', '.') }}
                     </div>
                     <small class="text-emerald-600 mt-1 d-block" style="font-size: 0.75rem;">
-                        * Estimasi bulanan berdasarkan jam penugasan, tunjangan tugas, dan asumsi 20 hari transport.
+                        * Estimasi bulanan berdasarkan jam penugasan, tunjangan tugas, dan transport kehadiran.
                     </small>
                 </div>
             </div>
@@ -131,7 +139,8 @@
                         <input type="hidden" name="gaji_pokok" id="input_gaji_pokok" value="0">
 
                         <div class="row g-3 mb-4">
-                            <div class="col-md-4">
+                            {{-- Pasangan 1: Honor per Jam & Jumlah Jam Mengajar --}}
+                            <div class="col-md-6">
                                 <label class="form-label text-slate-700 fw-medium small">Honor per Jam (Rp) <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
@@ -140,7 +149,7 @@
                                 <small class="text-slate-500">Standar honor per jam tatap muka</small>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label text-slate-700 fw-medium small">Jumlah Jam Mengajar <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <input type="number" name="jam_mengajar_default" id="input_jam_mengajar" class="form-control calc-trigger" value="{{ old('jam_mengajar_default', $setting->jam_mengajar_default) }}" required min="0">
@@ -156,16 +165,33 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label text-slate-700 fw-medium small">Uang Transport per Hari Hadir (Rp) <span class="text-danger">*</span></label>
+                            {{-- Pasangan 2: Transport per Hari & Jumlah Hari Mengajar --}}
+                            <div class="col-md-6">
+                                <label class="form-label text-slate-700 fw-medium small">Transport per Hari (Rp) <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
                                     <input type="number" name="transport_per_hari" id="input_transport_per_hari" class="form-control calc-trigger" value="{{ old('transport_per_hari', (int)($setting->transport_per_hari ?? 20000)) }}" required min="0">
                                 </div>
-                                <small class="text-slate-500">Dihitung otomatis dari tanggal unik kehadiran & laporan KBM</small>
+                                <small class="text-slate-500">Standar uang transport per hari hadir mengajar</small>
                             </div>
 
                             <div class="col-md-6">
+                                <label class="form-label text-slate-700 fw-medium small">Jumlah Hari Mengajar <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" name="hari_transport_default" id="input_hari_transport" class="form-control calc-trigger" value="{{ old('hari_transport_default', $setting->hari_transport_default ?: ($user->total_hari_mengajar ?: 16)) }}" required min="0" max="31">
+                                    <span class="input-group-text bg-light text-slate-600">Hari</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-1 mt-1">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.72rem;">
+                                        <i class="bi bi-link-45deg me-1"></i>Database: {{ $user->total_hari_mengajar }} Hari
+                                    </span>
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" style="font-size: 0.72rem;" onclick="document.getElementById('input_hari_transport').value = {{ $user->total_hari_mengajar }}; calculateTotals();">
+                                        Reset ke DB
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-md-12">
                                 <label class="form-label text-slate-700 fw-medium small">Tunjangan Lainnya / Insentif (Rp)</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light text-slate-600">Rp</span>
@@ -196,6 +222,7 @@
                             <input type="hidden" name="honor_per_jam" id="input_honor_per_jam" value="0">
                             <input type="hidden" name="jam_mengajar_default" id="input_jam_mengajar" value="0">
                             <input type="hidden" name="transport_per_hari" id="input_transport_per_hari" value="0">
+                            <input type="hidden" name="hari_transport_default" id="input_hari_transport" value="0">
 
                             <div class="col-md-6">
                                 <label class="form-label text-slate-700 fw-medium small">Tunjangan Lainnya (Rp)</label>
@@ -380,10 +407,11 @@ function calculateTotals() {
         const honorPerJam = parseFloat(document.getElementById('input_honor_per_jam')?.value) || 0;
         const jamMengajar = parseFloat(document.getElementById('input_jam_mengajar')?.value) || 0;
         const transportPerHari = parseFloat(document.getElementById('input_transport_per_hari')?.value) || 0;
+        const hariTransport = parseFloat(document.getElementById('input_hari_transport')?.value) || 0;
         const tunjanganLain = parseFloat(document.getElementById('input_tunjangan_lain')?.value) || 0;
 
-        // Honor jam + transport (estimasi 20 hari) + tunjangan tugas + tunjangan lain
-        totalPenerimaan = (honorPerJam * jamMengajar) + (transportPerHari * 20) + totalTugas + tunjanganLain;
+        // Honor jam + transport (hari mengajar x transport per hari) + tunjangan tugas + tunjangan lain
+        totalPenerimaan = (honorPerJam * jamMengajar) + (transportPerHari * hariTransport) + totalTugas + tunjanganLain;
     } else {
         const gajiPokok = parseFloat(document.getElementById('input_gaji_pokok')?.value) || 0;
         const tunjanganKehadiran = parseFloat(document.getElementById('input_tunjangan_kehadiran')?.value) || 0;

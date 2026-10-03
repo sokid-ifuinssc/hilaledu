@@ -42,26 +42,33 @@ class PayrollSettingController extends Controller
 
         $isGuru = $user->role === 'guru';
         $jamPenugasan = $isGuru ? $user->total_jam_mengajar : 0;
+        $hariPenugasan = $isGuru ? $user->total_hari_mengajar : 0;
 
         $setting = $user->payrollSetting ?? new PayrollSetting([
-            'user_id'              => $user->id,
-            'gaji_pokok'           => $isGuru ? 0 : 1800000,
-            'honor_per_jam'        => $isGuru ? 35000 : 0,
-            'jam_mengajar_default' => $jamPenugasan ?: ($isGuru ? 24 : 0),
-            'tunjangan_jabatan'    => 0,
+            'user_id'                => $user->id,
+            'gaji_pokok'             => $isGuru ? 0 : 1800000,
+            'honor_per_jam'          => $isGuru ? 35000 : 0,
+            'jam_mengajar_default'   => $jamPenugasan ?: ($isGuru ? 24 : 0),
+            'tunjangan_jabatan'      => 0,
             'detail_tunjangan_tugas' => [],
-            'tunjangan_kehadiran'  => $isGuru ? 0 : 250000,
-            'transport_per_hari'   => 20000,
-            'tunjangan_lain'       => 0,
-            'potongan_bpjs'        => 45000,
-            'potongan_koperasi'    => 50000,
-            'potongan_lain'        => 25000,
-            'atas_nama_rekening'   => $user->name,
+            'tunjangan_kehadiran'    => $isGuru ? 0 : 250000,
+            'transport_per_hari'     => 20000,
+            'hari_transport_default' => $hariPenugasan ?: ($isGuru ? 16 : 0),
+            'tunjangan_lain'         => 0,
+            'potongan_bpjs'          => 45000,
+            'potongan_koperasi'      => 50000,
+            'potongan_lain'          => 25000,
+            'atas_nama_rekening'     => $user->name,
         ]);
 
-        // Jika guru dan jam penugasan ditemukan di database, sinkronkan nilai default jam mengajar
-        if ($isGuru && $jamPenugasan > 0) {
+        // Jika guru dan jam penugasan ditemukan di database, sinkronkan nilai default jam mengajar jika belum diset
+        if ($isGuru && $jamPenugasan > 0 && !$setting->exists) {
             $setting->jam_mengajar_default = $jamPenugasan;
+        }
+
+        // Jika guru dan hari penugasan ditemukan di database, sinkronkan nilai default hari transport jika belum ada
+        if ($isGuru && empty($setting->hari_transport_default)) {
+            $setting->hari_transport_default = $hariPenugasan ?: 16;
         }
 
         // Untuk guru, pastikan gaji pokok bernilai 0
@@ -85,6 +92,7 @@ class PayrollSettingController extends Controller
             'honor_per_jam'           => 'required|numeric|min:0',
             'jam_mengajar_default'    => 'required|integer|min:0',
             'transport_per_hari'      => 'nullable|numeric|min:0',
+            'hari_transport_default'  => 'nullable|integer|min:0|max:31',
             'tunjangan_lain'          => 'nullable|numeric|min:0',
             'potongan_bpjs'           => 'nullable|numeric|min:0',
             'potongan_koperasi'       => 'nullable|numeric|min:0',
@@ -142,6 +150,7 @@ class PayrollSettingController extends Controller
         $validated['detail_tunjangan_tugas'] = $detailTugas;
         $validated['tunjangan_jabatan']      = $totalTunjanganJabatan;
         $validated['transport_per_hari']     = $validated['transport_per_hari'] ?? 20000;
+        $validated['hari_transport_default'] = $validated['hari_transport_default'] ?? ($isGuru ? ($user->total_hari_mengajar ?: 16) : 0);
         $validated['tunjangan_lain']         = $validated['tunjangan_lain'] ?? 0;
         $validated['potongan_bpjs']          = $validated['potongan_bpjs'] ?? 0;
         $validated['potongan_koperasi']      = $validated['potongan_koperasi'] ?? 0;

@@ -134,6 +134,7 @@ class PayrollPeriodeController extends Controller
                         'detail_tunjangan_tugas' => [],
                         'tunjangan_kehadiran'  => $isGuru ? 0 : 250000,
                         'transport_per_hari'   => 20000,
+                        'hari_transport_default' => $isGuru ? ($pegawai->total_hari_mengajar ?: 16) : 0,
                         'tunjangan_lain'       => 0,
                         'potongan_bpjs'        => 45000,
                         'potongan_koperasi'    => 50000,

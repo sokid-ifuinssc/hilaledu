@@ -19,6 +19,7 @@ class PayrollSetting extends Model
         'detail_tunjangan_tugas',
         'tunjangan_kehadiran',
         'transport_per_hari',
+        'hari_transport_default',
         'tunjangan_lain',
         'potongan_bpjs',
         'potongan_koperasi',
@@ -39,6 +40,7 @@ class PayrollSetting extends Model
             'detail_tunjangan_tugas'  => 'array',
             'tunjangan_kehadiran'     => 'decimal:2',
             'transport_per_hari'      => 'decimal:2',
+            'hari_transport_default'  => 'integer',
             'tunjangan_lain'          => 'decimal:2',
             'potongan_bpjs'           => 'decimal:2',
             'potongan_koperasi'       => 'decimal:2',
@@ -73,9 +75,10 @@ class PayrollSetting extends Model
         if ($isGuru) {
             // Untuk guru, gaji pokok ditiadakan (0), diambil dari jam mengajar x honor per jam
             $honorJam = (float) $this->honor_per_jam * (int) $this->jam_mengajar_default;
-            // Estimasi transport: hari kerja standar (asumsi 20 hari) x tarif transport per hari
+            // Estimasi transport: hari mengajar x tarif transport per hari
             $transportPerHari = (float) ($this->transport_per_hari ?? 20000);
-            $transport = $transportPerHari * 20;
+            $hariTransport = (int) ($this->hari_transport_default ?: ($this->user?->total_hari_mengajar ?: 16));
+            $transport = $transportPerHari * $hariTransport;
 
             return $honorJam + (float) $this->tunjangan_jabatan + $transport + (float) $this->tunjangan_lain;
         }
@@ -121,15 +124,16 @@ class PayrollSetting extends Model
         $setting = self::firstOrNew(['user_id' => $user->id]);
         if (!$setting->exists) {
             $isGuru = $user->role === 'guru';
-            $setting->gaji_pokok           = $isGuru ? 0 : 1800000;
-            $setting->honor_per_jam        = $isGuru ? 35000 : 0;
-            $setting->jam_mengajar_default = $isGuru ? ($user->total_jam_mengajar ?: 24) : 0;
-            $setting->tunjangan_kehadiran  = $isGuru ? 0 : 250000;
-            $setting->transport_per_hari   = 20000;
-            $setting->potongan_bpjs        = 45000;
-            $setting->potongan_koperasi    = 50000;
-            $setting->potongan_lain        = 25000;
-            $setting->atas_nama_rekening   = $user->name;
+            $setting->gaji_pokok              = $isGuru ? 0 : 1800000;
+            $setting->honor_per_jam           = $isGuru ? 35000 : 0;
+            $setting->jam_mengajar_default    = $isGuru ? ($user->total_jam_mengajar ?: 24) : 0;
+            $setting->tunjangan_kehadiran     = $isGuru ? 0 : 250000;
+            $setting->transport_per_hari      = 20000;
+            $setting->hari_transport_default  = $isGuru ? ($user->total_hari_mengajar ?: 16) : 0;
+            $setting->potongan_bpjs           = 45000;
+            $setting->potongan_koperasi       = 50000;
+            $setting->potongan_lain           = 25000;
+            $setting->atas_nama_rekening      = $user->name;
         }
 
         // Jika belum ada detail_tunjangan_tugas, buat mapping awal

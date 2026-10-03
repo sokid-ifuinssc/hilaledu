@@ -140,4 +140,38 @@ class DatabaseController extends Controller
         return redirect()->route('superadmin.database.index')
             ->with('error', "Gagal menghapus file backup '{$file}'.");
     }
+
+    /**
+     * Jalankan migrasi database (php artisan migrate) via web untuk SuperAdmin
+     */
+    public function runMigration(Request $request)
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $output = \Illuminate\Support\Facades\Artisan::output();
+
+            return redirect()->route('superadmin.database.index')
+                ->with('success', 'Migrasi struktur database berhasil dijalankan! ' . nl2br(trim($output)));
+        } catch (\Throwable $e) {
+            return redirect()->route('superadmin.database.index')
+                ->with('error', 'Gagal menjalankan migrasi database: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Akses direct GET untuk SuperAdmin jika butuh eksekusi cepat dari browser
+     */
+    public function runMigrationDirect()
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $output = \Illuminate\Support\Facades\Artisan::output();
+
+            return redirect()->back()
+                ->with('success', 'Migrasi struktur database berhasil diperbarui! ' . nl2br(trim($output)));
+        } catch (\Throwable $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal menjalankan migrasi database: ' . $e->getMessage());
+        }
+    }
 }

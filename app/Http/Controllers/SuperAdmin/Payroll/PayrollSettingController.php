@@ -12,6 +12,8 @@ class PayrollSettingController extends Controller
 {
     public function index(Request $request)
     {
+        PayrollSetting::ensureColumnsExist();
+
         $query = User::whereIn('role', ['guru', 'tendik'])->with('payrollSetting');
 
         if ($request->filled('role')) {
@@ -75,6 +77,8 @@ class PayrollSettingController extends Controller
         if (!in_array($user->role, ['guru', 'tendik'])) {
             abort(404, 'Pengguna bukan guru atau tendik.');
         }
+
+        PayrollSetting::ensureColumnsExist();
 
         $isGuru = $user->role === 'guru';
         $jamPenugasan = $isGuru ? $user->total_jam_mengajar : 0;
@@ -302,6 +306,19 @@ class PayrollSettingController extends Controller
         $validated['potongan_bpjs']          = $validated['potongan_bpjs'] ?? 0;
         $validated['potongan_koperasi']      = $validated['potongan_koperasi'] ?? 0;
         $validated['potongan_lain']          = $validated['potongan_lain'] ?? 0;
+
+        PayrollSetting::ensureColumnsExist();
+
+        // Safety: buang field jika kolom belum ada di database (mencegah error 1054 Unknown column jika migrasi hosting belum jalan)
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'hari_transport_default')) {
+            unset($validated['hari_transport_default']);
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'transport_per_hari')) {
+            unset($validated['transport_per_hari']);
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'detail_tunjangan_tugas')) {
+            unset($validated['detail_tunjangan_tugas']);
+        }
 
         $setting = PayrollSetting::updateOrCreate(
             ['user_id' => $user->id],

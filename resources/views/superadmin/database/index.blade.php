@@ -138,7 +138,13 @@
             Kelola salinan cadangan (backup) database dan pemulihan (restore) sistem HilalEdu
         </p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
+        <form method="POST" action="{{ route('superadmin.database.migrate') }}" onsubmit="return confirm('Jalankan pembaharuan struktur tabel database (php artisan migrate)? Tindakan ini aman dan akan memperbarui kolom-kolom baru.');">
+            @csrf
+            <button type="submit" class="btn btn-outline-info text-light d-inline-flex align-items-center gap-2" style="padding:10px 18px;font-size:0.85rem;border-radius:14px;border:1px solid rgba(52,152,219,0.5);background:rgba(52,152,219,0.15);">
+                <i class="bi bi-arrow-repeat"></i> Perbarui Struktur Tabel (Migrate)
+            </button>
+        </form>
         <a href="{{ route('superadmin.database.export') }}" class="btn-cta-export" style="padding:10px 18px;font-size:0.85rem;">
             <i class="bi bi-download"></i> Ekspor Database Terbaru
         </a>

@@ -458,4 +458,18 @@ class PayrollSystemTest extends TestCase
         $keuanganRes->assertSee('Kepala Sekolah');
         $keuanganRes->assertSee('Bendahara Sekolah');
     }
+
+    public function test_self_healing_schema_and_migration_routes(): void
+    {
+        // Test ensureColumnsExist on models
+        \App\Models\Payroll\PayrollSetting::ensureColumnsExist();
+        \App\Models\Payroll\PayrollPeriode::ensureColumnsExist();
+
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'hari_transport_default'));
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumn('payroll_periodes', 'tampil_ke_guru'));
+
+        // Test running migration via web route
+        $res = $this->actingAs($this->superadmin)->get(route('superadmin.database.run_migrate'));
+        $res->assertStatus(302);
+    }
 }

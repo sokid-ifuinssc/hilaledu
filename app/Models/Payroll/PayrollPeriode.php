@@ -75,4 +75,37 @@ class PayrollPeriode extends Model
         $this->total_dibayarkan = $this->payrolls()->sum('gaji_bersih');
         $this->save();
     }
+
+    /**
+     * Memastikan kolom tampil_ke_guru sudah ada di tabel payroll_periodes (Self-Healing Schema).
+     * Mencegah 1054 Unknown column jika migrasi di hosting belum dijalankan.
+     */
+    public static function ensureColumnsExist(): void
+    {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('payroll_periodes')) {
+                return;
+            }
+
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('payroll_periodes', 'tampil_ke_guru')) {
+                \Illuminate\Support\Facades\Schema::table('payroll_periodes', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->boolean('tampil_ke_guru')->default(true)->after('status');
+                });
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('PayrollPeriode schema check: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Scope untuk mengambil periode yang diizinkan tampil ke guru secara aman.
+     */
+    public function scopeTampilGuru($query)
+    {
+        self::ensureColumnsExist();
+        if (\Illuminate\Support\Facades\Schema::hasColumn('payroll_periodes', 'tampil_ke_guru')) {
+            return $query->where('payroll_periodes.tampil_ke_guru', true);
+        }
+        return $query;
+    }
 }

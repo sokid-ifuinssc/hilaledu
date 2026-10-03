@@ -263,10 +263,44 @@ class PayrollSetting extends Model
     }
 
     /**
+     * Memastikan kolom-kolom penting di tabel payroll_settings sudah ada (Self-Healing Schema).
+     * Mencegah 1054 Unknown column jika migrasi di server hosting belum dijalankan.
+     */
+    public static function ensureColumnsExist(): void
+    {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('payroll_settings')) {
+                return;
+            }
+
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'transport_per_hari')) {
+                \Illuminate\Support\Facades\Schema::table('payroll_settings', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->decimal('transport_per_hari', 12, 2)->default(0)->after('tunjangan_kehadiran');
+                });
+            }
+
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'detail_tunjangan_tugas')) {
+                \Illuminate\Support\Facades\Schema::table('payroll_settings', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->json('detail_tunjangan_tugas')->nullable()->after('tunjangan_jabatan');
+                });
+            }
+
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'hari_transport_default')) {
+                \Illuminate\Support\Facades\Schema::table('payroll_settings', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->integer('hari_transport_default')->nullable()->default(0)->after('transport_per_hari');
+                });
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('PayrollSetting schema check: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Sinkronkan seluruh pegawai dari master komponen
      */
     public static function syncAllFromMasterKomponen(bool $forceUpdateMaster = true): int
     {
+        self::ensureColumnsExist();
         $pegawais = User::whereIn('role', ['guru', 'tendik'])->get();
         $count = 0;
         foreach ($pegawais as $pegawai) {

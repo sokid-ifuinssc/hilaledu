@@ -199,6 +199,8 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
         Route::get('/',                 [DatabaseController::class, 'index'])->name('index');
         Route::get('/export',           [DatabaseController::class, 'export'])->name('export');
         Route::post('/import',          [DatabaseController::class, 'import'])->name('import');
+        Route::post('/migrate',         [DatabaseController::class, 'runMigration'])->name('migrate');
+        Route::get('/run-migrate',      [DatabaseController::class, 'runMigrationDirect'])->name('run_migrate');
         Route::get('/download/{file}',  [DatabaseController::class, 'downloadBackup'])->name('download');
         Route::delete('/delete/{file}', [DatabaseController::class, 'deleteBackup'])->name('delete');
         Route::post('/restore/{file}',  [DatabaseController::class, 'restoreBackup'])->name('restore');

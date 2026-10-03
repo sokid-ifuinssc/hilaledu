@@ -17,6 +17,8 @@ class PayrollPeriodeController extends Controller
 {
     public function index()
     {
+        PayrollPeriode::ensureColumnsExist();
+
         $periodes = PayrollPeriode::withCount('payrolls')
             ->orderByDesc('tahun')
             ->orderByDesc('bulan')
@@ -517,6 +519,12 @@ class PayrollPeriodeController extends Controller
      */
     public function toggleTampilGuru(PayrollPeriode $periode)
     {
+        PayrollPeriode::ensureColumnsExist();
+
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('payroll_periodes', 'tampil_ke_guru')) {
+            return back()->with('error', 'Kolom pengaturan visibilitas belum tersedia di database. Mohon jalankan migrasi database.');
+        }
+
         $periode->tampil_ke_guru = !$periode->tampil_ke_guru;
         $periode->save();
 

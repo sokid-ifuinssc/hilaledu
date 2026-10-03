@@ -16,14 +16,23 @@ class GuruPayrollController extends Controller
     {
         $user = auth()->user();
 
+        \App\Models\Payroll\PayrollSetting::ensureColumnsExist();
+        \App\Models\Payroll\PayrollPeriode::ensureColumnsExist();
+
         // Sinkronkan payroll guru hanya untuk periode yang diizinkan tampil ke guru
         $this->syncGuruPayrolls($user);
 
+        $hasTampilGuru = \Illuminate\Support\Facades\Schema::hasColumn('payroll_periodes', 'tampil_ke_guru');
+
         $query = Payroll::where('user_id', $user->id)
             ->with(['periode', 'items'])
-            ->join('payroll_periodes', 'payrolls.payroll_periode_id', '=', 'payroll_periodes.id')
-            ->where('payroll_periodes.tampil_ke_guru', true)
-            ->orderByDesc('payroll_periodes.tahun')
+            ->join('payroll_periodes', 'payrolls.payroll_periode_id', '=', 'payroll_periodes.id');
+
+        if ($hasTampilGuru) {
+            $query->where('payroll_periodes.tampil_ke_guru', true);
+        }
+
+        $query->orderByDesc('payroll_periodes.tahun')
             ->orderByDesc('payroll_periodes.bulan')
             ->select('payrolls.*');
 
@@ -46,11 +55,15 @@ class GuruPayrollController extends Controller
 
         $setting = $user->payrollSetting;
 
-        $totalDiterima = Payroll::where('user_id', $user->id)
+        $totalDiterimaQuery = Payroll::where('user_id', $user->id)
             ->whereIn('payrolls.status', ['approved', 'paid'])
-            ->join('payroll_periodes', 'payrolls.payroll_periode_id', '=', 'payroll_periodes.id')
-            ->where('payroll_periodes.tampil_ke_guru', true)
-            ->sum('gaji_bersih');
+            ->join('payroll_periodes', 'payrolls.payroll_periode_id', '=', 'payroll_periodes.id');
+
+        if ($hasTampilGuru) {
+            $totalDiterimaQuery->where('payroll_periodes.tampil_ke_guru', true);
+        }
+
+        $totalDiterima = $totalDiterimaQuery->sum('gaji_bersih');
 
         return view('guru.payroll.index', compact('payrolls', 'setting', 'totalDiterima'));
     }
@@ -61,15 +74,22 @@ class GuruPayrollController extends Controller
      */
     private function syncGuruPayrolls($user): void
     {
+        \App\Models\Payroll\PayrollSetting::ensureColumnsExist();
+        \App\Models\Payroll\PayrollPeriode::ensureColumnsExist();
+
         $setting = $user->payrollSetting;
         if (!$setting) {
             $setting = \App\Models\Payroll\PayrollSetting::syncTunjanganForUser($user);
         }
 
-        $periodes = \App\Models\Payroll\PayrollPeriode::where('tampil_ke_guru', true)
-            ->orderByDesc('tahun')
-            ->orderByDesc('bulan')
-            ->get();
+        $hasTampilGuru = \Illuminate\Support\Facades\Schema::hasColumn('payroll_periodes', 'tampil_ke_guru');
+
+        $periodeQuery = \App\Models\Payroll\PayrollPeriode::orderByDesc('tahun')->orderByDesc('bulan');
+        if ($hasTampilGuru) {
+            $periodeQuery->where('tampil_ke_guru', true);
+        }
+
+        $periodes = $periodeQuery->get();
 
         foreach ($periodes as $periode) {
             $payroll = Payroll::firstOrNew([
@@ -237,7 +257,7 @@ class GuruPayrollController extends Controller
             abort(403, 'Anda tidak berhak melihat slip gaji orang lain.');
         }
 
-        if ($payroll->periode && !$payroll->periode->tampil_ke_guru) {
+        if ($payroll->periode && isset($payroll->periode->tampil_ke_guru) && !$payroll->periode->tampil_ke_guru) {
             abort(403, 'Periode slip gaji ini sedang disembunyikan atau belum dipublikasikan oleh pengelola.');
         }
 

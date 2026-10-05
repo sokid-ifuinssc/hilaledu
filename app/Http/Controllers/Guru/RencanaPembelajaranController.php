@@ -11,6 +11,7 @@ use App\Models\AlurTujuanPembelajaran;
 use App\Models\RencanaPembelajaran;
 use App\Models\JadwalPelajaran;
 use App\Models\MataPelajaran;
+use App\Models\PengaturanSekolah;
 
 class RencanaPembelajaranController extends Controller
 {
@@ -457,5 +458,89 @@ class RencanaPembelajaranController extends Controller
         $rencana->delete();
         return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'rpp', 'mapel_id' => $request->mapel_id ?? ($rencana->jadwal->mata_pelajaran_id ?? ''), 'tingkat' => $request->tingkat ?? 'X'])
             ->with('success', 'Rencana Pembelajaran berhasil dihapus.');
+    }
+
+    /**
+     * Cetak dokumen lengkap Rencana Pembelajaran (Kurikulum Merdeka: CP, TP, ATP, Modul Ajar Harian)
+     */
+    public function printRencana(Request $request)
+    {
+        $user = Auth::user();
+        $selectedMapelId = $request->query('mapel_id');
+        $selectedTingkat = $request->query('tingkat', 'X');
+        $semester = $request->query('semester'); // ganjil / genap / all
+
+        $setting = PengaturanSekolah::getSetting();
+        $activeKalender = \App\Models\KalenderAkademik::where('is_aktif', true)->first() 
+            ?: \App\Models\KalenderAkademik::getActiveCalendar();
+
+        $tahunAjaran = $request->query('tahun_ajaran') ?: ($activeKalender?->tahun_ajaran ?? '2024/2025');
+
+        $mapel = MataPelajaran::find($selectedMapelId);
+        if (!$mapel) {
+            return redirect()->route('guru.rencana-pembelajaran.index')
+                ->with('error', 'Mata Pelajaran tidak ditemukan untuk dicetak.');
+        }
+
+        $tingkat = $selectedTingkat;
+        $fase = in_array($tingkat, ['XI', 'XII']) ? 'F' : 'E';
+
+        // 1. Capaian Pembelajaran (CP)
+        $cpList = CapaianPembelajaran::with(['tujuanPembelajaran'])
+            ->where('guru_user_id', $user->id)
+            ->where('mata_pelajaran_id', $selectedMapelId)
+            ->where('tingkat', $tingkat)
+            ->when($semester, fn($q) => $q->where('semester', $semester))
+            ->orderBy('elemen')
+            ->get();
+
+        // 2. Tujuan Pembelajaran (TP)
+        $tpList = TujuanPembelajaran::whereHas('capaianPembelajaran', function ($q) use ($user, $selectedMapelId, $tingkat, $semester) {
+                $q->where('guru_user_id', $user->id)
+                  ->where('mata_pelajaran_id', $selectedMapelId)
+                  ->where('tingkat', $tingkat)
+                  ->when($semester, fn($sq) => $sq->where('semester', $semester));
+            })
+            ->with('capaianPembelajaran')
+            ->orderBy('kode_tp')
+            ->get();
+
+        // 3. Alur Tujuan Pembelajaran (ATP)
+        $atpList = AlurTujuanPembelajaran::with(['tujuanPembelajaran', 'capaianPembelajaran'])
+            ->where('guru_user_id', $user->id)
+            ->where('mata_pelajaran_id', $selectedMapelId)
+            ->where('tingkat', $tingkat)
+            ->when($semester, fn($q) => $q->where('semester', $semester))
+            ->orderBy('semester')
+            ->orderBy('alur_ke')
+            ->get();
+
+        // 4. Modul Ajar Harian (RPP)
+        $rppList = RencanaPembelajaran::with(['jadwal.mataPelajaran', 'tujuanPembelajaran'])
+            ->where('guru_user_id', $user->id)
+            ->whereHas('jadwal', function($q) use ($selectedMapelId, $tingkat) {
+                $q->where('mata_pelajaran_id', $selectedMapelId)
+                  ->where(function($q2) use ($tingkat) {
+                      $q2->where('kelas', 'LIKE', $tingkat . ' %')
+                         ->orWhere('kelas', 'LIKE', $tingkat);
+                  });
+            })
+            ->orderBy('pertemuan_ke', 'asc')
+            ->get();
+
+        return view('guru.rencana_pembelajaran.print', compact(
+            'user',
+            'setting',
+            'activeKalender',
+            'mapel',
+            'tingkat',
+            'fase',
+            'tahunAjaran',
+            'semester',
+            'cpList',
+            'tpList',
+            'atpList',
+            'rppList'
+        ));
     }
 }

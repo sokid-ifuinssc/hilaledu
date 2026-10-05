@@ -22,7 +22,11 @@
                 Alur Kurikulum Merdeka: 1. CP &rarr; 2. TP &rarr; 3. ATP &rarr; 4. Modul Ajar Harian (RPP)
             </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route('guru.rencana-pembelajaran.print', ['mapel_id' => $selectedMapelId, 'tingkat' => $selectedTingkat]) }}" target="_blank" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 transition">
+                <i class="bi-printer text-sm"></i>
+                <span>Cetak Rencana Pembelajaran</span>
+            </a>
             <a href="{{ route('guru.rencana-pembelajaran.rpp.create', ['mapel_id' => $selectedMapelId, 'tingkat' => $selectedTingkat]) }}" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-blue-600/20 transition">
                 <i class="bi-plus-circle text-sm"></i>
                 <span>Buat Modul Ajar Harian (RPP)</span>

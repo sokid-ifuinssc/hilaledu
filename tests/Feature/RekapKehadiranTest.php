@@ -255,5 +255,118 @@ class RekapKehadiranTest extends TestCase
         $resRppGenap->assertStatus(200);
         $resRppGenap->assertSee('Semester Genap (Jan - Jun)');
     }
+
+    public function test_cetak_rencana_pembelajaran_dan_rekap_kbm()
+    {
+        $guru = User::factory()->create([
+            'role' => 'guru',
+            'name' => 'Guru Cetak Test',
+            'is_active' => true,
+        ]);
+
+        $mapel = \App\Models\MataPelajaran::firstOrCreate(
+            ['kode' => 'TEST_CETAK_01'],
+            ['nama' => 'Mata Pelajaran Uji Cetak', 'tingkat' => 'X', 'kelompok' => 'kejuruan']
+        );
+
+        $jadwal = \App\Models\JadwalPelajaran::create([
+            'mata_pelajaran_id' => $mapel->id,
+            'guru_user_id'      => $guru->id,
+            'kelas'             => 'X TKJ 1',
+            'hari'              => 'Senin',
+            'jam_mulai'         => '07:30',
+            'jam_selesai'       => '09:00',
+            'ruang'             => 'Lab 1',
+        ]);
+
+        $cp = \App\Models\CapaianPembelajaran::create([
+            'guru_user_id'      => $guru->id,
+            'mata_pelajaran_id' => $mapel->id,
+            'fase'              => 'E',
+            'tingkat'           => 'X',
+            'elemen'            => 'Elemen Jaringan Komputer',
+            'deskripsi'         => 'Peserta didik mampu memahami dasar-dasar jaringan komputer.',
+            'tahun_ajaran'      => '2024/2025',
+            'semester'          => 'ganjil',
+        ]);
+
+        $tp = \App\Models\TujuanPembelajaran::create([
+            'capaian_pembelajaran_id' => $cp->id,
+            'kode_tp'                 => 'TP.1.1',
+            'deskripsi'               => 'Menjelaskan konsep dasar TCP/IP.',
+            'materi'                  => 'Dasar Jaringan',
+            'perkiraan_jp'            => 4,
+        ]);
+
+        $atp = \App\Models\AlurTujuanPembelajaran::create([
+            'guru_user_id'           => $guru->id,
+            'mata_pelajaran_id'      => $mapel->id,
+            'capaian_pembelajaran_id'=> $cp->id,
+            'tujuan_pembelajaran_id' => $tp->id,
+            'kode_atp'               => 'ATP.1.1',
+            'alur_ke'                => 1,
+            'fase'                   => 'E',
+            'tingkat'                => 'X',
+            'semester'               => 'ganjil',
+            'materi_pokok'           => 'Dasar Jaringan',
+            'perkiraan_jp'           => 4,
+        ]);
+
+        $rpp = \App\Models\RencanaPembelajaran::create([
+            'jadwal_pelajaran_id'   => $jadwal->id,
+            'guru_user_id'          => $guru->id,
+            'tujuan_pembelajaran_id'=> $tp->id,
+            'pertemuan_ke'          => 1,
+            'tanggal_rencana'       => '2026-10-06',
+            'materi_pokok'          => 'Pengenalan Jaringan dan IP Address',
+            'aktivitas_pendahuluan' => 'Apersepsi dan pembagian kelompok',
+            'aktivitas_inti'        => 'Praktik konfigurasi IP',
+            'aktivitas_penutup'     => 'Refleksi dan kesimpulan',
+        ]);
+
+        // 1. Cetak Rencana Pembelajaran
+        $resCetakRencana = $this->actingAs($guru)->get(route('guru.rencana-pembelajaran.print', [
+            'mapel_id' => $mapel->id,
+            'tingkat'  => 'X',
+        ]));
+        $resCetakRencana->assertStatus(200);
+        $resCetakRencana->assertSee('PERANGKAT RENCANA PEMBELAJARAN');
+        $resCetakRencana->assertSee('Mata Pelajaran Uji Cetak');
+        $resCetakRencana->assertSee('Elemen Jaringan Komputer');
+        $resCetakRencana->assertSee('TP.1.1');
+        $resCetakRencana->assertSee('Pengenalan Jaringan dan IP Address');
+        $resCetakRencana->assertSee('Muhammad Mansyur, S.Pt');
+
+        // Buat Laporan KBM untuk pengujian cetak laporan
+        $laporanKbm = \App\Models\LaporanKbm::create([
+            'guru_user_id'             => $guru->id,
+            'jadwal_pelajaran_id'      => $jadwal->id,
+            'rencana_pembelajaran_id'  => $rpp->id,
+            'tanggal_realisasi'        => '2026-10-06',
+            'kesesuaian_rencana'       => 'sesuai',
+            'status_pelaksanaan'       => 'sesuai_jadwal',
+            'catatan_kegiatan'         => 'KBM berlangsung aktif dan lancar.',
+            'jumlah_siswa_hadir'       => 20,
+            'jumlah_siswa_tidak_hadir' => 0,
+            'jumlah_siswa_total'       => 20,
+        ]);
+
+        // 2. Cetak Laporan KBM Satuan
+        $resCetakLaporan = $this->actingAs($guru)->get(route('guru.laporan-kbm.print', $laporanKbm));
+        $resCetakLaporan->assertStatus(200);
+        $resCetakLaporan->assertSee('JURNAL HARIAN REALISASI KBM & PRESENSI SISWA', false);
+        $resCetakLaporan->assertSee('Mata Pelajaran Uji Cetak');
+        $resCetakLaporan->assertSee('Muhammad Mansyur, S.Pt');
+
+        // 3. Cetak Rekapitulasi Jurnal KBM
+        $resCetakRekap = $this->actingAs($guru)->get(route('guru.laporan-kbm.rekap.print', [
+            'kelas' => 'X TKJ 1',
+        ]));
+        $resCetakRekap->assertStatus(200);
+        $resCetakRekap->assertSee('BUKU JURNAL & REKAPITULASI PELAKSANAAN KBM', false);
+        $resCetakRekap->assertSee('X TKJ 1');
+        $resCetakRekap->assertSee('Muhammad Mansyur, S.Pt');
+    }
 }
+
 

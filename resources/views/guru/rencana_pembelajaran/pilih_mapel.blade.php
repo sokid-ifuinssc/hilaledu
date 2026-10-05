@@ -91,9 +91,15 @@
                 <p class="text-[11px] text-slate-500 mb-4">
                     Susun perangkat CP, TP, ATP, dan Modul Ajar khusus untuk kelas tingkat ini.
                 </p>
-                <a href="{{ route('guru.rencana-pembelajaran.index', ['mapel_id' => $mapel['mata_pelajaran_id'], 'tingkat' => $mapel['tingkat']]) }}" class="block text-center w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition">
-                    Kelola Perangkat &rarr;
-                </a>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('guru.rencana-pembelajaran.index', ['mapel_id' => $mapel['mata_pelajaran_id'], 'tingkat' => $mapel['tingkat']]) }}" class="flex-1 text-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition">
+                        Kelola Perangkat &rarr;
+                    </a>
+                    <a href="{{ route('guru.rencana-pembelajaran.print', ['mapel_id' => $mapel['mata_pelajaran_id'], 'tingkat' => $mapel['tingkat']]) }}" target="_blank" title="Cetak Rencana Pembelajaran" class="px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                        <i class="bi-printer"></i>
+                        <span>Cetak</span>
+                    </a>
+                </div>
             </div>
             @endforeach
         </div>

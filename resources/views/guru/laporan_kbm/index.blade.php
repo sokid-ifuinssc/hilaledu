@@ -14,7 +14,11 @@
             </h1>
             <p class="text-xs text-slate-500 mt-1">Catatan jurnal mengajar guru, evaluasi kesesuaian rencana, dan rekapitulasi kehadiran KBM</p>
         </div>
-        <div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route('guru.laporan-kbm.rekap.print', ['tanggal' => $tanggal, 'kelas' => $kelas]) }}" target="_blank" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-blue-600/20 transition">
+                <i class="bi-printer text-sm"></i>
+                <span>Cetak Rekap Jurnal KBM</span>
+            </a>
             <a href="{{ route('guru.laporan-kbm.create') }}" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 transition">
                 <i class="bi-plus-circle text-sm"></i>
                 <span>Input Laporan KBM Baru</span>

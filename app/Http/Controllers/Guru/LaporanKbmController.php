@@ -13,6 +13,7 @@ use App\Models\RencanaPembelajaran;
 use App\Models\Siswa;
 use App\Models\Kelas;
 use App\Models\User;
+use App\Models\PengaturanSekolah;
 
 class LaporanKbmController extends Controller
 {
@@ -177,7 +178,62 @@ class LaporanKbmController extends Controller
     public function print(LaporanKbm $laporanKbm)
     {
         $laporanKbm->load(['jadwal.mataPelajaran', 'rencana', 'guru', 'presensiSiswa.siswa']);
-        return view('guru.laporan_kbm.print', compact('laporanKbm'));
+        $setting = PengaturanSekolah::getSetting();
+        return view('guru.laporan_kbm.print', compact('laporanKbm', 'setting'));
+    }
+
+    /**
+     * Cetak Rekapitulasi Jurnal Pelaksanaan KBM & Presensi Siswa
+     */
+    public function printRekap(Request $request)
+    {
+        $user = Auth::user();
+        $tanggalMulai = $request->query('tanggal_mulai');
+        $tanggalSelesai = $request->query('tanggal_selesai');
+        $kelas = $request->query('kelas');
+        $mapelId = $request->query('mapel_id');
+        $bulan = $request->query('bulan'); // format Y-m
+
+        $query = LaporanKbm::with(['jadwal.mataPelajaran', 'rencana.tujuanPembelajaran', 'guru', 'presensiSiswa'])
+            ->orderBy('tanggal_realisasi', 'asc')
+            ->orderBy('created_at', 'asc');
+
+        if (!$user->isSuperAdmin() && !$user->isWakaKurikulum() && !$user->isKepalaSekolah()) {
+            $query->where('guru_user_id', $user->id);
+        } elseif ($request->query('guru_user_id')) {
+            $query->where('guru_user_id', $request->query('guru_user_id'));
+        }
+
+        if ($bulan) {
+            $query->where('tanggal_realisasi', 'like', $bulan . '%');
+        }
+        if ($tanggalMulai && $tanggalSelesai) {
+            $query->whereBetween('tanggal_realisasi', [$tanggalMulai, $tanggalSelesai]);
+        } elseif ($request->query('tanggal')) {
+            $query->where('tanggal_realisasi', $request->query('tanggal'));
+        }
+        if ($kelas) {
+            $query->whereHas('jadwal', fn($q) => $q->where('kelas', $kelas));
+        }
+        if ($mapelId) {
+            $query->whereHas('jadwal', fn($q) => $q->where('mata_pelajaran_id', $mapelId));
+        }
+
+        $laporans = $query->get();
+        $setting = PengaturanSekolah::getSetting();
+        $selectedMapel = $mapelId ? \App\Models\MataPelajaran::find($mapelId) : null;
+
+        return view('guru.laporan_kbm.print_rekap', compact(
+            'laporans',
+            'user',
+            'setting',
+            'kelas',
+            'mapelId',
+            'selectedMapel',
+            'bulan',
+            'tanggalMulai',
+            'tanggalSelesai'
+        ));
     }
 
     public function destroy(LaporanKbm $laporanKbm)

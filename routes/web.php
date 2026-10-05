@@ -428,6 +428,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/rencana-pembelajaran/atp', [RencanaPembelajaranController::class, 'storeAtp'])->name('rencana-pembelajaran.atp.store');
         Route::delete('/rencana-pembelajaran/atp/{atp}', [RencanaPembelajaranController::class, 'destroyAtp'])->name('rencana-pembelajaran.atp.destroy');
         Route::post('/rencana-pembelajaran/atp/generate', [RencanaPembelajaranController::class, 'generateAtpFromTp'])->name('rencana-pembelajaran.atp.generate');
+        Route::get('/rencana-pembelajaran/print', [RencanaPembelajaranController::class, 'printRencana'])->name('rencana-pembelajaran.print');
         Route::get('/rencana-pembelajaran/rpp/create', [RencanaPembelajaranController::class, 'createRpp'])->name('rencana-pembelajaran.rpp.create');
         Route::post('/rencana-pembelajaran/rpp', [RencanaPembelajaranController::class, 'storeRpp'])->name('rencana-pembelajaran.rpp.store');
         Route::get('/rencana-pembelajaran/rpp/{rencana}', [RencanaPembelajaranController::class, 'showRpp'])->name('rencana-pembelajaran.rpp.show');
@@ -435,6 +436,7 @@ Route::middleware('auth')->group(function () {
 
         // 3. Menu Laporan KBM (Realisasi Pembelajaran & Presensi Siswa)
         Route::get('/laporan-kbm', [LaporanKbmController::class, 'index'])->name('laporan-kbm.index');
+        Route::get('/laporan-kbm/rekap/print', [LaporanKbmController::class, 'printRekap'])->name('laporan-kbm.rekap.print');
         Route::get('/laporan-kbm/create', [LaporanKbmController::class, 'create'])->name('laporan-kbm.create');
         Route::post('/laporan-kbm', [LaporanKbmController::class, 'store'])->name('laporan-kbm.store');
         Route::get('/laporan-kbm/{laporanKbm}', [LaporanKbmController::class, 'show'])->name('laporan-kbm.show');

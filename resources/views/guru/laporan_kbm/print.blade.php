@@ -111,17 +111,17 @@
         <tr>
             <td>
                 Mengetahui,<br>
-                Waka Kurikulum & Akademik<br>
+                Kepala SMK Plus Al-Hilal Arjawinangun<br>
                 <div class="signature-space"></div>
-                <strong><u>SOKID, ST, M.Kom</u></strong><br>
-                NIP. -
+                <strong><u>{{ $setting->kepala_sekolah ?? 'Muhammad Mansyur, S.Pt' }}</u></strong><br>
+                NUPTK. {{ $setting->nip_kepala_sekolah ?? '6942767668130350' }}
             </td>
             <td>
                 Arjawinangun, {{ \Carbon\Carbon::parse($laporanKbm->tanggal_realisasi)->isoFormat('D MMMM Y') }}<br>
                 Guru Mata Pelajaran,<br>
                 <div class="signature-space"></div>
                 <strong><u>{{ $laporanKbm->guru?->name ?? 'Guru Pengampu' }}</u></strong><br>
-                NUPTK. {{ $laporanKbm->guru->nip ?? '-' }}
+                NUPTK/NIP. {{ $laporanKbm->guru->nip ?? '-' }}
             </td>
         </tr>
     </table>

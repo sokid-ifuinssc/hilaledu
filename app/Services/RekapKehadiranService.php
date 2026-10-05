@@ -742,8 +742,8 @@ class RekapKehadiranService
 
         $hariList = [];
 
-        // Urutkan tanggal dari terbaru ke terlama (descending) untuk kenyamanan evaluasi harian
-        krsort($teachingDates);
+        // Urutkan tanggal dari kecil ke besar (ascending: tgl 1 s.d akhir)
+        ksort($teachingDates);
 
         foreach ($teachingDates as $tgl => $meta) {
             $tglCarbon = $meta['carbon'];

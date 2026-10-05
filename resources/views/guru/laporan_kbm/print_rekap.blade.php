@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rekapitulasi Jurnal KBM & Presensi - {{ $user->name }}</title>
+    <title>Rekapitulasi Jurnal & Realisasi KBM - {{ $selectedGuru ? $selectedGuru->name : ($guruIdFilter === 'all' ? 'Semua Guru' : $user->name) }}</title>
     <style>
         body {
             font-family: 'Times New Roman', Times, serif;
@@ -93,8 +93,12 @@
         .text-right { text-align: right; }
         .font-bold { font-weight: bold; }
         
-        .badge-hadir {
+        .badge-lapor {
             color: #059669;
+            font-weight: bold;
+        }
+        .badge-belum {
+            color: #dc2626;
             font-weight: bold;
         }
         
@@ -148,7 +152,7 @@
     <!-- Judul -->
     <div class="title-box">
         <h3>BUKU JURNAL & REKAPITULASI PELAKSANAAN KBM</h3>
-        <p>Catatan Realisasi Pembelajaran dan Presensi Kehadiran Siswa di Kelas</p>
+        <p>Laporan Keterlaksanaan Pembelajaran dan Kehadiran Siswa di Kelas</p>
     </div>
 
     <!-- Identitas -->
@@ -156,23 +160,25 @@
         <tr>
             <td style="width: 15%;">Guru Pengampu</td>
             <td style="width: 2%;">:</td>
-            <td style="width: 35%;"><strong>{{ $user->name }}</strong> (NIP/NUPTK: {{ $user->nip ?? '-' }})</td>
+            <td style="width: 35%;">
+                @if($selectedGuru)
+                    <strong>{{ $selectedGuru->name }}</strong> (NIP/NUPTK: {{ $selectedGuru->nip ?? '-' }})
+                @elseif($guruIdFilter === 'all')
+                    <strong>Seluruh Guru SMK Plus Al-Hilal</strong> (Rekap Monitoring Sekolah)
+                @else
+                    <strong>{{ $user->name }}</strong> (NIP/NUPTK: {{ $user->nip ?? '-' }})
+                @endif
+            </td>
             <td style="width: 15%;">Periode Laporan</td>
             <td style="width: 2%;">:</td>
             <td style="width: 31%;">
-                @if($bulan)
-                    {{ \Carbon\Carbon::createFromFormat('Y-m', $bulan)->isoFormat('MMMM Y') }}
-                @elseif($tanggalMulai && $tanggalSelesai)
-                    {{ \Carbon\Carbon::parse($tanggalMulai)->isoFormat('D MMM Y') }} s.d. {{ \Carbon\Carbon::parse($tanggalSelesai)->isoFormat('D MMM Y') }}
-                @else
-                    Semua Catatan Realisasi KBM
-                @endif
+                <strong>{{ \Carbon\Carbon::createFromFormat('Y-m', $bulan)->isoFormat('MMMM Y') }}</strong>
             </td>
         </tr>
         <tr>
             <td>Mata Pelajaran</td>
             <td>:</td>
-            <td>{{ $selectedMapel ? $selectedMapel->nama : 'Semua Mata Pelajaran yang Diampu' }}</td>
+            <td>{{ $selectedMapel ? $selectedMapel->nama : 'Semua Mata Pelajaran' }}</td>
             <td>Kelas Sasaran</td>
             <td>:</td>
             <td>{{ $kelas ?: 'Semua Kelas' }}</td>
@@ -188,16 +194,18 @@
                 <th style="width: 8%;" rowspan="2">Waktu / Jam</th>
                 <th style="width: 9%;" rowspan="2">Kelas</th>
                 <th style="width: 14%;" rowspan="2">Mata Pelajaran</th>
-                <th style="width: 23%;" rowspan="2">Materi / Aktivitas Pembelajaran</th>
-                <th style="width: 9%;" rowspan="2">Kesesuaian Rencana</th>
-                <th style="width: 15%;" colspan="4">Presensi Siswa</th>
-                <th style="width: 8%;" rowspan="2">Ket.</th>
+                @if($guruIdFilter === 'all')
+                <th style="width: 12%;" rowspan="2">Guru Pengampu</th>
+                @endif
+                <th style="width: 21%;" rowspan="2">Materi / Aktivitas Pembelajaran</th>
+                <th style="width: 9%;" rowspan="2">Status Laporan</th>
+                <th style="width: 13%;" colspan="4">Presensi Siswa</th>
             </tr>
             <tr>
-                <th style="width: 4%;">H</th>
+                <th style="width: 3.5%;">H</th>
                 <th style="width: 3%;">S</th>
                 <th style="width: 3%;">I</th>
-                <th style="width: 3%;">A</th>
+                <th style="width: 3.5%;">A</th>
             </tr>
         </thead>
         <tbody>
@@ -206,70 +214,90 @@
                 $totSakit = 0;
                 $totIzin = 0;
                 $totAlpa = 0;
-                $totSemua = 0;
+                $countLapor = 0;
+                $countBelum = 0;
             @endphp
-            @forelse($laporans as $idx => $lap)
+            @forelse($slots as $idx => $slot)
                 @php
-                    $h = $lap->presensiSiswa->whereIn('status', ['hadir', 'terlambat'])->count();
-                    $s = $lap->presensiSiswa->where('status', 'sakit')->count();
-                    $i = $lap->presensiSiswa->where('status', 'izin')->count();
-                    $a = $lap->presensiSiswa->where('status', 'alpa')->count();
-                    $tot = $lap->presensiSiswa->count();
+                    $lap = $slot['laporan'];
+                    $j = $slot['jadwal'];
+                    
+                    if ($lap) {
+                        $countLapor++;
+                        $h = $lap->presensiSiswa->whereIn('status', ['hadir', 'terlambat'])->count();
+                        $s = $lap->presensiSiswa->where('status', 'sakit')->count();
+                        $i = $lap->presensiSiswa->where('status', 'izin')->count();
+                        $a = $lap->presensiSiswa->where('status', 'alpa')->count();
 
-                    $totHadir += $h;
-                    $totSakit += $s;
-                    $totIzin += $i;
-                    $totAlpa += $a;
-                    $totSemua += $tot;
+                        $totHadir += $h;
+                        $totSakit += $s;
+                        $totIzin += $i;
+                        $totAlpa += $a;
 
-                    $materi = $lap->rencana ? "Pertemuan Ke-{$lap->rencana->pertemuan_ke}: {$lap->rencana->materi_pokok}" : ($lap->catatan_kegiatan ?: '-');
+                        $materi = $lap->rencana ? "Pertemuan {$lap->rencana->pertemuan_ke}: {$lap->rencana->materi_pokok}" : ($lap->catatan_kegiatan ?: 'KBM Terlaksana');
+                        $statusTeks = 'Sudah Dilaporkan';
+                        $statusClass = 'badge-lapor';
+                    } elseif ($slot['status'] === 'jadwal_mendatang') {
+                        $materi = 'Jadwal belum berjalan';
+                        $statusTeks = 'Jadwal Mendatang';
+                        $statusClass = 'text-slate-400';
+                        $h = $s = $i = $a = '-';
+                    } else {
+                        $countBelum++;
+                        $materi = 'Belum ada catatan jurnal KBM';
+                        $statusTeks = 'Belum Dilaporkan';
+                        $statusClass = 'badge-belum';
+                        $h = $s = $i = $a = '-';
+                    }
                 @endphp
                 <tr>
                     <td class="text-center">{{ $idx + 1 }}</td>
                     <td>
-                        {{ \Carbon\Carbon::parse($lap->tanggal_realisasi)->isoFormat('dddd, D MMM Y') }}
+                        {{ \Carbon\Carbon::parse($slot['tanggal'])->isoFormat('dddd, D MMM Y') }}
                     </td>
                     <td class="text-center">
-                        {{ substr($lap->jadwal->jam_mulai ?? '', 0, 5) }} - {{ substr($lap->jadwal->jam_selesai ?? '', 0, 5) }}
+                        {{ substr($j->jam_mulai ?? '', 0, 5) }} - {{ substr($j->jam_selesai ?? '', 0, 5) }}
                     </td>
-                    <td class="text-center font-bold">{{ $lap->jadwal->kelas ?? '-' }}</td>
-                    <td>{{ $lap->jadwal->mataPelajaran->nama ?? '-' }}</td>
+                    <td class="text-center font-bold">{{ $j->kelas ?? '-' }}</td>
+                    <td>{{ $j->mataPelajaran->nama ?? '-' }}</td>
+                    @if($guruIdFilter === 'all')
+                    <td>{{ $j->guru->name ?? '-' }}</td>
+                    @endif
                     <td>
                         {{ $materi }}
-                        @if($lap->rencana && $lap->catatan_kegiatan)
-                            <div style="font-size: 8pt; color: #444; font-style: italic; margin-top: 2px;">
+                        @if($lap && $lap->catatan_kegiatan && $lap->rencana)
+                            <div style="font-size: 8pt; color: #444; font-style: italic; margin-top: 1px;">
                                 Catatan: {{ $lap->catatan_kegiatan }}
                             </div>
                         @endif
                     </td>
-                    <td class="text-center">
-                        {{ ucfirst(str_replace('_', ' ', $lap->kesesuaian_rencana)) }}
+                    <td class="text-center {{ $statusClass }}">
+                        {{ $statusTeks }}
                     </td>
-                    <td class="text-center font-bold badge-hadir">{{ $h }}</td>
-                    <td class="text-center">{{ $s ?: '-' }}</td>
-                    <td class="text-center">{{ $i ?: '-' }}</td>
-                    <td class="text-center">{{ $a ?: '-' }}</td>
-                    <td class="text-center" style="font-size: 8pt;">
-                        {{ ucfirst(str_replace('_', ' ', $lap->status_pelaksanaan)) }}
-                    </td>
+                    <td class="text-center font-bold {{ is_numeric($h) ? 'badge-lapor' : '' }}">{{ $h }}</td>
+                    <td class="text-center">{{ $s }}</td>
+                    <td class="text-center">{{ $i }}</td>
+                    <td class="text-center">{{ $a }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="12" class="text-center" style="font-style: italic; padding: 20px; color: #666;">
-                        Belum ada laporan KBM yang tercatat untuk filter ini.
+                    <td colspan="{{ $guruIdFilter === 'all' ? 12 : 11 }}" class="text-center" style="font-style: italic; padding: 20px; color: #666;">
+                        Belum ada data slot pembelajaran pada periode ini.
                     </td>
                 </tr>
             @endforelse
         </tbody>
-        @if($laporans->isNotEmpty())
+        @if(count($slots) > 0)
         <tfoot>
             <tr style="background-color: #f2f2f2; font-weight: bold;">
-                <td colspan="7" class="text-right">TOTAL REKAPITULASI KEHADIRAN SISWA:</td>
-                <td class="text-center badge-hadir">{{ $totHadir }}</td>
+                <td colspan="{{ $guruIdFilter === 'all' ? 7 : 6 }}" class="text-right">
+                    TOTAL SESI (Dilaporkan: {{ $countLapor }}, Belum: {{ $countBelum }}):
+                </td>
+                <td class="text-center">{{ $countLapor }}/{{ count($slots) }}</td>
+                <td class="text-center badge-lapor">{{ $totHadir }}</td>
                 <td class="text-center">{{ $totSakit }}</td>
                 <td class="text-center">{{ $totIzin }}</td>
                 <td class="text-center">{{ $totAlpa }}</td>
-                <td class="text-center">{{ $laporans->count() }} KBM</td>
             </tr>
         </tfoot>
         @endif
@@ -287,10 +315,22 @@
             </td>
             <td>
                 Arjawinangun, {{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}<br>
-                Guru Pengampu Mata Pelajaran,<br>
-                <div class="signature-space"></div>
-                <strong><u>{{ $user->name }}</u></strong><br>
-                NUPTK/NIP. {{ $user->nip ?? '-' }}
+                @if($selectedGuru)
+                    Guru Pengampu Mata Pelajaran,<br>
+                    <div class="signature-space"></div>
+                    <strong><u>{{ $selectedGuru->name }}</u></strong><br>
+                    NUPTK/NIP. {{ $selectedGuru->nip ?? '-' }}
+                @elseif($guruIdFilter === 'all')
+                    Waka Kurikulum & Akademik,<br>
+                    <div class="signature-space"></div>
+                    <strong><u>{{ $user->name }}</u></strong><br>
+                    NUPTK/NIP. {{ $user->nip ?? '-' }}
+                @else
+                    Guru Pengampu Mata Pelajaran,<br>
+                    <div class="signature-space"></div>
+                    <strong><u>{{ $user->name }}</u></strong><br>
+                    NUPTK/NIP. {{ $user->nip ?? '-' }}
+                @endif
             </td>
         </tr>
     </table>

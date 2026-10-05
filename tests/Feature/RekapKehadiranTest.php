@@ -367,6 +367,71 @@ class RekapKehadiranTest extends TestCase
         $resCetakRekap->assertSee('X TKJ 1');
         $resCetakRekap->assertSee('Muhammad Mansyur, S.Pt');
     }
+
+    public function test_laporan_kbm_otomatis_tergenerate_per_tanggal_dan_monitoring_admin()
+    {
+        $guru = User::factory()->create([
+            'role' => 'guru',
+            'name' => 'Guru KBM Otomatis',
+            'is_active' => true,
+        ]);
+
+        $admin = User::factory()->create([
+            'role' => 'superadmin',
+            'name' => 'Super Admin Monitoring',
+            'is_active' => true,
+        ]);
+
+        $mapel = \App\Models\MataPelajaran::firstOrCreate(
+            ['kode' => 'MAPEL_AUTO_01'],
+            ['nama' => 'Administrasi Pajak Terpadu', 'tingkat' => 'XII', 'kelompok' => 'kejuruan']
+        );
+
+        $jadwal = \App\Models\JadwalPelajaran::create([
+            'mata_pelajaran_id' => $mapel->id,
+            'guru_user_id'      => $guru->id,
+            'kelas'             => 'XII AKL 1',
+            'hari'              => 'Senin',
+            'jam_mulai'         => '07:30',
+            'jam_selesai'       => '09:00',
+            'jam_ke_mulai'      => 1,
+            'jam_ke_selesai'    => 2,
+            'ruang'             => 'Lab Akuntansi',
+        ]);
+
+        // 1. Guru membuka halaman Laporan KBM, slot tanggal otomatis tergenerate
+        $resGuru = $this->actingAs($guru)->get(route('guru.laporan-kbm.index', [
+            'bulan' => '2026-10',
+        ]));
+        $resGuru->assertStatus(200);
+        $resGuru->assertSee('Laporan Realisasi KBM');
+        $resGuru->assertSee('Administrasi Pajak Terpadu');
+        $resGuru->assertSee('XII AKL 1');
+        // Tanggal 5 Okt 2026 (Senin) muncul otomatis dengan status Belum Dilaporkan
+        $resGuru->assertSee('05 Okt 2026');
+        $resGuru->assertSee('Belum Dilaporkan');
+        $resGuru->assertSee('Isi Laporan');
+
+        // 2. Klik Isi Laporan otomatis mengisi jadwal & tanggal KBM
+        $resCreate = $this->actingAs($guru)->get(route('guru.laporan-kbm.create', [
+            'jadwal_id' => $jadwal->id,
+            'tanggal'   => '2026-10-05',
+        ]));
+        $resCreate->assertStatus(200);
+        $resCreate->assertSee('value="2026-10-05"', false);
+        $resCreate->assertSee('XII AKL 1');
+
+        // 3. Superadmin membuka halaman Laporan KBM bisa melihat semua guru & semua mapel
+        $resAdmin = $this->actingAs($admin)->get(route('guru.laporan-kbm.index', [
+            'bulan'   => '2026-10',
+            'guru_id' => 'all',
+        ]));
+        $resAdmin->assertStatus(200);
+        $resAdmin->assertSee('Semua Guru (Monitoring)');
+        $resAdmin->assertSee('Guru KBM Otomatis');
+        $resAdmin->assertSee('Administrasi Pajak Terpadu');
+    }
 }
+
 
 

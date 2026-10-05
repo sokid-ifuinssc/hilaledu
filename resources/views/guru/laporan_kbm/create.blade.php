@@ -148,8 +148,8 @@
                     <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                         Tanggal Realisasi Pelaksanaan
                     </label>
-                    <input type="date" name="tanggal_realisasi" value="{{ date('Y-m-d') }}" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-600">
-                    <span class="text-[10px] text-slate-400 mt-1 block">Default hari ini, sesuaikan jika mengisi kelas pengganti.</span>
+                    <input type="date" name="tanggal_realisasi" value="{{ old('tanggal_realisasi', $tanggalDefault ?? date('Y-m-d')) }}" required class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-600">
+                    <span class="text-[10px] text-slate-400 mt-1 block">Telah otomatis disesuaikan dengan jadwal KBM yang dipilih.</span>
                 </div>
 
                 <!-- Status Pelaksanaan Jadwal -->

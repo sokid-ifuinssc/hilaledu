@@ -218,12 +218,31 @@ class PengaturanSekolah extends Model
         }
     }
 
+    public static function normalizeSemester(?string $sem): string
+    {
+        if (empty($sem)) return 'ganjil';
+        $clean = strtolower(trim($sem));
+        if (in_array($clean, ['genap', '2', 'semester 2', 'semester genap', 'dua'], true)) {
+            return 'genap';
+        }
+        return 'ganjil';
+    }
+
     public static function getActiveSemester(): string
     {
+        // 1. Cek tabel pengaturan_sekolahs (Pengaturan Utama Sekolah)
+        try {
+            $val = \Illuminate\Support\Facades\DB::table('pengaturan_sekolahs')->where('key', 'semester')->value('value');
+            if (!empty($val)) {
+                return self::normalizeSemester($val);
+            }
+        } catch (\Throwable $e) {}
+
+        // 2. Cek TahunAjaran model
         try {
             $ta = \App\Models\TahunAjaran::where('is_aktif', true)->orWhere('is_active', true)->first();
             if ($ta && !empty($ta->semester)) {
-                return strtolower($ta->semester);
+                return self::normalizeSemester($ta->semester);
             }
         } catch (\Throwable $e) {}
 

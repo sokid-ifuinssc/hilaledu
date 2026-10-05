@@ -27,17 +27,40 @@ class MingguEfektifService
      */
     public function getGuruAssignments(int $guruUserId, ?string $tahunAjaran = null, ?string $semester = null): Collection
     {
+        $targetSemester = $semester ? \App\Models\PengaturanSekolah::normalizeSemester($semester) : null;
+
         $query = JadwalPelajaran::with(['mataPelajaran', 'guru'])
             ->where('guru_user_id', $guruUserId);
 
         if ($tahunAjaran) {
             $query->where('tahun_ajaran', $tahunAjaran);
         }
-        if ($semester) {
-            $query->where('semester', $semester);
+        if ($targetSemester) {
+            $query->where(function ($q) use ($targetSemester) {
+                $q->where('semester', $targetSemester)
+                  ->orWhere('semester', $targetSemester === 'ganjil' ? '1' : '2')
+                  ->orWhere('semester', ucfirst($targetSemester));
+            });
         }
 
         $allJadwal = $query->get();
+
+        // Fallback cerdas: Jika belum ada jadwal spesifik untuk semester yang diminta pada tahun ajaran ini,
+        // gunakan jadwal guru pada tahun ajaran tersebut (karena penugasan mengajar guru berlaku per tahun ajaran).
+        if ($allJadwal->isEmpty()) {
+            $fallbackQuery = JadwalPelajaran::with(['mataPelajaran', 'guru'])
+                ->where('guru_user_id', $guruUserId);
+            if ($tahunAjaran) {
+                $fallbackQuery->where('tahun_ajaran', $tahunAjaran);
+            }
+            $allJadwal = $fallbackQuery->get()->map(function ($j) use ($targetSemester) {
+                $clone = clone $j;
+                if ($targetSemester) {
+                    $clone->semester = $targetSemester;
+                }
+                return $clone;
+            });
+        }
 
         // Kelompokkan berdasarkan: mapel + kelas + tahun_ajaran + semester
         $grouped = $allJadwal->groupBy(function ($j) {
@@ -115,7 +138,8 @@ class MingguEfektifService
             ?? KalenderAkademik::where('is_aktif', true)->latest()->first()
             ?? KalenderAkademik::first();
 
-        $semNum = ($semester === 'ganjil' || $semester === '1') ? '1' : '2';
+        $semClean = \App\Models\PengaturanSekolah::normalizeSemester($semester);
+        $semNum = ($semClean === 'ganjil') ? '1' : '2';
 
         if (!$kalender) {
             return $this->getFallbackCalculation($assignment);
@@ -351,8 +375,9 @@ class MingguEfektifService
     public function getEffectiveDatesForJadwal(JadwalPelajaran $jadwal, ?string $tahunAjaran = null, ?string $semester = null): array
     {
         $tahun = $tahunAjaran ?: ($jadwal->tahun_ajaran ?: \App\Models\PengaturanSekolah::getActiveTahunAjaran());
-        $sem = $semester ?: ($jadwal->semester ?: \App\Models\PengaturanSekolah::getActiveSemester());
-        $semNum = ($sem === 'ganjil' || $sem === '1') ? '1' : '2';
+        $semRaw = $semester ?: ($jadwal->semester ?: \App\Models\PengaturanSekolah::getActiveSemester());
+        $semClean = \App\Models\PengaturanSekolah::normalizeSemester($semRaw);
+        $semNum = ($semClean === 'ganjil') ? '1' : '2';
 
         $kalender = KalenderAkademik::where('tahun_ajaran', $tahun)->first()
             ?? KalenderAkademik::where('is_aktif', true)->latest()->first()

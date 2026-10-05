@@ -368,15 +368,17 @@ class RencanaPembelajaranController extends Controller
                 ->get();
         }
 
+        $semester = $request->query('semester', \App\Models\PengaturanSekolah::getActiveSemester());
+
         if (!$selectedJadwalId && $jadwals->isNotEmpty()) {
             $selectedJadwalId = $jadwals->first()->id;
         }
 
-        // Hitung tanggal efektif untuk setiap jadwal menggunakan MingguEfektifService
+        // Hitung tanggal efektif untuk setiap jadwal menggunakan MingguEfektifService sesuai semester aktif/terpilih
         $mingguEfektifService = app(\App\Services\MingguEfektifService::class);
         $effectiveDatesMap = [];
         foreach ($jadwals as $j) {
-            $effectiveDatesMap[$j->id] = $mingguEfektifService->getEffectiveDatesForJadwal($j);
+            $effectiveDatesMap[$j->id] = $mingguEfektifService->getEffectiveDatesForJadwal($j, null, $semester);
         }
 
         $tps = TujuanPembelajaran::whereHas('capaianPembelajaran', function ($q) use ($user, $mapelId, $tingkat) {
@@ -393,7 +395,8 @@ class RencanaPembelajaranController extends Controller
             'selectedJadwalId',
             'mapelId',
             'tingkat',
-            'effectiveDatesMap'
+            'effectiveDatesMap',
+            'semester'
         ));
     }
 

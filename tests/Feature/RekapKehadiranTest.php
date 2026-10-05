@@ -231,5 +231,29 @@ class RekapKehadiranTest extends TestCase
         $resSkTambahan->assertSee('Kepala Perpustakaan');
         $resSkTambahan->assertDontSee('.....................................');
     }
+
+    public function test_modul_minggu_efektif_dan_rpp_membaca_semester_genap_dengan_benar()
+    {
+        $guru = User::where('role', 'guru')->has('kurikulums')->first();
+        if (!$guru) {
+            $guru = User::factory()->create(['role' => 'guru', 'is_active' => true]);
+        }
+
+        // 1. Akses modul minggu efektif dengan filter semester genap
+        $resGenap = $this->actingAs($guru)->get(route('guru.minggu-efektif.index', [
+            'tahun_ajaran' => '2026/2027',
+            'semester'     => 'genap',
+        ]));
+        $resGenap->assertStatus(200);
+        $resGenap->assertSee('Rincian Minggu');
+        $resGenap->assertSee('Semester Genap');
+
+        // 2. Akses form buat RPP dengan semester genap
+        $resRppGenap = $this->actingAs($guru)->get(route('guru.rencana-pembelajaran.rpp.create', [
+            'semester' => 'genap',
+        ]));
+        $resRppGenap->assertStatus(200);
+        $resRppGenap->assertSee('Semester Genap (Jan - Jun)');
+    }
 }
 

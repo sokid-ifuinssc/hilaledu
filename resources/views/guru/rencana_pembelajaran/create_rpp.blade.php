@@ -56,6 +56,21 @@
                 </div>
             </div>
 
+            <!-- Pilihan Semester -->
+            <div class="flex flex-wrap items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                <span class="font-bold text-slate-700 flex items-center gap-1 mr-1">
+                    <i class="bi-calendar3 text-blue-600"></i> Semester RPP:
+                </span>
+                <a href="{{ request()->fullUrlWithQuery(['semester' => 'ganjil']) }}" 
+                   class="px-3 py-1 rounded-lg font-bold transition {{ ($semester ?? 'ganjil') === 'ganjil' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100' }}">
+                    Semester Ganjil (Jul - Des)
+                </a>
+                <a href="{{ request()->fullUrlWithQuery(['semester' => 'genap']) }}" 
+                   class="px-3 py-1 rounded-lg font-bold transition {{ ($semester ?? '') === 'genap' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100' }}">
+                    Semester Genap (Jan - Jun)
+                </a>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <!-- Dropdown Jadwal Mengajar Guru -->
                 <div>

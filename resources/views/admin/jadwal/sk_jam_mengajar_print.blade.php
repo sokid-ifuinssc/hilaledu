@@ -24,7 +24,11 @@
         <button onclick="window.close()" class="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition">Tutup</button>
     </div>
 
-    @php $setting = \App\Models\PengaturanSekolah::getSetting(); @endphp
+    @php
+        $setting = \App\Models\PengaturanSekolah::getSetting();
+        $namaKepsek = !empty($setting->kepala_sekolah) ? $setting->kepala_sekolah : ($setting->kepalaSekolah?->nama_lengkap ?? $setting->kepalaSekolah?->name ?? 'Muhammad Mansyur, S.Pt');
+        $nipKepsek = !empty($setting->nip_kepala_sekolah) && $setting->nip_kepala_sekolah !== '-' ? $setting->nip_kepala_sekolah : ($setting->kepalaSekolah?->nip ?? '6942767668130350');
+    @endphp
 
     @forelse($gurus as $guru)
         @php
@@ -80,12 +84,12 @@
             </table>
 
             <div class="mt-12 flex justify-end">
-                <div class="text-center">
+                <div class="text-center min-w-[200px]">
                     <p class="text-sm">Mengetahui,</p>
                     <p class="text-sm font-bold">Kepala Sekolah</p>
                     <div class="h-24"></div>
-                    <p class="text-sm font-bold underline">{{ $setting->kepalaSekolah->name ?? '.....................................' }}</p>
-                    <p class="text-xs">NUPTK: {{ $setting->kepalaSekolah->nip ?? '-' }}</p>
+                    <p class="text-sm font-bold underline">{{ $namaKepsek }}</p>
+                    <p class="text-xs">NUPTK: {{ $nipKepsek }}</p>
                 </div>
             </div>
         </div>

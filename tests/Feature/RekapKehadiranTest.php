@@ -206,5 +206,30 @@ class RekapKehadiranTest extends TestCase
         $resRedirect = $this->actingAs($guru)->get(route('guru.rekap-presensi.index'));
         $resRedirect->assertRedirect(route('guru.absensi.index'));
     }
+
+    public function test_cetak_sk_mengajar_dan_tugas_tambahan_menampilkan_nama_kepala_sekolah()
+    {
+        $guru = User::factory()->create([
+            'role' => 'guru',
+            'name' => 'Guru Penugasan Test',
+            'is_active' => true,
+            'tugas_tambahan' => ['Kepala Perpustakaan'],
+        ]);
+
+        // 1. Cetak SK Jam Mengajar
+        $resSkMengajar = $this->actingAs($guru)->get(route('guru.penugasan.sk_mengajar.print'));
+        $resSkMengajar->assertStatus(200);
+        $resSkMengajar->assertSee('Lampiran SK Pembagian Tugas Jam Mengajar Guru');
+        $resSkMengajar->assertSee('Kepala Sekolah');
+        $resSkMengajar->assertDontSee('.....................................');
+
+        // 2. Cetak SK Tugas Tambahan
+        $resSkTambahan = $this->actingAs($guru)->get(route('guru.penugasan.sk_tugas_tambahan.print'));
+        $resSkTambahan->assertStatus(200);
+        $resSkTambahan->assertSee('Lampiran SK Tugas Tambahan Guru');
+        $resSkTambahan->assertSee('Kepala Sekolah');
+        $resSkTambahan->assertSee('Kepala Perpustakaan');
+        $resSkTambahan->assertDontSee('.....................................');
+    }
 }
 

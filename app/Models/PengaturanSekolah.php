@@ -184,7 +184,7 @@ class PengaturanSekolah extends Model
     public static function getActiveTahunAjaran(): string
     {
         try {
-            $ta = \App\Models\TahunAjaran::where('is_aktif', true)->orWhere('is_active', true)->first();
+            $ta = \App\Models\TahunAjaran::where('is_aktif', true)->first();
             if ($ta) {
                 return $ta->nama ?? $ta->tahun ?? "{$ta->tahun_mulai}/{$ta->tahun_selesai}";
             }
@@ -203,7 +203,7 @@ class PengaturanSekolah extends Model
     public static function getActiveTahunAjaranId(): ?int
     {
         try {
-            $ta = \App\Models\TahunAjaran::where('is_aktif', true)->orWhere('is_active', true)->first();
+            $ta = \App\Models\TahunAjaran::where('is_aktif', true)->first();
             if ($ta) {
                 return (int)$ta->id;
             }

@@ -18,8 +18,6 @@ class TahunAjaranSeeder extends Seeder
                 'nama'          => '2026/2027',
                 'tahun_mulai'   => 2026,
                 'tahun_selesai' => 2027,
-                'semester'      => 'ganjil',
-                'is_active'     => 1,
                 'is_aktif'      => 1,
             ],
         ];

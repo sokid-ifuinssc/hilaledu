@@ -31,12 +31,12 @@ class TahunAjaran extends Model
      */
     public function setAsAktif(): void
     {
-        static::query()->update(['is_aktif' => false, 'is_active' => false]);
-        $this->update(['is_aktif' => true, 'is_active' => true]);
+        static::query()->update(['is_aktif' => false]);
+        $this->update(['is_aktif' => true]);
     }
 
     public static function aktif(): ?self
     {
-        return static::where('is_aktif', true)->orWhere('is_active', true)->first();
+        return static::where('is_aktif', true)->first();
     }
 }

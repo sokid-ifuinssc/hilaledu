@@ -331,19 +331,27 @@ class SiswaController extends Controller
 
         if ($action === 'naik_kelas') {
             User::whereIn('id', $siswaIds)->update(['kelas_id' => $request->target_kelas]);
+            Siswa::whereIn('user_id', $siswaIds)->update(['kelas_id' => $request->target_kelas, 'status' => 'aktif']);
             return redirect()->back()->with('success', count($siswaIds) . ' siswa berhasil dipindah kelas.');
         } elseif ($action === 'lulus') {
             foreach ($siswaIds as $id) {
                 User::where('id', $id)->update([
                     'kelas_id' => null,
-                    'is_active' => false
+                    'is_active' => true,
+                ]);
+                Siswa::where('user_id', $id)->update([
+                    'kelas_id' => null,
+                    'status' => 'lulus',
                 ]);
                 \App\Models\TracerAlumni::updateOrCreate(
                     ['user_id' => $id],
-                    ['tahun_lulus' => $request->tahun_lulus]
+                    [
+                        'tahun_lulus' => $request->tahun_lulus,
+                        'status_saat_ini' => 'Belum Diisi',
+                    ]
                 );
             }
-            return redirect()->back()->with('success', count($siswaIds) . ' siswa berhasil diluluskan dan dipindah ke data alumni.');
+            return redirect()->back()->with('success', count($siswaIds) . ' siswa berhasil diluluskan dan otomatis tercatat di data alumni.');
         }
 
         return redirect()->back()->with('error', 'Aksi tidak valid.');

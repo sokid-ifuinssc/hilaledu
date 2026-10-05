@@ -852,6 +852,12 @@
                         </a>
                     </li>
                     <li class="sidebar-nav-item">
+                        <a href="{{ route('superadmin.kenaikan-kelas.index') }}" class="sidebar-nav-link {{ request()->routeIs('superadmin.kenaikan-kelas.*') ? 'active' : '' }}">
+                            <i class="bi bi-arrow-up-right-circle" style="color:#f59e0b;"></i>
+                            <span>Kenaikan Kelas & Alumni</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
                         <a href="{{ route('superadmin.master.tugas-tambahan') }}" class="sidebar-nav-link {{ request()->routeIs('superadmin.master.tugas-tambahan*') ? 'active' : '' }}">
                             <i class="bi bi-award" style="color:#10b981;"></i>
                             <span>Tugas Tambahan Guru</span>

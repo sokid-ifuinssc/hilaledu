@@ -141,6 +141,14 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
         Route::post('/{kela}/remove/{user}', [\App\Http\Controllers\Admin\RombelController::class, 'remove'])->name('remove');
     });
 
+    // ---- Kenaikan Kelas, Kelulusan Alumni & Tahun Ajaran Berkelanjutan ----
+    Route::prefix('kenaikan-kelas')->name('kenaikan-kelas.')->group(function () {
+        Route::get('/',                   [\App\Http\Controllers\Admin\KenaikanKelasController::class, 'index'])->name('index');
+        Route::post('/naik',              [\App\Http\Controllers\Admin\KenaikanKelasController::class, 'prosesNaikKelas'])->name('naik');
+        Route::post('/lulus',             [\App\Http\Controllers\Admin\KenaikanKelasController::class, 'prosesKelulusan'])->name('lulus');
+        Route::post('/tahun-ajaran-baru', [\App\Http\Controllers\Admin\KenaikanKelasController::class, 'gantiTahunAjaran'])->name('tahun-ajaran-baru');
+    });
+
     // ---- Data Master ----
     Route::prefix('master')->name('master.')->group(function () {
         Route::get('/export',    [MasterController::class, 'export'])->name('export');
@@ -318,6 +326,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')-
     Route::get('/apps', fn() => redirect()->route('superadmin.apps.index'))->name('apps.index');
     Route::get('/apps/{application}', fn($app) => redirect()->route('superadmin.apps.show', $app))->name('apps.show');
     Route::get('/database', fn() => redirect()->route('superadmin.database.index'))->name('database.index');
+    Route::get('/kenaikan-kelas', fn() => redirect()->route('superadmin.kenaikan-kelas.index'))->name('kenaikan-kelas.index');
     Route::get('/{any}', fn() => redirect()->route('superadmin.dashboard'))->where('any', '.*');
 });
 

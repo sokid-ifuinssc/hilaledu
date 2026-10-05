@@ -50,7 +50,17 @@ class JurusanKelasSeeder extends Seeder
         $tkjtId = DB::table('jurusans')->where('kode', 'TKJT')->value('id');
         $toId   = DB::table('jurusans')->where('kode', 'TO')->value('id');
         $aklId  = DB::table('jurusans')->where('kode', 'AKL')->value('id');
-        $taId   = DB::table('tahun_ajarans')->where('nama', '2026/2027')->value('id');
+        $taId = DB::table('tahun_ajarans')->where('nama', '2026/2027')->value('id');
+        if (!$taId) {
+            $taId = DB::table('tahun_ajarans')->insertGetId([
+                'nama' => '2026/2027',
+                'tahun_mulai' => 2026,
+                'tahun_selesai' => 2027,
+                'is_aktif' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         $kelas = [
             // AKL

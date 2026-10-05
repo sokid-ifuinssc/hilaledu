@@ -3,26 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rekapitulasi Kehadiran Mengajar Guru - {{ $user->name }}</title>
+    <title>Rekap Kehadiran Mengajar Guru - {{ $user->name }}</title>
     <style>
-        body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.4; color: #000; padding: 20px; margin: 0; }
-        .kop-surat { text-align: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 15px; position: relative; }
-        .kop-logo { position: absolute; left: 10px; top: 0; width: 70px; height: 70px; object-fit: contain; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 10pt; line-height: 1.35; color: #000; padding: 20px; margin: 0; }
+        .kop-surat { text-align: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 12px; position: relative; }
+        .kop-logo { position: absolute; left: 10px; top: 0; width: 65px; height: 65px; object-fit: contain; }
         .kop-header { margin-left: 80px; margin-right: 80px; }
-        .kop-header h2 { margin: 0; font-size: 14pt; font-weight: bold; }
-        .kop-header h1 { margin: 2px 0; font-size: 16pt; font-weight: bold; }
-        .kop-header p { margin: 1px 0; font-size: 9pt; }
-        .title { text-align: center; font-weight: bold; font-size: 12pt; text-decoration: underline; margin-bottom: 15px; }
-        table.identitas { width: 100%; margin-bottom: 12px; font-size: 10.5pt; }
-        table.identitas td { padding: 2px 0; }
-        table.data { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 10pt; }
-        table.data th, table.data td { border: 1px solid #000; padding: 5px 6px; }
+        .kop-header h2 { margin: 0; font-size: 13pt; font-weight: bold; }
+        .kop-header h1 { margin: 2px 0; font-size: 15pt; font-weight: bold; }
+        .kop-header p { margin: 1px 0; font-size: 8.5pt; }
+        .title { text-align: center; font-weight: bold; font-size: 12pt; text-decoration: underline; margin-bottom: 12px; }
+        
+        table.identitas { width: 100%; margin-bottom: 10px; font-size: 10pt; border-collapse: collapse; }
+        table.identitas td { padding: 2px 4px; vertical-align: top; }
+        
+        table.data { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 9pt; }
+        table.data th, table.data td { border: 1px solid #000; padding: 4px 6px; }
         table.data th { background-color: #f2f2f2; text-align: center; font-weight: bold; }
         .text-center { text-align: center; }
-        .ttd-box { width: 100%; margin-top: 30px; font-size: 10.5pt; }
+        .text-right { text-align: right; }
+        
+        .day-header { background-color: #eaeded; font-weight: bold; }
+        
+        table.ringkasan { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9.5pt; }
+        table.ringkasan td { padding: 4px 6px; border: 1px solid #ddd; }
+        
+        .ttd-box { width: 100%; margin-top: 25px; font-size: 10pt; page-break-inside: avoid; }
         .ttd-box td { vertical-align: top; text-align: center; width: 50%; }
-        .signature-space { height: 65px; }
-        @media print { .no-print { display: none; } body { padding: 0; } }
+        .signature-space { height: 60px; }
+        @media print { 
+            .no-print { display: none; } 
+            body { padding: 0; } 
+            @page { margin: 1.5cm; }
+        }
     </style>
 </head>
 <body>
@@ -33,7 +46,7 @@
         </button>
     </div>
 
-    <!-- Kop Surat -->
+    <!-- Kop Surat Sekolah -->
     <div class="kop-surat">
         <img src="{{ asset('images/logo.png') }}" class="kop-logo" alt="Logo">
         <div class="kop-header">
@@ -44,83 +57,134 @@
         </div>
     </div>
 
-    <div class="title">REKAPITULASI PRESENSI KEHADIRAN MENGAJAR GURU</div>
+    <div class="title">REKAPITULASI KEHADIRAN MENGAJAR GURU</div>
 
+    <!-- Identitas Guru & Periode -->
     <table class="identitas">
         <tr>
-            <td width="20%">Nama Guru</td>
+            <td width="18%">Nama Guru</td>
             <td width="2%">:</td>
-            <td width="38%"><strong>{{ $user->name }}</strong></td>
-            <td width="20%">Bulan / Periode</td>
+            <td width="40%"><strong>{{ $user->name }}</strong></td>
+            <td width="18%">Periode</td>
             <td width="2%">:</td>
-            <td width="18%">{{ \Carbon\Carbon::parse($bulan . '-01')->isoFormat('MMMM Y') }}</td>
+            <td width="20%"><strong>{{ $periode['label'] }}</strong></td>
         </tr>
         <tr>
-            <td>NUPTK / ID Guru</td>
+            <td>NIP / NUPTK</td>
             <td>:</td>
-            <td>{{ $user->nip ?: $user->username }}</td>
-            <td>Total Kehadiran</td>
+            <td>{{ $user->nip ?: ($user->nuptk ?: ($user->username ?: '-')) }}</td>
+            <td>Beban Mengajar</td>
             <td>:</td>
-            <td><strong>{{ $persentase }}%</strong> ({{ $totalHadir + $totalTerlambat + $totalTugasLuar }}/{{ $totalSesi }} Sesi)</td>
+            <td>{{ $stat['jam_per_minggu'] }} Jam Pelajaran / Minggu</td>
+        </tr>
+        <tr>
+            <td>Jabatan / Peran</td>
+            <td>:</td>
+            <td>Guru Pengajar</td>
+            <td>Persentase Kehadiran</td>
+            <td>:</td>
+            <td><strong>{{ $stat['persen_hadir'] }}%</strong> ({{ $stat['sesi_hadir'] }} / {{ $stat['sesi_hadir'] + $stat['sesi_tidak_hadir'] }} Sesi)</td>
         </tr>
     </table>
 
+    <!-- Ringkasan Statistik -->
+    <table class="ringkasan">
+        <tr style="background:#f8f9f9; font-weight:bold;">
+            <td class="text-center">Hari Efektif KBM</td>
+            <td class="text-center">Total Sesi Terjadwal</td>
+            <td class="text-center">Sesi Hadir</td>
+            <td class="text-center">Tanpa Keterangan</td>
+            <td class="text-center">Sakit</td>
+            <td class="text-center">Izin</td>
+            <td class="text-center">Dinas Luar</td>
+        </tr>
+        <tr class="text-center">
+            <td>{{ $stat['total_hari_efektif'] }} Hari ({{ $stat['hari_berjalan'] }} berjalan)</td>
+            <td>{{ $stat['total_sesi'] }} Sesi</td>
+            <td><strong>{{ $stat['sesi_hadir'] }}</strong> Sesi</td>
+            <td style="{{ $stat['sesi_tanpa_ket'] > 0 ? 'color:red;font-weight:bold;' : '' }}">{{ $stat['sesi_tanpa_ket'] }}</td>
+            <td>{{ $stat['sesi_sakit'] }}</td>
+            <td>{{ $stat['sesi_izin'] }}</td>
+            <td>{{ $stat['sesi_dinas_luar'] }}</td>
+        </tr>
+    </table>
+
+    <!-- Tabel Rincian Kehadiran Per Hari & Per Jam Mapel -->
     <table class="data">
         <thead>
             <tr>
-                <th width="5%">No.</th>
-                <th width="15%">Tanggal</th>
-                <th width="15%">Waktu Absen</th>
-                <th width="30%">Mata Pelajaran & Kelas</th>
-                <th width="20%">Status Kehadiran</th>
-                <th width="15%">Catatan</th>
+                <th width="4%">No.</th>
+                <th width="15%">Tanggal & Hari</th>
+                <th width="15%">Jam & Sesi</th>
+                <th width="28%">Mata Pelajaran & Kelas</th>
+                <th width="16%">Status Kehadiran</th>
+                <th width="22%">Keterangan / Alasan</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($riwayat as $idx => $r)
-            <tr>
-                <td class="text-center">{{ $idx + 1 }}</td>
-                <td class="text-center">{{ \Carbon\Carbon::parse($r->tanggal)->format('d/m/Y') }}</td>
-                <td class="text-center">{{ $r->jam_absen }}</td>
-                <td>{{ $r->jadwal->mataPelajaran->nama ?? 'Mata Pelajaran' }} (Kelas {{ $r->jadwal->kelas ?? '-' }})</td>
-                <td class="text-center" style="font-weight: bold;">{{ strtoupper($r->status_label) }}</td>
-                <td>{{ $r->catatan ?: '-' }}</td>
-            </tr>
+            @php $no = 1; @endphp
+            @forelse($hariList as $hari)
+                @foreach($hari['mapel_list'] as $mIdx => $m)
+                <tr>
+                    @if($mIdx === 0)
+                    <td class="text-center" rowspan="{{ count($hari['mapel_list']) }}" style="vertical-align: top; font-weight: bold;">
+                        {{ $no++ }}
+                    </td>
+                    <td rowspan="{{ count($hari['mapel_list']) }}" style="vertical-align: top;">
+                        <strong>{{ $hari['hari'] }}</strong><br>
+                        <span style="font-size: 8.5pt;">{{ \Carbon\Carbon::parse($hari['tanggal'])->format('d/m/Y') }}</span>
+                        @if($hari['presensi_harian'])
+                        <div style="font-size: 7.5pt; color: #555; margin-top: 3px; border-top: 1px dotted #ccc; padding-top: 2px;">
+                            Pagi: {{ $hari['presensi_harian']['jam_masuk'] ?: '-' }}<br>
+                            Plg: {{ $hari['presensi_harian']['jam_pulang'] ?: '-' }}
+                        </div>
+                        @endif
+                    </td>
+                    @endif
+
+                    <td class="text-center font-mono" style="font-size: 8.5pt;">
+                        <strong>{{ $m['jam_ke'] }}</strong><br>
+                        ({{ $m['jam_waktu'] }})
+                    </td>
+
+                    <td>
+                        <strong>{{ $m['mapel'] }}</strong><br>
+                        <span style="font-size: 8.5pt;">Kelas {{ $m['kelas'] }} &bull; R. {{ $m['ruang'] }}</span>
+                    </td>
+
+                    <td class="text-center">
+                        <strong>{{ strtoupper($m['label']) }}</strong>
+                    </td>
+
+                    <td style="font-size: 8.5pt;">
+                        {{ $m['keterangan'] }}
+                    </td>
+                </tr>
+                @endforeach
             @empty
             <tr>
-                <td colspan="6" class="text-center">Tidak ada data kehadiran pada bulan ini.</td>
+                <td colspan="6" class="text-center" style="padding: 15px;">Tidak ada jadwal mengajar pada periode ini.</td>
             </tr>
             @endforelse
         </tbody>
-        <tfoot>
-            <tr style="font-weight: bold; background-color: #f2f2f2;">
-                <td colspan="3" class="text-center">RINGKASAN KEHADIRAN</td>
-                <td colspan="3">
-                    Hadir Tepat Waktu: {{ $totalHadir }} &bull; 
-                    Terlambat: {{ $totalTerlambat }} &bull; 
-                    Izin: {{ $totalIzin }} &bull; 
-                    Sakit: {{ $totalSakit }} &bull; 
-                    Tugas Luar: {{ $totalTugasLuar }}
-                </td>
-            </tr>
-        </tfoot>
     </table>
 
+    <!-- Tanda Tangan -->
     <table class="ttd-box">
         <tr>
             <td>
                 Mengetahui,<br>
-                Kepala SMK Plus Al-Hilal Arjawinangun<br>
+                Waka Kurikulum / Kepala Sekolah
                 <div class="signature-space"></div>
-                <strong><u>MUHAMMAD MANSYUR, S.Pt</u></strong><br>
-                NIP. -
+                <strong><u>{{ $settings['nama_waka_kurikulum'] ?? 'Bidang Kurikulum' }}</u></strong><br>
+                NIP. {{ $settings['nip_waka_kurikulum'] ?? '-' }}
             </td>
             <td>
-                Arjawinangun, {{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}<br>
-                Guru Bersangkutan,<br>
+                {{ $settings['titimangsa'] ?? ('Arjawinangun, ' . date('d F Y')) }}<br>
+                Guru Pengajar Bersangkutan
                 <div class="signature-space"></div>
                 <strong><u>{{ $user->name }}</u></strong><br>
-                NUPTK. {{ $user->nip ?: '-' }}
+                NIP. {{ $user->nip ?: ($user->nuptk ?: '-') }}
             </td>
         </tr>
     </table>

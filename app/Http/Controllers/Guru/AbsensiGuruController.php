@@ -7,72 +7,59 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\AbsensiGuru;
 use App\Models\JadwalPelajaran;
+use App\Models\User;
+use App\Models\PengaturanSekolah;
+use App\Services\RekapKehadiranService;
 use Carbon\Carbon;
 
 class AbsensiGuruController extends Controller
 {
     /**
-     * Menu Informasi & Riwayat Kehadiran Guru (Filter Bulanan & Harian)
+     * Menu Rekap Kehadiran Saya (Kehadiran Jam Mengajar diurutkan per hari & keterangan per jam mapel)
      */
-    public function index(Request $request)
+    public function index(Request $request, RekapKehadiranService $rekapService)
     {
-        $user = Auth::user();
-        $filterType = $request->query('filter_type', 'bulanan'); // bulanan / harian
+        $currentUser = Auth::user();
+        $targetUser = $currentUser;
+
+        // Jika pimpinan (Superadmin / Kepala Sekolah / Waka Kurikulum), izinkan filter guru lain
+        $isExecutive = $currentUser->isSuperAdmin() || $currentUser->isKepalaSekolah() || $currentUser->isWakaKurikulum();
+        if ($isExecutive && $request->filled('guru_id')) {
+            $targetUser = User::find($request->input('guru_id')) ?? $currentUser;
+        }
+
+        $mode = $request->query('mode', 'bulan'); // bulan / semester / tahun
         $bulan = $request->query('bulan', date('Y-m'));
-        $tanggal = $request->query('tanggal', date('Y-m-d'));
+        $semester = $request->query('semester', '1');
+        $tahunAjaran = $request->query('tahun_ajaran', PengaturanSekolah::get('tahun_pelajaran', '2026/2027'));
 
-        $query = AbsensiGuru::with(['jadwal.mataPelajaran', 'guru'])
-            ->orderBy('tanggal', 'desc')
-            ->orderBy('jam_absen', 'desc');
+        $periode = $rekapService->resolvePeriode($mode, $bulan, $tahunAjaran, $semester);
+        $rekapData = $rekapService->rekapKehadiranGuruPerHari($targetUser, $periode);
 
-        // Jika bukan superadmin/waka kurikulum/kepsek yang melihat rekap sekolah, batasi ke user
-        if (!$user->isSuperAdmin() && !$user->isWakaKurikulum() && !$user->isKepalaSekolah()) {
-            $query->where('guru_user_id', $user->id);
-        } else {
-            if ($request->filled('guru_id')) {
-                $query->where('guru_user_id', $request->guru_id);
-            }
-        }
+        $gurus = $isExecutive ? User::where('role', 'guru')->orderBy('name')->get() : collect();
 
-        if ($filterType === 'harian' && $tanggal) {
-            $query->where('tanggal', $tanggal);
-        } else {
-            $query->where('tanggal', 'like', "{$bulan}%");
-        }
+        // Riwayat raw untuk modal absensi / kebutuhan detail jika diperlukan
+        $riwayatRaw = AbsensiGuru::where('guru_user_id', $targetUser->id)
+            ->whereDate('tanggal', '>=', $periode['start']->toDateString())
+            ->whereDate('tanggal', '<=', $periode['end']->toDateString())
+            ->get();
 
-        $riwayat = $query->paginate(20);
-
-        // Statistik
-        $statQuery = AbsensiGuru::where('guru_user_id', $user->id);
-        if ($filterType === 'harian' && $tanggal) {
-            $statQuery->where('tanggal', $tanggal);
-        } else {
-            $statQuery->where('tanggal', 'like', "{$bulan}%");
-        }
-        $allStats = $statQuery->get();
-
-        $totalHadir = $allStats->where('status', 'hadir')->count();
-        $totalTerlambat = $allStats->where('status', 'terlambat')->count();
-        $totalIzin = $allStats->where('status', 'izin')->count();
-        $totalSakit = $allStats->where('status', 'sakit')->count();
-        $totalTugasLuar = $allStats->where('status', 'tugas_luar')->count();
-        $totalSesi = $allStats->count();
-
-        $persentase = $totalSesi > 0 ? round((($totalHadir + $totalTerlambat + $totalTugasLuar) / $totalSesi) * 100, 1) : 100;
-
-        return view('guru.absensi.index', compact(
-            'riwayat',
-            'filterType',
-            'bulan',
-            'tanggal',
-            'totalHadir',
-            'totalTerlambat',
-            'totalIzin',
-            'totalSakit',
-            'totalTugasLuar',
-            'totalSesi',
-            'persentase'
-        ));
+        return view('guru.absensi.index', [
+            'user'        => $targetUser,
+            'currentUser' => $currentUser,
+            'isExecutive' => $isExecutive,
+            'gurus'       => $gurus,
+            'periode'     => $periode,
+            'stat'        => $rekapData['stat'],
+            'hariList'    => $rekapData['hari_list'],
+            'mode'        => $mode,
+            'bulan'       => $bulan,
+            'semester'    => $semester,
+            'tahunAjaran' => $tahunAjaran,
+            'totalHadir'  => $rekapData['stat']['sesi_hadir'],
+            'totalSesi'   => $rekapData['stat']['total_sesi'],
+            'persentase'  => $rekapData['stat']['persen_hadir'],
+        ]);
     }
 
     /**
@@ -200,37 +187,34 @@ class AbsensiGuruController extends Controller
 
     /**
      * Cetak rekapitulasi kehadiran resmi
+    /**
+     * Cetak rekapitulasi kehadiran resmi per hari dan per jam mapel
      */
-    public function print(Request $request)
+    public function print(Request $request, RekapKehadiranService $rekapService)
     {
-        $user = Auth::user();
+        $currentUser = Auth::user();
+        $targetUser = $currentUser;
+        $isExecutive = $currentUser->isSuperAdmin() || $currentUser->isKepalaSekolah() || $currentUser->isWakaKurikulum();
+        if ($isExecutive && $request->filled('guru_id')) {
+            $targetUser = User::find($request->input('guru_id')) ?? $currentUser;
+        }
+
+        $mode = $request->query('mode', 'bulan');
         $bulan = $request->query('bulan', date('Y-m'));
+        $semester = $request->query('semester', '1');
+        $tahunAjaran = $request->query('tahun_ajaran', PengaturanSekolah::get('tahun_pelajaran', '2026/2027'));
 
-        $riwayat = AbsensiGuru::with(['jadwal.mataPelajaran', 'guru'])
-            ->where('guru_user_id', $user->id)
-            ->where('tanggal', 'like', "{$bulan}%")
-            ->orderBy('tanggal')
-            ->get();
+        $periode = $rekapService->resolvePeriode($mode, $bulan, $tahunAjaran, $semester);
+        $rekapData = $rekapService->rekapKehadiranGuruPerHari($targetUser, $periode);
+        $settings = $rekapService->signatureSettings();
 
-        $totalHadir = $riwayat->where('status', 'hadir')->count();
-        $totalTerlambat = $riwayat->where('status', 'terlambat')->count();
-        $totalIzin = $riwayat->where('status', 'izin')->count();
-        $totalSakit = $riwayat->where('status', 'sakit')->count();
-        $totalTugasLuar = $riwayat->where('status', 'tugas_luar')->count();
-        $totalSesi = $riwayat->count();
-        $persentase = $totalSesi > 0 ? round((($totalHadir + $totalTerlambat + $totalTugasLuar) / $totalSesi) * 100, 1) : 100;
-
-        return view('guru.absensi.print', compact(
-            'riwayat',
-            'bulan',
-            'user',
-            'totalHadir',
-            'totalTerlambat',
-            'totalIzin',
-            'totalSakit',
-            'totalTugasLuar',
-            'totalSesi',
-            'persentase'
-        ));
+        return view('guru.absensi.print', [
+            'user'     => $targetUser,
+            'periode'  => $periode,
+            'stat'     => $rekapData['stat'],
+            'hariList' => $rekapData['hari_list'],
+            'settings' => $settings,
+            'bulan'    => $bulan,
+        ]);
     }
 }

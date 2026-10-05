@@ -649,4 +649,299 @@ class RekapKehadiranService
 
         return $map;
     }
+
+    /**
+     * Rekapitulasi kehadiran mengajar guru diurutkan per hari dengan rincian per jam mata pelajaran.
+     * Sesuai ketentuan:
+     * - Diurutkan per hari (tanggal terbaru ke terlama).
+     * - Menampilkan status dan keterangan setiap jam mapel yang diajar.
+     * - Guru yang sudah presensi hadir di pagi hari otomatis hadir di jam mapel hari tersebut,
+     *   kecuali tercatat pulang cepat sebelum sesi mapel atau ada catatan izin/sakit/alpa spesifik.
+     */
+    public function rekapKehadiranGuruPerHari(User $guru, array $periode): array
+    {
+        $start = $periode['start'];
+        $end = $periode['end'];
+        $ta = $periode['tahun_ajaran'] ?? null;
+        $today = Carbon::today();
+        $now = now();
+
+        // 1. Jadwal mengajar guru
+        $jadwalQuery = JadwalPelajaran::where('guru_user_id', $guru->id)->with('mataPelajaran');
+        if ($ta) {
+            $jadwalQuery->where(function ($q) use ($ta) {
+                $q->whereNull('tahun_ajaran')->orWhere('tahun_ajaran', $ta);
+            });
+        }
+        $jadwals = $jadwalQuery->orderBy('jam_ke_mulai')->get();
+        $jadwalByHari = $jadwals->groupBy(fn ($j) => strtolower(trim((string) $j->hari)));
+        $hariMengajar = $jadwalByHari->keys()->all();
+
+        // Total jam pelajaran per minggu
+        $jamPerMinggu = (int) $jadwals->sum(fn ($j) => max(1, (int) $j->jam_ke_selesai - (int) $j->jam_ke_mulai + 1));
+
+        // 2. Kalender libur
+        $libur = $this->liburMap($start, $end);
+
+        // 3. Tanggal-tanggal periode di mana guru ada jadwal
+        $teachingDates = [];
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            $tglStr = $d->toDateString();
+            if (isset($libur[$tglStr])) {
+                continue;
+            }
+            $hariName = $this->namaHari($d);
+            $key = strtolower($hariName);
+            if (in_array($key, $hariMengajar, true)) {
+                $teachingDates[$tglStr] = [
+                    'carbon' => $d->copy(),
+                    'hari'   => $hariName,
+                    'key'    => $key,
+                ];
+            }
+        }
+
+        // 4. Data Presensi Harian Guru
+        $presensiHarian = PresensiHarianGuru::where('guru_user_id', $guru->id)
+            ->whereDate('tanggal', '>=', $start->toDateString())
+            ->whereDate('tanggal', '<=', $end->toDateString())
+            ->get()
+            ->keyBy(fn ($p) => Carbon::parse($p->tanggal)->toDateString());
+
+        // 5. Data Absensi KBM Guru (per sesi jadwal)
+        $absensiKbm = AbsensiGuru::where('guru_user_id', $guru->id)
+            ->whereDate('tanggal', '>=', $start->toDateString())
+            ->whereDate('tanggal', '<=', $end->toDateString())
+            ->get()
+            ->groupBy(fn ($a) => Carbon::parse($a->tanggal)->toDateString());
+
+        // 6. Data Jurnal KBM
+        $laporanKbm = LaporanKbm::where('guru_user_id', $guru->id)
+            ->whereDate('tanggal_realisasi', '>=', $start->toDateString())
+            ->whereDate('tanggal_realisasi', '<=', $end->toDateString())
+            ->get()
+            ->groupBy(fn ($k) => Carbon::parse($k->tanggal_realisasi)->toDateString());
+
+        // 7. Data Cuti Guru
+        $cutiMap = $this->cutiMap([$guru->id], $start, $end);
+        $cutiGuru = $cutiMap[$guru->id] ?? [];
+
+        // Statistik akumulasi
+        $stat = [
+            'total_hari_efektif' => count($teachingDates),
+            'hari_berjalan'      => 0,
+            'total_sesi'         => 0,
+            'sesi_hadir'         => 0,
+            'sesi_tidak_hadir'   => 0,
+            'sesi_tanpa_ket'     => 0,
+            'sesi_sakit'         => 0,
+            'sesi_izin'          => 0,
+            'sesi_dinas_luar'    => 0,
+            'sesi_belum'         => 0,
+        ];
+
+        $hariList = [];
+
+        // Urutkan tanggal dari terbaru ke terlama (descending) untuk kenyamanan evaluasi harian
+        krsort($teachingDates);
+
+        foreach ($teachingDates as $tgl => $meta) {
+            $tglCarbon = $meta['carbon'];
+            $hariName = $meta['hari'];
+            $key = $meta['key'];
+
+            $jadwalHariIni = $jadwalByHari->get($key, collect());
+            $pHarian = $presensiHarian->get($tgl);
+            $absensiHariIni = $absensiKbm->get($tgl, collect())->keyBy('jadwal_pelajaran_id');
+            $kbmHariIni = $laporanKbm->get($tgl, collect());
+            $isCuti = isset($cutiGuru[$tgl]);
+
+            $hasHarianMasuk = $pHarian && !empty($pHarian->jam_masuk) && in_array(strtolower((string)$pHarian->status_masuk), ['hadir', 'terlambat', 'hadir_sesuai_jam'], true);
+            $jamPulangHarian = $pHarian && !empty($pHarian->jam_pulang) ? $pHarian->jam_pulang : null;
+
+            // Evaluasi per sesi mapel
+            $mapelList = [];
+            $hariAdaRecord = ($pHarian !== null) || $absensiHariIni->isNotEmpty() || $kbmHariIni->isNotEmpty() || $isCuti;
+            $isHariPassed = $tglCarbon->lt($today) || ($tglCarbon->eq($today) && ($hariAdaRecord || $now->hour >= 15));
+
+            if ($isHariPassed) {
+                $stat['hari_berjalan']++;
+            }
+
+            foreach ($jadwalHariIni as $j) {
+                $stat['total_sesi']++;
+
+                $jamMulai = $j->jam_mulai ? substr($j->jam_mulai, 0, 5) : '07:00';
+                $jamSelesai = $j->jam_selesai ? substr($j->jam_selesai, 0, 5) : '14:00';
+
+                // 1. Cek record AbsensiGuru spesifik jadwal
+                $absenSpesifik = $absensiHariIni->get($j->id);
+
+                // 2. Cek apakah ada Jurnal KBM di mapel & kelas ini
+                $adaKbmMapel = $kbmHariIni->contains(function ($k) use ($j) {
+                    return (empty($k->kelas) || $k->kelas === $j->kelas) &&
+                           (empty($k->mata_pelajaran_id) || $k->mata_pelajaran_id == $j->mata_pelajaran_id);
+                });
+
+                // Penentuan Status Sesi Mapel
+                $statusSesi = 'belum_berjalan';
+                $keteranganSesi = '-';
+                $badgeSesi = 'bg-slate-100 text-slate-600 border-slate-200';
+                $labelSesi = 'Belum Dimulai';
+
+                if (!$isHariPassed && $tglCarbon->gt($today)) {
+                    // Hari masa depan
+                    $statusSesi = 'belum_berjalan';
+                    $labelSesi = 'Masa Depan';
+                    $badgeSesi = 'bg-slate-50 text-slate-400 border-slate-200';
+                    $keteranganSesi = 'Jadwal mendatang';
+                    $stat['sesi_belum']++;
+                } elseif ($absenSpesifik) {
+                    // Ada rekaman absensi sesi spesifik
+                    $rawStatus = strtolower((string)$absenSpesifik->status);
+                    if ($rawStatus === 'hadir' || $rawStatus === 'terlambat') {
+                        $statusSesi = 'hadir';
+                        $labelSesi = $rawStatus === 'terlambat' ? 'Hadir (Terlambat)' : 'Hadir';
+                        $badgeSesi = $rawStatus === 'terlambat' ? 'bg-amber-50 text-amber-700 border-amber-300' : 'bg-emerald-50 text-emerald-700 border-emerald-300';
+                        $keteranganSesi = $absenSpesifik->catatan ?: "Absen pukul {$absenSpesifik->jam_absen}";
+                        $stat['sesi_hadir']++;
+                    } elseif ($rawStatus === 'izin') {
+                        $statusSesi = 'izin';
+                        $labelSesi = 'Izin';
+                        $badgeSesi = 'bg-blue-50 text-blue-700 border-blue-300';
+                        $keteranganSesi = $absenSpesifik->catatan ?: 'Izin mengajar';
+                        $stat['sesi_tidak_hadir']++;
+                        $stat['sesi_izin']++;
+                    } elseif ($rawStatus === 'sakit') {
+                        $statusSesi = 'sakit';
+                        $labelSesi = 'Sakit';
+                        $badgeSesi = 'bg-purple-50 text-purple-700 border-purple-300';
+                        $keteranganSesi = $absenSpesifik->catatan ?: 'Sakit';
+                        $stat['sesi_tidak_hadir']++;
+                        $stat['sesi_sakit']++;
+                    } elseif ($rawStatus === 'tugas_luar') {
+                        $statusSesi = 'dinas_luar';
+                        $labelSesi = 'Dinas Luar';
+                        $badgeSesi = 'bg-indigo-50 text-indigo-700 border-indigo-300';
+                        $keteranganSesi = $absenSpesifik->catatan ?: 'Tugas dinas luar';
+                        $stat['sesi_tidak_hadir']++;
+                        $stat['sesi_dinas_luar']++;
+                    } else {
+                        $statusSesi = 'tanpa_keterangan';
+                        $labelSesi = 'Tidak Hadir';
+                        $badgeSesi = 'bg-rose-50 text-rose-700 border-rose-300';
+                        $keteranganSesi = $absenSpesifik->catatan ?: 'Alpa di jam mapel ini';
+                        $stat['sesi_tidak_hadir']++;
+                        $stat['sesi_tanpa_ket']++;
+                    }
+                } elseif ($adaKbmMapel) {
+                    // Jurnal KBM terisi
+                    $statusSesi = 'hadir';
+                    $labelSesi = 'Hadir (Jurnal KBM)';
+                    $badgeSesi = 'bg-emerald-50 text-emerald-700 border-emerald-300';
+                    $keteranganSesi = 'Realisasi Jurnal KBM terisi lengkap';
+                    $stat['sesi_hadir']++;
+                } elseif ($isCuti) {
+                    $statusSesi = 'izin';
+                    $labelSesi = 'Cuti Disetujui';
+                    $badgeSesi = 'bg-blue-50 text-blue-700 border-blue-300';
+                    $keteranganSesi = 'Sedang dalam masa cuti kerja';
+                    $stat['sesi_tidak_hadir']++;
+                    $stat['sesi_izin']++;
+                } elseif ($hasHarianMasuk) {
+                    // GURU SUDAH ABSEN MASUK PAGI
+                    // Cek apakah pulang cepat sebelum mapel ini dimulai:
+                    $isPulangSebelum = false;
+                    if ($jamPulangHarian && $jamPulangHarian < $j->jam_mulai) {
+                        $isPulangSebelum = true;
+                    }
+                    if ($isPulangSebelum) {
+                        $statusSesi = 'tanpa_keterangan';
+                        $labelSesi = 'Tidak Hadir';
+                        $badgeSesi = 'bg-rose-50 text-rose-700 border-rose-300';
+                        $keteranganSesi = "Pulang Cepat pukul " . substr($jamPulangHarian, 0, 5) . " (sebelum sesi dimulai)";
+                        $stat['sesi_tidak_hadir']++;
+                        $stat['sesi_tanpa_ket']++;
+                    } else {
+                        // Otomatis HADIR karena guru hadir di sekolah hari itu!
+                        $statusSesi = 'hadir';
+                        $labelSesi = 'Hadir';
+                        $badgeSesi = 'bg-emerald-50 text-emerald-700 border-emerald-300';
+                        $keteranganSesi = "Hadir (Presensi Masuk " . substr($pHarian->jam_masuk, 0, 5) . ")";
+                        $stat['sesi_hadir']++;
+                    }
+                } elseif ($pHarian && in_array(strtolower((string)$pHarian->status_masuk), ['izin', 'sakit', 'tugas_luar'], true)) {
+                    $sHarian = strtolower((string)$pHarian->status_masuk);
+                    $statusSesi = $sHarian === 'tugas_luar' ? 'dinas_luar' : $sHarian;
+                    $labelSesi = ucfirst(str_replace('_', ' ', $statusSesi));
+                    $badgeSesi = $sHarian === 'sakit' ? 'bg-purple-50 text-purple-700 border-purple-300' : 'bg-blue-50 text-blue-700 border-blue-300';
+                    $keteranganSesi = $pHarian->catatan ?: "Presensi harian tercatat {$labelSesi}";
+                    $stat['sesi_tidak_hadir']++;
+                    $stat["sesi_{$statusSesi}"]++;
+                } else {
+                    // Belum ada presensi sama sekali
+                    if ($tglCarbon->eq($today) && $now->hour < 15) {
+                        $statusSesi = 'belum_berjalan';
+                        $labelSesi = 'Belum Ada Catatan';
+                        $badgeSesi = 'bg-amber-50 text-amber-700 border-amber-300';
+                        $keteranganSesi = 'Hari ini belum presensi';
+                        $stat['sesi_belum']++;
+                    } else {
+                        $statusSesi = 'tanpa_keterangan';
+                        $labelSesi = 'Tidak Hadir';
+                        $badgeSesi = 'bg-rose-50 text-rose-700 border-rose-300';
+                        $keteranganSesi = 'Tidak ada catatan kehadiran';
+                        $stat['sesi_tidak_hadir']++;
+                        $stat['sesi_tanpa_ket']++;
+                    }
+                }
+
+                $mapelList[] = [
+                    'jadwal_id'       => $j->id,
+                    'mapel'           => $j->mataPelajaran->nama ?? 'Mata Pelajaran',
+                    'kelas'           => $j->kelas ?? '-',
+                    'ruang'           => $j->ruang ?? '-',
+                    'jam_ke'          => "Jam ke {$j->jam_ke_mulai} - {$j->jam_ke_selesai}",
+                    'jam_waktu'       => "{$jamMulai} - {$jamSelesai}",
+                    'status'          => $statusSesi,
+                    'label'           => $labelSesi,
+                    'badge'           => $badgeSesi,
+                    'keterangan'      => $keteranganSesi,
+                    'lampiran_bukti'  => $absenSpesifik->lampiran_bukti ?? null,
+                ];
+            }
+
+            // Ringkasan status hari ini
+            $hariList[] = [
+                'tanggal'          => $tgl,
+                'hari'             => $hariName,
+                'tanggal_label'    => $tglCarbon->isoFormat('D MMMM Y'),
+                'is_today'         => $tglCarbon->isToday(),
+                'is_passed'        => $isHariPassed,
+                'presensi_harian'  => $pHarian ? [
+                    'jam_masuk'    => $pHarian->jam_masuk ? substr($pHarian->jam_masuk, 0, 5) : null,
+                    'jam_pulang'   => $pHarian->jam_pulang ? substr($pHarian->jam_pulang, 0, 5) : null,
+                    'status_masuk' => $pHarian->status_masuk,
+                    'status_label' => ucfirst(str_replace('_', ' ', $pHarian->status_masuk ?? 'hadir')),
+                    'terlambat'    => (int) $pHarian->terlambat_masuk_menit,
+                ] : null,
+                'mapel_list'       => $mapelList,
+                'total_mapel'      => count($mapelList),
+                'mapel_hadir'      => collect($mapelList)->where('status', 'hadir')->count(),
+                'mapel_tidak'      => collect($mapelList)->whereIn('status', ['tanpa_keterangan', 'sakit', 'izin', 'dinas_luar'])->count(),
+            ];
+        }
+
+        // Hitung persentase kehadiran
+        $sesiEvaluasi = $stat['sesi_hadir'] + $stat['sesi_tidak_hadir'];
+        $stat['persen_hadir'] = $sesiEvaluasi > 0 ? round(($stat['sesi_hadir'] / $sesiEvaluasi) * 100, 1) : 0;
+        $stat['persen_tidak'] = $sesiEvaluasi > 0 ? round(100 - $stat['persen_hadir'], 1) : 0;
+        $stat['jam_per_minggu'] = $jamPerMinggu;
+
+        return [
+            'stat'      => $stat,
+            'hari_list' => $hariList,
+            'periode'   => $periode,
+        ];
+    }
 }

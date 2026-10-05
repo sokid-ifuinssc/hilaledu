@@ -9,7 +9,7 @@
     $rkUser = auth()->user();
     $rkMode = $mode ?? 'nav';
     $rkItems = [];
-    if (($self ?? false) && in_array($rkUser->role, ['guru', 'tendik'], true)) {
+    if (($self ?? false) && $rkUser->role === 'tendik') {
         $rkItems[] = ['rekap-kehadiran.saya', 'rekap-kehadiran.saya*', 'bi-calendar-check-fill', '#10b981', 'Rekap Kehadiran Saya'];
     }
     if ($rkUser->canViewRekapKehadiran()) {

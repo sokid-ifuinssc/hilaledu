@@ -150,5 +150,61 @@ class RekapKehadiranTest extends TestCase
 
         \Carbon\Carbon::setTestNow(); // Reset mock time
     }
+
+    public function test_guru_rekap_kehadiran_saya_menampilkan_jadwal_per_hari_dan_keterangan_per_jam_mapel()
+    {
+        $guru = User::factory()->create([
+            'role' => 'guru',
+            'name' => 'Guru Mengajar Test',
+            'is_active' => true,
+        ]);
+
+        $mapel = \App\Models\MataPelajaran::create([
+            'nama' => 'Pemrograman Web & Perangkat Bergerak',
+            'kode' => 'PWPB-01',
+        ]);
+
+        // Buat jadwal mengajar pada hari ini (misal Senin)
+        $hariIni = \App\Models\JadwalPelajaran::class;
+        $hariName = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'][date('N')];
+
+        $jadwal1 = \App\Models\JadwalPelajaran::create([
+            'hari'              => $hariName,
+            'jam_ke_mulai'      => 1,
+            'jam_ke_selesai'    => 2,
+            'jam_mulai'         => '07:00:00',
+            'jam_selesai'       => '08:30:00',
+            'kelas'             => 'XII RPL 1',
+            'mata_pelajaran_id' => $mapel->id,
+            'guru_user_id'      => $guru->id,
+            'ruang'             => 'Lab RPL 1',
+        ]);
+
+        // Presensi harian masuk pagi
+        \App\Models\PresensiHarianGuru::create([
+            'guru_user_id' => $guru->id,
+            'tanggal'      => date('Y-m-d'),
+            'jam_masuk'    => '07:05:00',
+            'status_masuk' => 'hadir',
+        ]);
+
+        // 1. Akses menu guru.absensi.index (sekarang Rekap Kehadiran Saya)
+        $res = $this->actingAs($guru)->get(route('guru.absensi.index'));
+        $res->assertStatus(200);
+        $res->assertSee('Rekap Kehadiran Saya');
+        $res->assertSee('Pemrograman Web & Perangkat Bergerak');
+        $res->assertSee('Kelas XII RPL 1');
+        $res->assertSee('Hadir');
+
+        // 2. Akses print
+        $resPrint = $this->actingAs($guru)->get(route('guru.absensi.print'));
+        $resPrint->assertStatus(200);
+        $resPrint->assertSee('REKAPITULASI KEHADIRAN MENGAJAR GURU');
+        $resPrint->assertSee('Pemrograman Web & Perangkat Bergerak');
+
+        // 3. Akses route lama guru.rekap-presensi.index ter-redirect
+        $resRedirect = $this->actingAs($guru)->get(route('guru.rekap-presensi.index'));
+        $resRedirect->assertRedirect(route('guru.absensi.index'));
+    }
 }
 

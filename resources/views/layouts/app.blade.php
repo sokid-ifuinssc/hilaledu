@@ -1150,8 +1150,7 @@
                     <li class="sidebar-nav-item"><a href="{{ route('guru.minggu-efektif.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.minggu-efektif.*') ? 'active' : '' }}"><i class="bi bi-calendar-check" style="color:#10b981;"></i><span>Minggu Efektif</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('guru.rencana-pembelajaran.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rencana-pembelajaran.*') ? 'active' : '' }}"><i class="bi bi-book" style="color:#f43f5e;"></i><span>Rencana Pembelajaran</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('guru.laporan-kbm.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.laporan-kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text" style="color:#8b5cf6;"></i><span>Laporan KBM</span></a></li>
-                    <li class="sidebar-nav-item"><a href="{{ route('guru.absensi.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.absensi.*') ? 'active' : '' }}"><i class="bi bi-person-check" style="color:#10b981;"></i><span>Absensi Mengajar</span></a></li>
-                    <li class="sidebar-nav-item"><a href="{{ route('guru.rekap-presensi.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rekap-presensi.*') ? 'active' : '' }}"><i class="bi bi-clipboard-data" style="color:#0ea5e9;"></i><span>Rekap Presensi</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.absensi.index') }}" class="sidebar-nav-link {{ (request()->routeIs('guru.absensi.*') || request()->routeIs('guru.rekap-presensi.*') || request()->routeIs('rekap-kehadiran.saya*')) ? 'active' : '' }}"><i class="bi bi-calendar-check-fill" style="color:#10b981;"></i><span>Rekap Kehadiran Saya</span></a></li>
                     @endif
 
                     @if(auth()->user()->hasAnyTugasTambahan())
@@ -1234,8 +1233,7 @@
                         <li class="sidebar-nav-item"><a href="{{ route('guru.minggu-efektif.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.minggu-efektif.*') ? 'active' : '' }}"><i class="bi bi-calendar-check" style="color:#10b981;"></i><span>Minggu Efektif</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.rencana-pembelajaran.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rencana-pembelajaran.*') ? 'active' : '' }}"><i class="bi bi-book" style="color:#f43f5e;"></i><span>Rencana Pembelajaran</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.laporan-kbm.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.laporan-kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text" style="color:#8b5cf6;"></i><span>Laporan KBM</span></a></li>
-                        <li class="sidebar-nav-item"><a href="{{ route('guru.absensi.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.absensi.*') ? 'active' : '' }}"><i class="bi bi-person-check" style="color:#10b981;"></i><span>Absensi Mengajar</span></a></li>
-                        <li class="sidebar-nav-item"><a href="{{ route('guru.rekap-presensi.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rekap-presensi.*') ? 'active' : '' }}"><i class="bi bi-clipboard-data" style="color:#0ea5e9;"></i><span>Rekap Presensi</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('guru.absensi.index') }}" class="sidebar-nav-link {{ (request()->routeIs('guru.absensi.*') || request()->routeIs('guru.rekap-presensi.*') || request()->routeIs('rekap-kehadiran.saya*')) ? 'active' : '' }}"><i class="bi bi-calendar-check-fill" style="color:#10b981;"></i><span>Rekap Kehadiran Saya</span></a></li>
                         @endif
 
                         @if(auth()->user()->hasAnyTugasTambahan())

@@ -291,7 +291,20 @@ class PengaturanSekolah extends Model
     public static function getAllSettings(): array
     {
         $setting = self::getSetting();
-        $kepala = $setting->kepalaSekolah;
+
+        $namaKepala = 'Muhammad Mansyur, S.Pt';
+        if (is_string($setting->kepala_sekolah) && !empty($setting->kepala_sekolah)) {
+            $namaKepala = $setting->kepala_sekolah;
+        } elseif (is_object($setting->kepalaSekolah)) {
+            $namaKepala = $setting->kepalaSekolah->nama_lengkap ?? $setting->kepalaSekolah->name ?? 'Muhammad Mansyur, S.Pt';
+        }
+
+        $nipKepala = '6942767668130350';
+        if (is_string($setting->nip_kepala_sekolah) && !empty($setting->nip_kepala_sekolah) && $setting->nip_kepala_sekolah !== '-') {
+            $nipKepala = $setting->nip_kepala_sekolah;
+        } elseif (is_object($setting->kepalaSekolah) && !empty($setting->kepalaSekolah->nip)) {
+            $nipKepala = $setting->kepalaSekolah->nip;
+        }
 
         $result = [
             'nama_sekolah' => $setting->nama_sekolah ?? 'SMK PLUS AL HILAL',
@@ -301,8 +314,8 @@ class PengaturanSekolah extends Model
             'telepon' => $setting->telepon ?? '0231-123456',
             'website' => $setting->website ?? 'https://smkplusalhilal.sch.id',
             'logo' => $setting->logo ?? null,
-            'kepala_sekolah' => $kepala ? ($kepala->nama_lengkap ?? $kepala->name) : 'Mukhammad Mansyur, S.Pt',
-            'nip_kepala_sekolah' => $kepala ? ($kepala->nip ?? '-') : '-',
+            'kepala_sekolah' => $namaKepala,
+            'nip_kepala_sekolah' => $nipKepala,
             'tahun_ajaran' => self::getActiveTahunAjaran(),
             'tahun_pelajaran' => self::getActiveTahunAjaran(),
             'semester' => self::getActiveSemester(),

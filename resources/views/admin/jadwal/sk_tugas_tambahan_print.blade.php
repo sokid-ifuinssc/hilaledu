@@ -26,8 +26,8 @@
 
     @php
         $setting = \App\Models\PengaturanSekolah::getSetting();
-        $namaKepsek = !empty($setting->kepala_sekolah) ? $setting->kepala_sekolah : ($setting->kepalaSekolah?->nama_lengkap ?? $setting->kepalaSekolah?->name ?? 'Muhammad Mansyur, S.Pt');
-        $nipKepsek = !empty($setting->nip_kepala_sekolah) && $setting->nip_kepala_sekolah !== '-' ? $setting->nip_kepala_sekolah : ($setting->kepalaSekolah?->nip ?? '6942767668130350');
+        $namaKepsek = !empty($setting->kepala_sekolah) && is_string($setting->kepala_sekolah) ? $setting->kepala_sekolah : 'Muhammad Mansyur, S.Pt';
+        $nipKepsek = !empty($setting->nip_kepala_sekolah) && is_string($setting->nip_kepala_sekolah) && $setting->nip_kepala_sekolah !== '-' ? $setting->nip_kepala_sekolah : '6942767668130350';
     @endphp
 
     @forelse($gurus as $guru)

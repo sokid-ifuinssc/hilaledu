@@ -115,5 +115,40 @@ class RekapKehadiranTest extends TestCase
         $this->assertGreaterThan(20, $row['hari_kerja']);
         $this->assertEquals($rekap['hari_kerja'], $row['hari_kerja']);
     }
+
+    public function test_guru_yang_sudah_absen_hari_ini_langsung_muncul_di_rekap_meskipun_sebelum_jam_15()
+    {
+        // Simulasikan waktu jam 08:30 pagi
+        \Carbon\Carbon::setTestNow(\Carbon\Carbon::today()->setTime(8, 30));
+
+        $guru = User::factory()->create([
+            'role' => 'guru',
+            'name' => 'Guru Hadir Hari Ini',
+            'is_active' => true,
+        ]);
+
+        // Guru absen masuk hari ini
+        \App\Models\PresensiHarianGuru::create([
+            'guru_user_id' => $guru->id,
+            'tanggal'      => date('Y-m-d'),
+            'jam_masuk'    => '07:15:00',
+            'status_masuk' => 'hadir',
+        ]);
+
+        $service = app(\App\Services\RekapKehadiranService::class);
+        $periode = $service->resolvePeriode('bulan', date('Y-m'), null, null);
+
+        $rekap = $service->rekapPegawai($periode, collect([$guru]), true);
+        $row = $rekap['rows']->first();
+
+        // Hari ini harus langsung terhitung hadir dan detailnya tercatat
+        $this->assertGreaterThanOrEqual(1, $row['hadir']);
+        $detailHariIni = collect($row['detail'])->firstWhere('tanggal', date('Y-m-d'));
+        $this->assertNotNull($detailHariIni);
+        $this->assertEquals('hadir', $detailHariIni['status']);
+        $this->assertEquals('07:15', $detailHariIni['jam_masuk']);
+
+        \Carbon\Carbon::setTestNow(); // Reset mock time
+    }
 }
 

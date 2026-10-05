@@ -134,11 +134,30 @@ class RekapKehadiranService
         $libur = $this->liburMap($start, $end);
         $hariKerja = $this->hariKerjaDates($start, $end, $libur);
         $totalHariKerjaSebulan = count($hariKerja);
-        $cap = $this->capDate($end);
         $ids = $users->pluck('id')->all();
+        $today = Carbon::today();
 
         $presensi = $this->presensiMap($ids, $start, $end);
         $cuti = $this->cutiMap($ids, $start, $end);
+
+        // Sumber KBM & Piket sebagai bukti kehadiran tambahan bagi guru
+        $absensi = [];
+        AbsensiGuru::whereIn('guru_user_id', $ids)
+            ->whereDate('tanggal', '>=', $start->toDateString())
+            ->whereDate('tanggal', '<=', $end->toDateString())
+            ->get(['guru_user_id', 'tanggal', 'status'])
+            ->each(function ($a) use (&$absensi) {
+                $absensi[$a->guru_user_id][Carbon::parse($a->tanggal)->toDateString()][] = strtolower((string) $a->status);
+            });
+
+        $kbm = [];
+        LaporanKbm::whereIn('guru_user_id', $ids)
+            ->whereDate('tanggal_realisasi', '>=', $start->toDateString())
+            ->whereDate('tanggal_realisasi', '<=', $end->toDateString())
+            ->get(['guru_user_id', 'tanggal_realisasi'])
+            ->each(function ($k) use (&$kbm) {
+                $kbm[$k->guru_user_id][Carbon::parse($k->tanggal_realisasi)->toDateString()] = true;
+            });
 
         $rows = collect();
         foreach ($users->values() as $i => $u) {
@@ -147,12 +166,32 @@ class RekapKehadiranService
             $hariBerjalan = 0;
 
             foreach ($hariKerja as $tgl) {
-                $isPassed = Carbon::parse($tgl)->startOfDay()->lte($cap);
+                $tglCarbon = Carbon::parse($tgl)->startOfDay();
+                $p = $presensi[$u->id][$tgl] ?? null;
+                $hasRecord = ($p !== null)
+                    || isset($cuti[$u->id][$tgl])
+                    || !empty($absensi[$u->id][$tgl])
+                    || isset($kbm[$u->id][$tgl]);
+
+                // Hari dihitung berjalan jika:
+                // 1. Tanggal sudah lewat (< today)
+                // 2. Hari ini (== today) DAN sudah ada catatan absensi/KBM ATAU jam sudah >= 15:00
+                if ($tglCarbon->lt($today)) {
+                    $isPassed = true;
+                } elseif ($tglCarbon->eq($today)) {
+                    $isPassed = $hasRecord || (now()->hour >= 15);
+                } else {
+                    $isPassed = false;
+                }
 
                 if ($isPassed) {
                     $hariBerjalan++;
-                    $p = $presensi[$u->id][$tgl] ?? null;
-                    $status = $this->classifyPresensi($p, isset($cuti[$u->id][$tgl]));
+                    $status = $this->classifyPresensi(
+                        $p,
+                        isset($cuti[$u->id][$tgl]),
+                        $absensi[$u->id][$tgl] ?? [],
+                        isset($kbm[$u->id][$tgl])
+                    );
                     $c[$status]++;
                 } else {
                     $p = null;
@@ -176,7 +215,7 @@ class RekapKehadiranService
             }
 
             $tidakHadir = $c['tanpa_keterangan'] + $c['sakit'] + $c['izin'] + $c['dinas_luar'];
-            $basisPersen = ($end->lte($cap) || $hariBerjalan === 0) ? $totalHariKerjaSebulan : $hariBerjalan;
+            $basisPersen = ($end->lt($today) || $hariBerjalan === 0) ? $totalHariKerjaSebulan : $hariBerjalan;
             $persenHadir = $basisPersen > 0 ? round($c['hadir'] / $basisPersen * 100, 1) : 0;
             $persenTidak = $basisPersen > 0 ? round(100 - $persenHadir, 1) : 0;
 
@@ -226,6 +265,7 @@ class RekapKehadiranService
 
         $libur = $this->liburMap($start, $end);
         $ids = $gurus->pluck('id')->all();
+        $today = Carbon::today();
 
         // Jadwal mengajar (prioritaskan jadwal tahun ajaran terpilih bila tersedia)
         $jadwalAll = JadwalPelajaran::whereIn('guru_user_id', $ids)->get();
@@ -242,9 +282,6 @@ class RekapKehadiranService
             }
             $tanggalKalenderPeriode[$d->toDateString()] = $this->namaHari($d);
         }
-
-        // Batas hari yang sudah terlewati
-        $cap = $this->capDate($end);
 
         // Data sumber kehadiran
         $absensi = [];
@@ -284,7 +321,7 @@ class RekapKehadiranService
             $c = array_fill_keys(array_keys(self::STATUS_LABEL), 0);
             $detail = [];
             $hariKerjaMengajar = 0; // Total hari kerja mengajar dari minggu efektif satu bulan/periode tersebut
-            $hariBerjalan = 0;      // Hari kerja yang sudah terlewati (<= cap)
+            $hariBerjalan = 0;      // Hari kerja yang sudah terlewati / ada aktivitas
 
             foreach ($tanggalKalenderPeriode as $tgl => $hari) {
                 $key = strtolower($hari);
@@ -293,7 +330,22 @@ class RekapKehadiranService
                 }
                 $hariKerjaMengajar++;
 
-                $isPassed = Carbon::parse($tgl)->startOfDay()->lte($cap);
+                $tglCarbon = Carbon::parse($tgl)->startOfDay();
+                $hasRecord = !empty($absensi[$g->id][$tgl])
+                    || isset($kbm[$g->id][$tgl])
+                    || ($presensi[$g->id][$tgl] ?? null) !== null
+                    || isset($cuti[$g->id][$tgl]);
+
+                // Hari dihitung berjalan jika:
+                // 1. Tanggal sudah lewat (< today)
+                // 2. Hari ini (== today) DAN sudah ada catatan absensi/KBM/presensi ATAU jam sudah >= 15:00
+                if ($tglCarbon->lt($today)) {
+                    $isPassed = true;
+                } elseif ($tglCarbon->eq($today)) {
+                    $isPassed = $hasRecord || (now()->hour >= 15);
+                } else {
+                    $isPassed = false;
+                }
 
                 if ($isPassed) {
                     $hariBerjalan++;
@@ -310,6 +362,7 @@ class RekapKehadiranService
                 }
 
                 if ($withDetail) {
+                    $pHarian = $presensi[$g->id][$tgl] ?? null;
                     $detail[] = [
                         'tanggal'    => $tgl,
                         'hari'       => $hari,
@@ -317,16 +370,16 @@ class RekapKehadiranService
                         'label'      => self::STATUS_LABEL[$status],
                         'badge'      => self::STATUS_BADGE[$status],
                         'sesi'       => (int) ($sesiPerHari[$key] ?? 0),
-                        'jam_masuk'  => null,
-                        'jam_pulang' => null,
-                        'terlambat'  => 0,
-                        'catatan'    => null,
+                        'jam_masuk'  => $pHarian && $pHarian->jam_masuk ? substr($pHarian->jam_masuk, 0, 5) : null,
+                        'jam_pulang' => $pHarian && $pHarian->jam_pulang ? substr($pHarian->jam_pulang, 0, 5) : null,
+                        'terlambat'  => $pHarian && strtolower((string) $pHarian->status_masuk) === 'terlambat' ? (int) $pHarian->terlambat_masuk_menit : 0,
+                        'catatan'    => $pHarian->catatan ?? null,
                     ];
                 }
             }
 
             $tidakHadir = $c['tanpa_keterangan'] + $c['sakit'] + $c['izin'] + $c['dinas_luar'];
-            $basisPersen = ($end->lte($cap) || $hariBerjalan === 0) ? $hariKerjaMengajar : $hariBerjalan;
+            $basisPersen = ($end->lt($today) || $hariBerjalan === 0) ? $hariKerjaMengajar : $hariBerjalan;
             $persenHadir = $basisPersen > 0 ? round($c['hadir'] / $basisPersen * 100, 1) : 0;
             $persenTidak = $basisPersen > 0 ? round(100 - $persenHadir, 1) : 0;
 
@@ -414,7 +467,7 @@ class RekapKehadiranService
     /**
      * Klasifikasi satu hari kerja pegawai dari presensi harian (+ cuti disetujui).
      */
-    protected function classifyPresensi(?PresensiHarianGuru $p, bool $cuti): string
+    protected function classifyPresensi(?PresensiHarianGuru $p, bool $cuti, array $absensiKbm = [], bool $adaKbm = false): string
     {
         if ($p) {
             $s = strtolower(trim((string) $p->status_masuk));
@@ -437,6 +490,19 @@ class RekapKehadiranService
             if (!empty($p->jam_masuk) || !empty($p->jam_pulang)) {
                 return 'hadir';
             }
+        }
+
+        if ($adaKbm || array_intersect($absensiKbm, ['hadir', 'terlambat'])) {
+            return 'hadir';
+        }
+        if (in_array('tugas_luar', $absensiKbm, true)) {
+            return 'dinas_luar';
+        }
+        if (in_array('sakit', $absensiKbm, true)) {
+            return 'sakit';
+        }
+        if (in_array('izin', $absensiKbm, true)) {
+            return 'izin';
         }
 
         return $cuti ? 'izin' : 'tanpa_keterangan';

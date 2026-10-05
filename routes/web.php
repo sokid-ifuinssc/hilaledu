@@ -327,12 +327,10 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')-
 Route::get('/operator/{any?}', fn() => redirect()->route('login'))->where('any', '.*');
 
 // ============================================================
-// GURU Routes
+// GURU Routes (Payroll & Profile Alias)
 // ============================================================
 Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'guru'])->name('dashboard');
-    Route::get('/profile', [App\Http\Controllers\Guru\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile', [App\Http\Controllers\Guru\ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile', fn() => redirect()->route('guru.profile.edit'));
     Route::get('/payroll', [\App\Http\Controllers\Guru\GuruPayrollController::class, 'index'])->name('payroll.index');
     Route::get('/payroll/{payroll}/print', [\App\Http\Controllers\Guru\GuruPayrollController::class, 'print'])->name('payroll.print');
 });
@@ -341,7 +339,6 @@ Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(f
 // TENDIK Routes
 // ============================================================
 Route::middleware(['auth', 'role:tendik'])->prefix('tendik')->name('tendik.')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'tendik'])->name('dashboard');
     Route::get('/profile', [\App\Http\Controllers\Tendik\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [\App\Http\Controllers\Tendik\ProfileController::class, 'update'])->name('profile.update');
     Route::get('/payroll', [\App\Http\Controllers\Tendik\TendikPayrollController::class, 'index'])->name('payroll.index');

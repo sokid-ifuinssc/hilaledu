@@ -332,4 +332,198 @@ class MingguEfektifService
 
         return $synced;
     }
+
+    /**
+     * Ambil daftar tanggal efektif mengajar (KBM) untuk sebuah jadwal pelajaran
+     * yang dipetakan dari Kalender Akademik dan Minggu Efektif (libur/non-KBM dilewati).
+     *
+     * @return array<int, array{
+     *     tanggal: string,
+     *     tanggal_format: string,
+     *     pertemuan_ke: int,
+     *     hari: string,
+     *     label: string,
+     *     sudah_ada_rpp: bool,
+     *     rpp_id: int|null,
+     *     materi_pokok: string|null
+     * }>
+     */
+    public function getEffectiveDatesForJadwal(JadwalPelajaran $jadwal, ?string $tahunAjaran = null, ?string $semester = null): array
+    {
+        $tahun = $tahunAjaran ?: ($jadwal->tahun_ajaran ?: \App\Models\PengaturanSekolah::getActiveTahunAjaran());
+        $sem = $semester ?: ($jadwal->semester ?: \App\Models\PengaturanSekolah::getActiveSemester());
+        $semNum = ($sem === 'ganjil' || $sem === '1') ? '1' : '2';
+
+        $kalender = KalenderAkademik::where('tahun_ajaran', $tahun)->first()
+            ?? KalenderAkademik::where('is_aktif', true)->latest()->first()
+            ?? KalenderAkademik::first();
+
+        $dayNum = $this->dayMap[strtolower(trim((string)$jadwal->hari))] ?? null;
+        if ($dayNum === null) {
+            return [];
+        }
+
+        // Ambil data RPP yang sudah pernah dibuat untuk jadwal ini
+        $existingRpp = \App\Models\RencanaPembelajaran::where('jadwal_pelajaran_id', $jadwal->id)
+            ->get()
+            ->keyBy(fn ($r) => Carbon::parse($r->tanggal_rencana)->toDateString());
+
+        if (!$kalender) {
+            return $this->getFallbackDatesForJadwal($jadwal, $dayNum, $semNum, $tahun, $existingRpp);
+        }
+
+        $months = $kalender->getMonthsForSemester($semNum);
+        if ($semNum === '2') {
+            $months = array_values(array_filter($months, fn($m) => $m['month'] <= 6));
+        }
+
+        $events = $kalender->events()->where('semester', $semNum)->get();
+
+        $result = [];
+        $pertemuanKe = 1;
+
+        foreach ($months as $mInfo) {
+            $y = $mInfo['year'];
+            $m = $mInfo['month'];
+            $firstDay = Carbon::createFromDate($y, $m, 1);
+            $daysInMonth = $firstDay->daysInMonth;
+
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $cur = Carbon::createFromDate($y, $m, $d);
+                if ($cur->dayOfWeek === $dayNum) {
+                    $dateStr = $cur->format('Y-m-d');
+
+                    // Cek apakah tanggal ini libur atau kegiatan non-KBM
+                    $ev = $events->first(function ($it) use ($dateStr) {
+                        $s = Carbon::parse($it->tanggal_mulai)->format('Y-m-d');
+                        $e = Carbon::parse($it->tanggal_selesai)->format('Y-m-d');
+                        return $dateStr >= $s && $dateStr <= $e && ($it->is_libur || in_array($it->kategori, ['libur_nasional', 'libur_sekolah', 'libur_semester', 'ujian_asesmen']));
+                    });
+
+                    if (!$ev) {
+                        $rpp = $existingRpp->get($dateStr);
+                        $hariLabel = ucfirst(strtolower($jadwal->hari));
+                        $formattedDate = $cur->locale('id')->isoFormat('D MMMM Y');
+
+                        $result[] = [
+                            'tanggal'        => $dateStr,
+                            'tanggal_format' => "{$hariLabel}, {$formattedDate}",
+                            'pertemuan_ke'   => $pertemuanKe,
+                            'hari'           => $hariLabel,
+                            'label'          => "Pertemuan {$pertemuanKe} &bull; {$hariLabel}, {$formattedDate}",
+                            'sudah_ada_rpp'  => (bool) $rpp,
+                            'rpp_id'         => $rpp?->id,
+                            'materi_pokok'   => $rpp?->materi_pokok,
+                        ];
+                        $pertemuanKe++;
+                    }
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Fallback tanggal pertemuan jika kalender akademik belum dikonfigurasi
+     */
+    protected function getFallbackDatesForJadwal(JadwalPelajaran $jadwal, int $dayNum, string $semNum, string $tahun, Collection $existingRpp): array
+    {
+        $years = explode('/', $tahun);
+        $startYear = (int) ($years[0] ?? date('Y'));
+        if ($semNum === '2' && isset($years[1])) {
+            $year = (int) $years[1];
+            $monthRange = [1, 2, 3, 4, 5, 6];
+        } else {
+            $year = $startYear;
+            $monthRange = [7, 8, 9, 10, 11, 12];
+        }
+
+        $result = [];
+        $pertemuanKe = 1;
+
+        foreach ($monthRange as $m) {
+            $firstDay = Carbon::createFromDate($year, $m, 1);
+            $daysInMonth = $firstDay->daysInMonth;
+
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $cur = Carbon::createFromDate($year, $m, $d);
+                if ($cur->dayOfWeek === $dayNum) {
+                    $dateStr = $cur->format('Y-m-d');
+                    $rpp = $existingRpp->get($dateStr);
+                    $hariLabel = ucfirst(strtolower($jadwal->hari));
+                    $formattedDate = $cur->locale('id')->isoFormat('D MMMM Y');
+
+                    $result[] = [
+                        'tanggal'        => $dateStr,
+                        'tanggal_format' => "{$hariLabel}, {$formattedDate}",
+                        'pertemuan_ke'   => $pertemuanKe,
+                        'hari'           => $hariLabel,
+                        'label'          => "Pertemuan {$pertemuanKe} &bull; {$hariLabel}, {$formattedDate}",
+                        'sudah_ada_rpp'  => (bool) $rpp,
+                        'rpp_id'         => $rpp?->id,
+                        'materi_pokok'   => $rpp?->materi_pokok,
+                    ];
+                    $pertemuanKe++;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Ambil seluruh tanggal efektif KBM seorang guru pada rentang tanggal tertentu (misal satu bulan)
+     * berdasarkan hari mengajar jadwal dan kalender akademik (minggu efektif).
+     *
+     * @return array<string> Daftar string tanggal 'Y-m-d'
+     */
+    public function getEffectiveTeachingDatesForGuru(int $guruUserId, Carbon $start, Carbon $end, ?string $tahunAjaran = null): array
+    {
+        $jadwals = JadwalPelajaran::where('guru_user_id', $guruUserId)->get();
+        if ($jadwals->isEmpty()) {
+            return [];
+        }
+
+        $days = $jadwals->map(function ($j) {
+            return $this->dayMap[strtolower(trim((string)$j->hari))] ?? null;
+        })->filter()->unique()->all();
+
+        if (empty($days)) {
+            return [];
+        }
+
+        // Ambil event libur / non-KBM
+        try {
+            $events = \App\Models\KalenderAkademikEvent::query()
+                ->where(function ($q) {
+                    $q->where('is_libur', true)
+                        ->orWhereIn('kategori', ['libur_nasional', 'libur_sekolah', 'libur_semester', 'ujian_asesmen']);
+                })
+                ->whereDate('tanggal_mulai', '<=', $end->toDateString())
+                ->whereDate('tanggal_selesai', '>=', $start->toDateString())
+                ->get();
+        } catch (\Throwable $e) {
+            $events = collect();
+        }
+
+        $dates = [];
+        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+            if (in_array($d->dayOfWeek, $days, true)) {
+                $dateStr = $d->toDateString();
+                $isLibur = $events->contains(function ($it) use ($dateStr) {
+                    $s = Carbon::parse($it->tanggal_mulai)->toDateString();
+                    $e = Carbon::parse($it->tanggal_selesai)->toDateString();
+                    return $dateStr >= $s && $dateStr <= $e;
+                });
+
+                if (!$isLibur) {
+                    $dates[] = $dateStr;
+                }
+            }
+        }
+
+        return $dates;
+    }
 }
+

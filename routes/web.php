@@ -389,6 +389,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/kalender/efektif-api/{kalender?}', [KalenderAkademikController::class, 'getCalculatedEfektif'])->name('kalender.efektif-api');
     Route::get('/monitoring-kelas/data', [GuruDashboardController::class, 'monitoringData'])->name('monitoring-kelas.data');
 
+    // Rekap Kehadiran Pegawai (guru + tendik) & Rekap Mengajar Guru.
+    // Otorisasi ditangani di controller: Kurikulum, Kepala Sekolah, Bendahara/Payroll (semua) dan guru/tendik (pribadi).
+    Route::prefix('rekap-kehadiran')->name('rekap-kehadiran.')->group(function () {
+        $ctrl = \App\Http\Controllers\Admin\RekapKehadiranController::class;
+        Route::get('/pegawai', [$ctrl, 'pegawai'])->name('pegawai');
+        Route::get('/pegawai/print', [$ctrl, 'pegawaiPrint'])->name('pegawai.print');
+        Route::get('/mengajar', [$ctrl, 'mengajar'])->name('mengajar');
+        Route::get('/mengajar/print', [$ctrl, 'mengajarPrint'])->name('mengajar.print');
+        Route::get('/saya', [$ctrl, 'saya'])->name('saya');
+        Route::get('/saya/print', [$ctrl, 'sayaPrint'])->name('saya.print');
+    });
+
     // =========================================================================
     // MODUL GURU & TUGAS TAMBAHAN (WAKA, KAPROG, WALIKELAS, BK, KEPALA SEKOLAH)
     // =========================================================================

@@ -912,14 +912,14 @@
                     @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('akademik'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
-                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('akademik.*') ? 'active' : '' }}" 
+                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('akademik.*') || request()->routeIs('rekap-kehadiran.*') ? 'active' : '' }}" 
                                 onclick="toggleSidebarDropdown('menuAkademik')" 
-                                aria-expanded="{{ request()->routeIs('akademik.*') ? 'true' : 'false' }}">
+                                aria-expanded="{{ request()->routeIs('akademik.*') || request()->routeIs('rekap-kehadiran.*') ? 'true' : 'false' }}">
                             <i class="bi bi-book-fill" style="color:#38bdf8;"></i>
                             <span>Layanan Akademik</span>
                             <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
                         </button>
-                        <div class="sidebar-dropdown-menu {{ request()->routeIs('akademik.*') ? 'show' : '' }}" id="menuAkademik">
+                        <div class="sidebar-dropdown-menu {{ request()->routeIs('akademik.*') || request()->routeIs('rekap-kehadiran.*') ? 'show' : '' }}" id="menuAkademik">
                             <ul class="sidebar-submenu">
                                 <li><a href="{{ route('akademik.dashboard') }}" class="{{ request()->routeIs('akademik.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Akademik</a></li>
                                 <li><a href="{{ route('admin.mapel.index') }}" class="{{ request()->routeIs('*.mapel.*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark me-1"></i> Master Mata Pelajaran</a></li>
@@ -934,6 +934,7 @@
                                 <li><a href="{{ route('presensi-harian.index') }}" class="{{ request()->routeIs('presensi-harian.*') ? 'active' : '' }}"><i class="bi bi-person-check-fill me-1"></i> Presensi Harian Siswa</a></li>
                                 <li><a href="{{ route('akademik.laporan.kbm.index') }}" class="{{ request()->routeIs('akademik.laporan.kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text me-1"></i> Jurnal Realisasi KBM</a></li>
                                 <li><a href="{{ route('akademik.rekap-presensi.index') }}" class="{{ request()->routeIs('akademik.rekap-presensi.*') ? 'active' : '' }}"><i class="bi bi-clipboard-data me-1"></i> Rekapitulasi Presensi Mapel</a></li>
+                                @include('layouts._sidebar_rekap', ['mode' => 'sub'])
                                 <li><a href="{{ route('akademik.piket.index') }}" class="{{ request()->routeIs('akademik.piket.*') ? 'active' : '' }}"><i class="bi bi-shield-shaded me-1"></i> Jadwal Piket Sekolah</a></li>
                                 <li><a href="{{ route('akademik.keluhan.index') }}" class="{{ request()->routeIs('akademik.keluhan.*') ? 'active' : '' }}"><i class="bi bi-chat-left-text me-1"></i> Suara & Evaluasi Siswa</a></li>
                                 <li><a href="{{ route('akademik.pengaturan.index') }}" class="{{ request()->routeIs('akademik.pengaturan.*') ? 'active' : '' }}"><i class="bi bi-gear me-1"></i> Pengaturan Akademik</a></li>
@@ -1006,19 +1007,20 @@
                     @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('keuangan'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
-                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('keuangan.*') ? 'active' : '' }}" 
+                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('keuangan.*') || request()->routeIs('rekap-kehadiran.*') ? 'active' : '' }}" 
                                 onclick="toggleSidebarDropdown('menuKeuangan')" 
-                                aria-expanded="{{ request()->routeIs('keuangan.*') ? 'true' : 'false' }}">
+                                aria-expanded="{{ request()->routeIs('keuangan.*') || request()->routeIs('rekap-kehadiran.*') ? 'true' : 'false' }}">
                             <i class="bi bi-cash-stack" style="color:#34d399;"></i>
                             <span>Keuangan & SPP</span>
                             <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
                         </button>
-                        <div class="sidebar-dropdown-menu {{ request()->routeIs('keuangan.*') ? 'show' : '' }}" id="menuKeuangan">
+                        <div class="sidebar-dropdown-menu {{ request()->routeIs('keuangan.*') || request()->routeIs('rekap-kehadiran.*') ? 'show' : '' }}" id="menuKeuangan">
                             <ul class="sidebar-submenu">
                                 <li><a href="{{ route('keuangan.dashboard') }}" class="{{ request()->routeIs('keuangan.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Keuangan</a></li>
                                 <li><a href="{{ route('keuangan.tagihan.index', ['tab' => 'master']) }}" class="{{ request()->routeIs('keuangan.tagihan.*') && request('tab') === 'master' ? 'active' : '' }}"><i class="bi bi-database me-1"></i> Master Tagihan</a></li>
                                 <li><a href="{{ route('keuangan.tagihan.index') }}" class="{{ request()->routeIs('keuangan.tagihan.*') && request('tab') !== 'master' ? 'active' : '' }}"><i class="bi bi-receipt me-1"></i> Tagihan Siswa</a></li>
                                 <li><a href="{{ route('keuangan.pembayaran.index') }}" class="{{ request()->routeIs('keuangan.pembayaran.*') ? 'active' : '' }}"><i class="bi bi-credit-card me-1"></i> Data Pembayaran</a></li>
+                                @include('layouts._sidebar_rekap', ['mode' => 'sub'])
                             </ul>
                         </div>
                     </li>
@@ -1067,20 +1069,21 @@
                     @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('payroll'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
-                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('superadmin.payroll.*') ? 'active' : '' }}" 
+                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('superadmin.payroll.*') || request()->routeIs('rekap-kehadiran.*') ? 'active' : '' }}" 
                                 onclick="toggleSidebarDropdown('menuPayroll')" 
-                                aria-expanded="{{ request()->routeIs('superadmin.payroll.*') ? 'true' : 'false' }}">
+                                aria-expanded="{{ request()->routeIs('superadmin.payroll.*') || request()->routeIs('rekap-kehadiran.*') ? 'true' : 'false' }}">
                             <i class="bi bi-cash-coin" style="color:#10b981;"></i>
                             <span>HilalPay (Penggajian)</span>
                             <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
                         </button>
-                        <div class="sidebar-dropdown-menu {{ request()->routeIs('superadmin.payroll.*') ? 'show' : '' }}" id="menuPayroll">
+                        <div class="sidebar-dropdown-menu {{ request()->routeIs('superadmin.payroll.*') || request()->routeIs('rekap-kehadiran.*') ? 'show' : '' }}" id="menuPayroll">
                             <ul class="sidebar-submenu">
                                 <li><a href="{{ route('superadmin.payroll.dashboard') }}" class="{{ request()->routeIs('superadmin.payroll.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Gaji</a></li>
                                 <li><a href="{{ route('superadmin.payroll.periode.index') }}" class="{{ request()->routeIs('superadmin.payroll.periode.*') ? 'active' : '' }}"><i class="bi bi-calendar-check me-1"></i> Proses Penggajian</a></li>
                                 <li><a href="{{ route('superadmin.payroll.setting.index') }}" class="{{ request()->routeIs('superadmin.payroll.setting.*') ? 'active' : '' }}"><i class="bi bi-sliders me-1"></i> Pengaturan Gaji Pegawai</a></li>
                                 <li><a href="{{ route('superadmin.payroll.komponen.index') }}" class="{{ request()->routeIs('superadmin.payroll.komponen.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Master Komponen</a></li>
                                 <li><a href="{{ route('superadmin.payroll.laporan.index') }}" class="{{ request()->routeIs('superadmin.payroll.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph me-1"></i> Laporan Penggajian</a></li>
+                                @include('layouts._sidebar_rekap', ['mode' => 'sub'])
                             </ul>
                         </div>
                     </li>
@@ -1140,6 +1143,7 @@
                         </div>
                     </li>
                     <li class="sidebar-nav-item"><a href="{{ route('guru.kalender.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.kalender.*') ? 'active' : '' }}"><i class="bi bi-calendar-event" style="color:#38bdf8;"></i><span>Kalender Akademik</span></a></li>
+                    @include('layouts._sidebar_rekap', ['mode' => 'nav', 'self' => true])
 
                     @if($hasMapelAdmin)
                     <li class="sidebar-nav-item"><a href="{{ route('guru.perangkat-ajar.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.perangkat-ajar.*') ? 'active' : '' }}"><i class="bi bi-folder" style="color:#f59e0b;"></i><span>Perangkat Ajar</span></a></li>
@@ -1184,6 +1188,7 @@
                     <li class="sidebar-nav-item"><a href="{{ route('tendik.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2" style="color:#10b981;"></i><span>Beranda Tendik</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('tendik.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#fbbf24;"></i><span>Profil & Biodata</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('tendik.payroll.index') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.payroll.*') ? 'active' : '' }}"><i class="bi bi-wallet2" style="color:#10b981;"></i><span>Slip Gaji Saya</span></a></li>
+                    @include('layouts._sidebar_rekap', ['mode' => 'nav', 'self' => true])
                 </ul>
                 @endif
             @else
@@ -1222,6 +1227,7 @@
                             </div>
                         </li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.kalender.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.kalender.*') ? 'active' : '' }}"><i class="bi bi-calendar-event" style="color:#38bdf8;"></i><span>Kalender Akademik</span></a></li>
+                        @include('layouts._sidebar_rekap', ['mode' => 'nav', 'self' => true])
                         
                         @if($hasMapel)
                         <li class="sidebar-nav-item"><a href="{{ route('guru.perangkat-ajar.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.perangkat-ajar.*') ? 'active' : '' }}"><i class="bi bi-folder" style="color:#f59e0b;"></i><span>Perangkat Ajar</span></a></li>
@@ -1286,6 +1292,7 @@
                     @elseif(auth()->user()->role === 'tendik')
                         <li class="sidebar-nav-item"><a href="{{ route('tendik.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#fbbf24;"></i><span>Profil & Biodata</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('tendik.payroll.index') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.payroll.*') ? 'active' : '' }}"><i class="bi bi-wallet2" style="color:#10b981;"></i><span>Slip Gaji Saya</span></a></li>
+                        @include('layouts._sidebar_rekap', ['mode' => 'nav', 'self' => true])
                     @elseif(auth()->user()->role === 'siswa')
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#10b981;"></i><span>Jadwal Pelajaran Kelas</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#38bdf8;"></i><span>Profil & Biodata</span></a></li>

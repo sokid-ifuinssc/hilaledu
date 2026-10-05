@@ -1,0 +1,119 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class RekapKehadiranTest extends TestCase
+{
+    use RefreshDatabase;
+    public function test_superadmin_can_access_rekap_pegawai_and_mengajar()
+    {
+        $superadmin = User::where('role', 'superadmin')->first();
+        if (!$superadmin) {
+            $superadmin = User::factory()->create([
+                'role' => 'superadmin',
+                'name' => 'Super Administrator',
+            ]);
+        }
+
+        $res = $this->actingAs($superadmin)->get(route('rekap-kehadiran.pegawai'));
+        $res->assertStatus(200);
+        $res->assertSee('Daftar Hadir Pegawai');
+        $res->assertSee('Persentase Kehadiran');
+
+        $resMengajar = $this->actingAs($superadmin)->get(route('rekap-kehadiran.mengajar'));
+        $resMengajar->assertStatus(200);
+        $resMengajar->assertSee('Rekap Kehadiran Mengajar Guru');
+        $resMengajar->assertSee('Jumlah Jam Mengajar / Minggu');
+
+        // Test filter semester & tahun
+        $resFilter = $this->actingAs($superadmin)->get(route('rekap-kehadiran.pegawai', [
+            'mode' => 'semester',
+            'semester' => '1',
+            'tahun_ajaran' => '2026/2027',
+        ]));
+        $resFilter->assertStatus(200);
+
+        // Test print pegawai & mengajar
+        $resPrintPegawai = $this->actingAs($superadmin)->get(route('rekap-kehadiran.pegawai.print'));
+        $resPrintPegawai->assertStatus(200);
+        $resPrintPegawai->assertSee('DAFTAR HADIR PEGAWAI');
+
+        $resPrintMengajar = $this->actingAs($superadmin)->get(route('rekap-kehadiran.mengajar.print'));
+        $resPrintMengajar->assertStatus(200);
+        $resPrintMengajar->assertSee('REKAP KEHADIRAN MENGAJAR GURU');
+    }
+
+    public function test_guru_can_access_rekap_saya()
+    {
+        $guru = User::where('role', 'guru')->first();
+        if (!$guru) {
+            $guru = User::factory()->create([
+                'role' => 'guru',
+                'name' => 'Guru Pengajar',
+            ]);
+        }
+
+        $res = $this->actingAs($guru)->get(route('rekap-kehadiran.saya'));
+        $res->assertStatus(200);
+        $res->assertSee('Rekap Kehadiran Saya');
+        $res->assertSee($guru->name);
+
+        $resPrint = $this->actingAs($guru)->get(route('rekap-kehadiran.saya.print', ['jenis' => 'mengajar']));
+        $resPrint->assertStatus(200);
+        $resPrint->assertSee('REKAP KEHADIRAN MENGAJAR GURU');
+    }
+
+    public function test_bendahara_can_access_rekap_pegawai_and_mengajar()
+    {
+        $bendahara = User::where('role', 'guru')
+            ->where(function ($q) {
+                $q->where('tugas_tambahan', 'like', '%Bendahara%')
+                  ->orWhere('jabatan_utama', 'like', '%Bendahara%');
+            })->first();
+
+        if (!$bendahara) {
+            $bendahara = User::where('admin_role', 'payroll')
+                ->orWhere('admin_role', 'keuangan')
+                ->first();
+        }
+
+        if (!$bendahara) {
+            $bendahara = User::factory()->create([
+                'role' => 'tendik',
+                'name' => 'Bendahara Sekolah',
+                'tugas_tambahan' => ['Bendahara Sekolah'],
+            ]);
+        }
+
+        $res = $this->actingAs($bendahara)->get(route('rekap-kehadiran.pegawai'));
+        $res->assertStatus(200);
+
+        $resMengajar = $this->actingAs($bendahara)->get(route('rekap-kehadiran.mengajar'));
+        $resMengajar->assertStatus(200);
+    }
+
+    public function test_rekap_pegawai_calculates_total_active_working_days_in_month()
+    {
+        $tendik = User::factory()->create([
+            'role' => 'tendik',
+            'name' => 'Staf Tata Usaha',
+        ]);
+
+        $service = app(\App\Services\RekapKehadiranService::class);
+        $periode = $service->resolvePeriode('bulan', '2026-07', '2026/2027', '1');
+
+        $rekap = $service->rekapPegawai($periode, collect([$tendik]), true);
+        $this->assertEquals(1, $rekap['rows']->count());
+
+        $row = $rekap['rows']->first();
+        // Pada Juli 2026 (31 hari) dengan 6 hari kerja/pekan (Senin..Sabtu = 27 hari kerja jika tanpa libur)
+        // Hari kerja aktif dihitung untuk 1 bulan penuh
+        $this->assertGreaterThan(20, $row['hari_kerja']);
+        $this->assertEquals($rekap['hari_kerja'], $row['hari_kerja']);
+    }
+}
+

@@ -783,6 +783,21 @@ class User extends Authenticatable
         }
     }
 
+    /**
+     * Hak melihat rekap kehadiran SELURUH pegawai (Daftar Hadir Pegawai & Rekap Mengajar Guru).
+     * Bidang Kurikulum, Kepala Sekolah, Bendahara, admin Payroll (acuan honor), dan Pengelola Akademik yang diberi izin.
+     */
+    public function canViewRekapKehadiran(): bool
+    {
+        if ($this->isSuperAdmin() || $this->hasAdminRole('akademik') || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isBendaharaBos() || $this->isPayrollAdmin()) return true;
+        try {
+            $pa = PengelolaAkademik::where('user_id', $this->id)->first();
+            return $pa ? (bool)$pa->can_view_laporan_kehadiran : false;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     public function canViewLaporanKbm(): bool
     {
         if ($this->isSuperAdmin() || $this->hasAdminRole('akademik') || $this->isKepalaSekolah() || $this->isWakaKurikulum() || $this->isKaprog() || $this->isBendaharaBos()) return true;

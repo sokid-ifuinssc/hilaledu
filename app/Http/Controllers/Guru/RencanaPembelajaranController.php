@@ -359,6 +359,26 @@ class RencanaPembelajaranController extends Controller
             });
         }
 
+        // Jika filter di atas kosong, ambil seluruh jadwal guru tersebut
+        if ($jadwals->isEmpty()) {
+            $jadwals = JadwalPelajaran::with('mataPelajaran')
+                ->where('guru_user_id', $user->id)
+                ->orderBy('hari')
+                ->orderBy('jam_mulai')
+                ->get();
+        }
+
+        if (!$selectedJadwalId && $jadwals->isNotEmpty()) {
+            $selectedJadwalId = $jadwals->first()->id;
+        }
+
+        // Hitung tanggal efektif untuk setiap jadwal menggunakan MingguEfektifService
+        $mingguEfektifService = app(\App\Services\MingguEfektifService::class);
+        $effectiveDatesMap = [];
+        foreach ($jadwals as $j) {
+            $effectiveDatesMap[$j->id] = $mingguEfektifService->getEffectiveDatesForJadwal($j);
+        }
+
         $tps = TujuanPembelajaran::whereHas('capaianPembelajaran', function ($q) use ($user, $mapelId, $tingkat) {
                 $q->where('guru_user_id', $user->id);
                 if ($mapelId) $q->where('mata_pelajaran_id', $mapelId);
@@ -367,7 +387,14 @@ class RencanaPembelajaranController extends Controller
             ->with('capaianPembelajaran.mataPelajaran')
             ->get();
 
-        return view('guru.rencana_pembelajaran.create_rpp', compact('jadwals', 'tps', 'selectedJadwalId', 'mapelId', 'tingkat'));
+        return view('guru.rencana_pembelajaran.create_rpp', compact(
+            'jadwals',
+            'tps',
+            'selectedJadwalId',
+            'mapelId',
+            'tingkat',
+            'effectiveDatesMap'
+        ));
     }
 
     public function storeRpp(Request $request)
@@ -388,20 +415,24 @@ class RencanaPembelajaranController extends Controller
 
         $user = Auth::user();
 
-        $rencana = RencanaPembelajaran::create([
-            'jadwal_pelajaran_id'   => $request->jadwal_pelajaran_id,
-            'guru_user_id'          => $user->id,
-            'tujuan_pembelajaran_id'=> $request->tujuan_pembelajaran_id,
-            'tanggal_rencana'       => $request->tanggal_rencana,
-            'pertemuan_ke'          => $request->pertemuan_ke,
-            'materi_pokok'          => $request->materi_pokok,
-            'aktivitas_pendahuluan' => $request->aktivitas_pendahuluan,
-            'aktivitas_inti'        => $request->aktivitas_inti,
-            'aktivitas_penutup'     => $request->aktivitas_penutup,
-            'media_sumber'          => $request->media_sumber,
-            'bentuk_asesmen'        => $request->bentuk_asesmen ?? 'Formatif (Observasi & Diskusi)',
-            'catatan'               => $request->catatan,
-        ]);
+        $rencana = RencanaPembelajaran::updateOrCreate(
+            [
+                'jadwal_pelajaran_id' => $request->jadwal_pelajaran_id,
+                'guru_user_id'        => $user->id,
+                'tanggal_rencana'     => $request->tanggal_rencana,
+            ],
+            [
+                'tujuan_pembelajaran_id' => $request->tujuan_pembelajaran_id,
+                'pertemuan_ke'          => $request->pertemuan_ke,
+                'materi_pokok'          => $request->materi_pokok,
+                'aktivitas_pendahuluan' => $request->aktivitas_pendahuluan,
+                'aktivitas_inti'        => $request->aktivitas_inti,
+                'aktivitas_penutup'     => $request->aktivitas_penutup,
+                'media_sumber'          => $request->media_sumber,
+                'bentuk_asesmen'        => $request->bentuk_asesmen ?? 'Formatif (Observasi & Diskusi)',
+                'catatan'               => $request->catatan,
+            ]
+        );
 
         return redirect()->route('guru.rencana-pembelajaran.index', ['tab' => 'rpp', 'mapel_id' => $request->mapel_id ?? ($rencana->jadwal->mata_pelajaran_id ?? ''), 'tingkat' => $request->tingkat ?? 'X'])
             ->with('success', 'Rencana Pembelajaran Harian (Modul Ajar) berhasil disimpan!');

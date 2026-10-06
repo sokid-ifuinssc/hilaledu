@@ -14,7 +14,7 @@
     }
     if ($rkUser->canViewRekapKehadiran()) {
         $rkItems[] = ['rekap-kehadiran.pegawai', 'rekap-kehadiran.pegawai*', 'bi-people-fill', '#0ea5e9', 'Daftar Hadir Pegawai'];
-        $rkItems[] = ['rekap-kehadiran.mengajar', 'rekap-kehadiran.mengajar*', 'bi-person-video3', '#8b5cf6', 'Rekap Mengajar Guru'];
+        $rkItems[] = ['rekap-kehadiran.mengajar', 'rekap-kehadiran.mengajar*', 'bi-person-video3', '#8b5cf6', 'Rekap Kehadiran Mengajar Guru'];
     }
 @endphp
 @foreach($rkItems as [$rkRoute, $rkPattern, $rkIcon, $rkColor, $rkLabel])

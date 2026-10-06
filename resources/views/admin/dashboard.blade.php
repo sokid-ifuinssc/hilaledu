@@ -68,19 +68,19 @@
                     </span>
                 </div>
                 <h3 class="font-extrabold text-base text-white mt-0.5 tracking-tight">
-                    Rekapitulasi Presensi Dewan Guru (KBM & Kegiatan Sekolah)
+                    Rekap Kehadiran Mengajar Guru
                 </h3>
                 <p class="text-xs text-slate-300">
-                    Ekspor rekapitulasi kehadiran seluruh guru, kalkulasi persentase, dan filter cetak PDF resmi.
+                    Pantau dan cetak rekapitulasi kehadiran mengajar seluruh guru secara terpadu.
                 </p>
             </div>
         </div>
         <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
-            <a href="{{ route('akademik.rekap-presensi.index') }}" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-md">
-                <i class="bi-table text-sm"></i>
-                <span>Buka Rekap Presensi Guru</span>
+            <a href="{{ route('rekap-kehadiran.mengajar') }}" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-md">
+                <i class="bi-person-video3 text-sm"></i>
+                <span>Buka Rekap Mengajar Guru</span>
             </a>
-            <a href="{{ route('akademik.rekap-presensi.print-all') }}" target="_blank" class="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 border border-white/20">
+            <a href="{{ route('rekap-kehadiran.mengajar.print') }}" target="_blank" class="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 border border-white/20">
                 <i class="bi-printer-fill text-sm"></i>
                 <span>Cetak Rekap (PDF)</span>
             </a>

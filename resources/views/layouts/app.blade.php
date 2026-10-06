@@ -939,7 +939,6 @@
                                 <li><a href="{{ route('akademik.laporan.kehadiran.index') }}" class="{{ request()->routeIs('akademik.laporan.kehadiran.*') ? 'active' : '' }}"><i class="bi bi-person-check me-1"></i> Presensi Mengajar Guru</a></li>
                                 <li><a href="{{ route('presensi-harian.index') }}" class="{{ request()->routeIs('presensi-harian.*') ? 'active' : '' }}"><i class="bi bi-person-check-fill me-1"></i> Presensi Harian Siswa</a></li>
                                 <li><a href="{{ route('akademik.laporan.kbm.index') }}" class="{{ request()->routeIs('akademik.laporan.kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text me-1"></i> Jurnal Realisasi KBM</a></li>
-                                <li><a href="{{ route('akademik.rekap-presensi.index') }}" class="{{ request()->routeIs('akademik.rekap-presensi.*') ? 'active' : '' }}"><i class="bi bi-clipboard-data me-1"></i> Rekapitulasi Presensi Mapel</a></li>
                                 @include('layouts._sidebar_rekap', ['mode' => 'sub'])
                                 <li><a href="{{ route('akademik.piket.index') }}" class="{{ request()->routeIs('akademik.piket.*') ? 'active' : '' }}"><i class="bi bi-shield-shaded me-1"></i> Jadwal Piket Sekolah</a></li>
                                 <li><a href="{{ route('akademik.keluhan.index') }}" class="{{ request()->routeIs('akademik.keluhan.*') ? 'active' : '' }}"><i class="bi bi-chat-left-text me-1"></i> Suara & Evaluasi Siswa</a></li>

@@ -126,8 +126,8 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{{ route('guru.rekap-presensi.index') }}" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition flex items-center gap-1">
-                <i class="bi-bar-chart-line-fill"></i> Rekap Presensi Guru
+            <a href="{{ route('rekap-kehadiran.mengajar') }}" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition flex items-center gap-1">
+                <i class="bi-bar-chart-line-fill"></i> Rekap Kehadiran Mengajar Guru
             </a>
         </div>
     </div>

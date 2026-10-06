@@ -93,13 +93,13 @@
                     <div class="text-xs text-slate-500">Agenda kegiatan &amp; hari libur</div>
                 </div>
             </a>
-            <a href="{{ route('akademik.rekap-presensi.index') }}" class="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 transition group">
+            <a href="{{ route('rekap-kehadiran.mengajar') }}" class="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 transition group">
                 <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg shrink-0 group-hover:bg-emerald-200 transition">
                     <i class="bi-clipboard-check"></i>
                 </div>
                 <div>
-                    <div class="font-bold text-sm text-slate-800">Rekapitulasi Presensi</div>
-                    <div class="text-xs text-slate-500">Pantau kehadiran guru &amp; siswa</div>
+                    <div class="font-bold text-sm text-slate-800">Rekap Kehadiran Mengajar Guru</div>
+                    <div class="text-xs text-slate-500">Pantau kehadiran guru &amp; agenda kelas</div>
                 </div>
             </a>
             <a href="{{ route('akademik.piket.index') }}" class="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-slate-400 hover:bg-slate-50 transition group">

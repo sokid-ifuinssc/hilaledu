@@ -978,7 +978,7 @@
                     {{-- ============================================================ --}}
                     {{-- 6. PRAKTIK KERJA INDUSTRI (PRAKERIN / PKL)                   --}}
                     {{-- ============================================================ --}}
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('prakerin'))
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('prakerin') || auth()->user()->isWakaHubin())
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('prakerin.*') ? 'active' : '' }}" 
@@ -991,6 +991,7 @@
                         <div class="sidebar-dropdown-menu {{ request()->routeIs('prakerin.*') ? 'show' : '' }}" id="menuPrakerin">
                             <ul class="sidebar-submenu">
                                 <li><a href="{{ route('prakerin.dashboard') }}" class="{{ request()->routeIs('prakerin.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2 me-1"></i> Dashboard Prakerin</a></li>
+                                <li><a href="{{ route('prakerin.kerjasama.index') }}" class="{{ request()->routeIs('prakerin.kerjasama.*') ? 'active' : '' }}"><i class="bi bi-handshake me-1"></i> Kerjasama Mitra DU/DI</a></li>
                                 <li><a href="{{ route('prakerin.dudi.index') }}" class="{{ request()->routeIs('prakerin.dudi.*') ? 'active' : '' }}"><i class="bi bi-buildings me-1"></i> Mitra DU/DI Perusahaan</a></li>
                                 <li><a href="{{ route('prakerin.pembimbing-dudi.index') }}" class="{{ request()->routeIs('prakerin.pembimbing-dudi.*') ? 'active' : '' }}"><i class="bi bi-person-badge me-1"></i> Instruktur DU/DI</a></li>
                                 <li><a href="{{ route('prakerin.periode.index') }}" class="{{ request()->routeIs('prakerin.periode.*') ? 'active' : '' }}"><i class="bi bi-calendar-range me-1"></i> Periode Prakerin</a></li>

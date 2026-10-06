@@ -17,7 +17,7 @@ class DudiController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Dudi::withCount(['pembimbingDudi', 'penempatans']);
+        $query = Dudi::withCount(['pembimbingDudi', 'penempatans'])->with('latestKerjasama');
 
         if ($request->filled('search')) {
             $s = $request->search;

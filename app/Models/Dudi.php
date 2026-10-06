@@ -44,4 +44,20 @@ class Dudi extends Model
     {
         return $this->hasMany(Penempatan::class, 'dudi_id');
     }
+
+    /**
+     * Relasi ke Dokumen MoU / Kerjasama Mitra
+     */
+    public function kerjasamas(): HasMany
+    {
+        return $this->hasMany(Kerjasama::class, 'dudi_id');
+    }
+
+    /**
+     * Kerjasama terbaru
+     */
+    public function latestKerjasama()
+    {
+        return $this->hasOne(Kerjasama::class, 'dudi_id')->latestOfMany();
+    }
 }

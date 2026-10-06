@@ -11,7 +11,16 @@
         description="Kelola mitra industri (DU/DI), instruktur lapangan, periode gelombang, penempatan siswa, serta jurnal kegiatan secara terpadu." />
 
     {{-- Stat Cards --}}
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex items-center gap-3 hover:shadow-sm transition">
+            <div class="w-11 h-11 bg-indigo-100 rounded-xl flex items-center justify-center shrink-0">
+                <i class="bi-handshake text-indigo-600 text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="text-2xl font-black text-slate-800">{{ $totalKerjasama }}</div>
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">MoU Kerjasama</div>
+            </div>
+        </div>
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex items-center gap-3 hover:shadow-sm transition">
             <div class="w-11 h-11 bg-sky-100 rounded-xl flex items-center justify-center shrink-0">
                 <i class="bi-buildings text-sky-600 text-xl"></i>
@@ -58,6 +67,14 @@
             Aksi Cepat &amp; Navigasi Operasional
         </h3>
         <div class="flex flex-wrap gap-2">
+            <a href="{{ route('prakerin.kerjasama.create') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition">
+                <i class="bi-handshake"></i> Input Kerjasama Mitra
+            </a>
+            <a href="{{ route('prakerin.kerjasama.index') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition">
+                <i class="bi-file-earmark-text"></i> Daftar MoU Kerjasama
+            </a>
             <a href="{{ route('prakerin.penempatan.create') }}"
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition">
                 <i class="bi-person-plus-fill"></i> Plotting Penempatan Siswa
@@ -71,7 +88,7 @@
                 <i class="bi-person-plus-fill"></i> Tambah Pembimbing
             </a>
             <a href="{{ route('prakerin.periode.create') }}"
-               class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition">
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl transition">
                 <i class="bi-calendar-plus"></i> Buat Periode Gelombang
             </a>
             <a href="{{ route('prakerin.laporan.index') }}"

@@ -12,9 +12,12 @@
             </h4>
             <p class="text-white-50 small mb-0">Kelola master mitra industri tempat pelaksanaan Praktik Kerja Lapangan siswa SMK Plus Al Hilal.</p>
         </div>
-        <div class="d-flex gap-2">
-            <a href="{{ route('prakerin.dudi.create') }}" class="btn btn-success">
-                <i class="bi bi-plus-circle me-1"></i> Tambah Mitra DU/DI
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('prakerin.kerjasama.index') }}" class="btn btn-outline-warning d-inline-flex align-items-center gap-1">
+                <i class="bi bi-handshake"></i> Menu Kerjasama &amp; MoU
+            </a>
+            <a href="{{ route('prakerin.dudi.create') }}" class="btn btn-success d-inline-flex align-items-center gap-1">
+                <i class="bi bi-plus-circle"></i> Tambah Mitra DU/DI
             </a>
         </div>
     </div>
@@ -70,7 +73,30 @@
                                             <i class="bi bi-building"></i>
                                         </div>
                                         <div>
-                                            {{ $item->nama }}
+                                            <div class="fw-bold">{{ $item->nama }}</div>
+                                            @if($item->latestKerjasama)
+                                                <div class="mt-1 d-flex align-items-center gap-1 flex-wrap">
+                                                    <a href="{{ route('prakerin.kerjasama.show', $item->latestKerjasama->id) }}" class="badge text-decoration-none" style="background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); font-size: 0.7rem;">
+                                                        <i class="bi bi-handshake me-1"></i>MoU: {{ $item->latestKerjasama->tahun_mulai }}-{{ $item->latestKerjasama->tahun_berakhir }}
+                                                    </a>
+                                                    @if($item->latestKerjasama->hasLocalFile())
+                                                        <a href="{{ route('prakerin.kerjasama.download', $item->latestKerjasama->id) }}" class="text-info small" title="Unduh Berkas MoU" style="font-size: 0.75rem;">
+                                                            <i class="bi bi-file-earmark-pdf"></i>
+                                                        </a>
+                                                    @endif
+                                                    @if($item->latestKerjasama->link_drive)
+                                                        <a href="{{ $item->latestKerjasama->link_drive }}" target="_blank" rel="noopener noreferrer" class="text-warning small" title="Buka Google Drive" style="font-size: 0.75rem;">
+                                                            <i class="bi bi-google"></i>
+                                                        </a>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <div class="mt-1">
+                                                    <a href="{{ route('prakerin.kerjasama.create') }}" class="text-white-50 text-decoration-none small" style="font-size: 0.7rem;">
+                                                        <i class="bi bi-plus text-secondary"></i>Input MoU Kerjasama
+                                                    </a>
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>

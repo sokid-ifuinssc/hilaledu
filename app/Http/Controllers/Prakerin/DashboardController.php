@@ -8,6 +8,7 @@ use App\Models\Dudi;
 use App\Models\PembimbingDudi;
 use App\Models\PeriodePrakerin;
 use App\Models\Penempatan;
+use App\Models\Kerjasama;
 use App\Models\Industri;
 use App\Models\JurnalPrakerin;
 
@@ -27,11 +28,12 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        $totalDudi        = Dudi::count();
-        $totalPembimbing  = PembimbingDudi::count();
-        $totalPeriode     = PeriodePrakerin::count();
-        $totalPenempatan  = Penempatan::count();
-        $penempatanAktif  = Penempatan::where('status', 'aktif')->count();
+        $totalDudi         = Dudi::count();
+        $totalKerjasama    = Kerjasama::count();
+        $totalPembimbing   = PembimbingDudi::count();
+        $totalPeriode      = PeriodePrakerin::count();
+        $totalPenempatan   = Penempatan::count();
+        $penempatanAktif   = Penempatan::where('status', 'aktif')->count();
         $penempatanSelesai = Penempatan::where('status', 'selesai')->count();
 
         $recentPenempatan = Penempatan::with(['siswa.kelas.jurusan', 'dudi', 'guru', 'pembimbingDudi'])
@@ -45,6 +47,7 @@ class DashboardController extends Controller
         
         return view('prakerin.dashboard', compact(
             'totalDudi',
+            'totalKerjasama',
             'totalPembimbing',
             'totalPeriode',
             'totalPenempatan',

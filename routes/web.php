@@ -260,6 +260,10 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('prakerin')->name('prakerin.')->middleware('module_access:prakerin')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Prakerin\DashboardController::class, 'index'])->name('dashboard');
         
+        // Master Kerjasama Mitra DU/DI (MoU & Kemitraan)
+        Route::get('/kerjasama/{kerjasama}/download', [\App\Http\Controllers\Prakerin\KerjasamaController::class, 'downloadFile'])->name('kerjasama.download');
+        Route::resource('kerjasama', \App\Http\Controllers\Prakerin\KerjasamaController::class);
+
         // Master Mitra DU/DI & Pembimbing
         Route::resource('dudi', \App\Http\Controllers\Prakerin\DudiController::class);
         Route::resource('pembimbing-dudi', \App\Http\Controllers\Prakerin\PembimbingDudiController::class);
@@ -905,5 +909,10 @@ Route::middleware('auth')->group(function () {
         // Tagihan Saya
         Route::get('/tagihan', [\App\Http\Controllers\Keuangan\TagihanController::class, 'siswaTagihan'])->name('tagihan.index');
     });
+
+    // Shortcut Menu Kerjasama
+    Route::get('/kerjasama', function () {
+        return redirect()->route('prakerin.kerjasama.index');
+    })->name('kerjasama.index');
 });
 

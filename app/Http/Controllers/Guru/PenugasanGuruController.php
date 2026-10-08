@@ -98,13 +98,13 @@ class PenugasanGuruController extends Controller
         // Tambahkan dari getMapelDiampu() jika guru belum terisi plotting jadwal/kurikulum spesifik
         if ($penugasanMengajar->isEmpty()) {
             $fallbackMapels = $user->getMapelDiampu();
-            $allActiveKelas = \App\Models\Kelas::where('is_aktif', true)->orderBy('nama')->get();
+            $allActiveKelas = \App\Models\Kelas::orderBy('nama_kelas')->get();
 
             foreach ($fallbackMapels as $m) {
                 // Tentukan kelas yang sesuai dengan tingkat mapel (X, XI, XII)
                 $matchedKelas = $allActiveKelas->filter(function($k) use ($m) {
                     if (empty($m->tingkat)) return true;
-                    return str_starts_with(strtoupper(trim($k->nama)), strtoupper(trim($m->tingkat)));
+                    return str_starts_with(strtoupper(trim($k->nama_kelas)), strtoupper(trim($m->tingkat)));
                 });
 
                 if ($matchedKelas->isEmpty()) {
@@ -112,11 +112,11 @@ class PenugasanGuruController extends Controller
                 }
 
                 foreach ($matchedKelas as $k) {
-                    $key = $m->id . '_' . $k->nama;
+                    $key = $m->id . '_' . $k->nama_kelas;
                     if (!$penugasanMengajar->has($key)) {
                         $perangkat = PerangkatAjar::where('guru_user_id', $user->id)
                             ->where('mata_pelajaran_id', $m->id)
-                            ->where('kelas', $k->nama)
+                            ->where('kelas', $k->nama_kelas)
                             ->latest()
                             ->first();
 
@@ -124,11 +124,11 @@ class PenugasanGuruController extends Controller
                             'mata_pelajaran_id' => $m->id,
                             'mapel_nama'        => $m->nama,
                             'mapel_kode'        => $m->kode ?? '',
-                            'kelas'             => $k->nama,
+                            'kelas'             => $k->nama_kelas,
                             'alokasi_jam'       => $m->jam_per_minggu ?: 2,
                             'terjadwal_jp'      => $m->jam_per_minggu ?: 2,
                             'sisa_jp'           => 0,
-                            'ruang'             => 'Ruang Kelas ' . $k->nama,
+                            'ruang'             => 'Ruang Kelas ' . $k->nama_kelas,
                             'hari_mengajar'     => 'Penugasan Mengajar',
                             'perangkat'         => $perangkat,
                         ]);

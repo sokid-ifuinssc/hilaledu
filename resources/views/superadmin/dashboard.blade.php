@@ -272,6 +272,14 @@
                 <h6><i class="bi bi-lightning-fill me-2" style="color:var(--accent-gold);"></i>Aksi Cepat & Navigasi</h6>
             </div>
             <div class="p-3 d-flex flex-column gap-2">
+                <a href="{{ route('admin.ekstrakurikuler.index') }}" class="quick-action-btn" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.06);">
+                    <i class="bi bi-award-fill" style="color:#10b981;"></i>
+                    Modul Ekstrakurikuler (Kesiswaan)
+                </a>
+                <a href="{{ route('akademik.nilai.index') }}" class="quick-action-btn" style="border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.06);">
+                    <i class="bi bi-journal-bookmark-fill" style="color:#6366f1;"></i>
+                    Rekap Nilai & Leger Siswa
+                </a>
                 <a href="{{ route('akademik.dashboard') }}" class="quick-action-btn" style="border-color: rgba(52, 152, 219, 0.35);">
                     <i class="bi bi-book-fill" style="color:#3498db;"></i>
                     Buka Portal Akademik Terpadu

@@ -17,25 +17,30 @@
 .data-table tr:hover td { background: rgba(255,255,255,0.02); }
 .form-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; padding: 24px; }
 .field-label { font-size: 0.82rem; font-weight: 500; color: var(--text-muted); margin-bottom: 7px; display: block; }
-.field-required { color: var(--accent-gold); }
-.form-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-light); border-radius: 10px; padding: 10px 14px; font-family: 'Poppins', sans-serif; font-size: 0.85rem; transition: all 0.25s ease; margin-bottom: 14px; }
-.form-input:focus { outline: none; border-color: var(--primary-light); background: rgba(255,255,255,0.07); box-shadow: 0 0 0 3px rgba(45,138,78,0.15); }
+.field-required { color: #e11d48; }
+.form-input { width: 100%; background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; border-radius: 10px; padding: 10px 14px; font-family: 'Poppins', sans-serif; font-size: 0.85rem; transition: all 0.25s ease; margin-bottom: 14px; }
+.form-input:focus { outline: none; border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(5,150,105,0.15); color: #0f172a; }
+.form-input option { background: #ffffff; color: #0f172a; }
 .form-input.is-invalid { border-color: rgba(231,76,60,0.6); }
-.field-error { font-size: 0.76rem; color: #f1948a; margin-top: -10px; margin-bottom: 10px; }
+.field-error { font-size: 0.76rem; color: #e11d48; margin-top: -10px; margin-bottom: 10px; }
 .btn-save { display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg, var(--primary), var(--primary-light)); border: none; color: white; padding: 10px 22px; border-radius: 10px; font-size: 0.86rem; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; width: 100%; justify-content: center; transition: all 0.25s; }
-.btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(26,86,50,0.4); }
+.btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(5,150,105,0.3); }
 .action-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 500; cursor: pointer; border: none; font-family: 'Poppins', sans-serif; text-decoration: none; transition: all 0.2s; }
-.btn-edit { background: rgba(52, 152, 219, 0.12); color: #5dade2; border: 1px solid rgba(52, 152, 219, 0.25); }
-.btn-edit:hover { background: rgba(52, 152, 219, 0.25); color: #7fb3d5; }
-.btn-del { background: rgba(231,76,60,0.1); color: #f1948a; border: 1px solid rgba(231,76,60,0.2); }
+.btn-edit { background: rgba(52, 152, 219, 0.12); color: #2563eb; border: 1px solid rgba(52, 152, 219, 0.25); }
+.btn-edit:hover { background: rgba(52, 152, 219, 0.25); color: #1d4ed8; }
+.btn-del { background: rgba(231,76,60,0.1); color: #e11d48; border: 1px solid rgba(231,76,60,0.2); }
 .btn-del:hover { background: rgba(231,76,60,0.2); }
 .jurusan-code { background: rgba(212,168,67,0.12); color: #d4a843; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; font-family: monospace; }
 .nav-master { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
 .nav-master a { padding: 8px 16px; border-radius: 10px; font-size: 0.82rem; font-weight: 500; text-decoration: none; border: 1px solid var(--border-color); color: var(--text-muted); transition: all 0.2s; }
 .nav-master a.active, .nav-master a:hover { background: var(--bg-card); color: var(--text-light); border-color: var(--primary-light); }
 .guru-info-box { background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.25); border-radius: 10px; padding: 10px 14px; font-size: 0.78rem; margin-top: -6px; margin-bottom: 14px; }
-.modal-content { background-color: #14241b !important; border: 1px solid rgba(255,255,255,0.18) !important; border-radius: 20px; color: var(--text-light); box-shadow: 0 15px 50px rgba(0,0,0,0.9); }
-.modal-backdrop.show { opacity: 0.75 !important; }
+.modal-content { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 20px; color: #0f172a !important; box-shadow: 0 25px 60px rgba(0,0,0,0.2) !important; }
+.modal-header { border-bottom: 1px solid #e2e8f0; padding: 18px 24px; background: #ffffff; border-top-left-radius: 20px; border-top-right-radius: 20px; }
+.modal-title { font-weight: 700; color: #0f172a !important; }
+.modal-body { padding: 24px; background: #ffffff; }
+.modal-footer { border-top: 1px solid #e2e8f0; padding: 16px 24px; background: #f8fafc; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+.modal-backdrop.show { opacity: 0.5 !important; }
 @endsection
 
 @section('content')
@@ -46,6 +51,7 @@
         <a href="{{ route('superadmin.master.jurusan') }}" class="active"><i class="bi bi-diagram-3 me-1"></i> Jurusan</a>
         <a href="{{ route('superadmin.master.kelas') }}"><i class="bi bi-collection me-1"></i> Kelas</a>
         <a href="{{ route('superadmin.master.tugas-tambahan') }}"><i class="bi bi-award me-1"></i> Tugas Tambahan</a>
+        <a href="{{ route('admin.ekstrakurikuler.index') }}"><i class="bi bi-stars me-1"></i> Ekstrakurikuler</a>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <a href="{{ route('superadmin.master.export') }}" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; text-decoration:none; background:rgba(52,152,219,0.1); color:#5dade2; border:1px solid rgba(52,152,219,0.3); transition:all 0.2s;">
@@ -166,13 +172,13 @@
 {{-- Modal Edit Jurusan --}}
 <div class="modal fade" id="editJurusanModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:var(--bg-sidebar); border:1px solid var(--border-color); border-radius:18px; color:var(--text-light);">
+        <div class="modal-content">
             <form method="POST" id="formEditJurusan">
                 @csrf
                 @method('PUT')
-                <div class="modal-header" style="border-bottom:1px solid var(--border-color); padding:18px 24px;">
-                    <h5 class="modal-title" style="font-size:1.05rem; font-weight:700;"><i class="bi bi-pencil-square me-2" style="color:#5dade2;"></i>Edit Data Jurusan</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header" style="border-bottom:1px solid #e2e8f0; padding:18px 24px;">
+                    <h5 class="modal-title" style="font-size:1.05rem; font-weight:700;"><i class="bi bi-pencil-square me-2" style="color:#2563eb;"></i>Edit Data Jurusan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="padding:22px 24px;">
                     <label class="field-label">Kode Jurusan <span class="field-required">*</span></label>
@@ -189,9 +195,9 @@
                         <option value="">-- Kosongkan / Tanpa Kaprog --</option>
                         @foreach($gurus ?? [] as $g)
                             <option value="{{ $g->id }}" 
-                                    data-name="{{ $g->name }}"
-                                    data-jabatan="{{ $g->jabatan_utama ?? 'Guru Pengajar' }}"
-                                    data-tugas="{{ implode(', ', $g->tugas_tambahan ?? []) }}">
+                                     data-name="{{ $g->name }}"
+                                     data-jabatan="{{ $g->jabatan_utama ?? 'Guru Pengajar' }}"
+                                     data-tugas="{{ implode(', ', $g->tugas_tambahan ?? []) }}">
                                 {{ $g->name }} (NUPTK: {{ $g->nip ?? '-' }})
                             </option>
                         @endforeach
@@ -199,14 +205,14 @@
 
                     {{-- Live Guru Jabatan Box for Edit --}}
                     <div id="infoBoxKaprogEdit" class="guru-info-box d-none">
-                        <div style="font-weight:600; color:var(--primary-lighter);"><i class="bi bi-person-check-fill me-1"></i> <span class="guru-name">-</span></div>
+                        <div style="font-weight:600; color:#059669;"><i class="bi bi-person-check-fill me-1"></i> <span class="guru-name">-</span></div>
                         <div style="color:var(--text-muted); font-size:0.75rem; margin-top:2px;">
-                            Jabatan Utama: <strong class="guru-jabatan" style="color:var(--text-light);">-</strong>
+                            Jabatan Utama: <strong class="guru-jabatan" style="color:#0f172a;">-</strong>
                         </div>
                         <div style="color:var(--text-muted); font-size:0.75rem;">
-                            Tugas saat ini: <span class="guru-tugas" style="color:var(--accent-gold);">-</span>
+                            Tugas saat ini: <span class="guru-tugas" style="color:#d97706;">-</span>
                         </div>
-                        <div style="color:var(--accent-gold-light); font-size:0.74rem; margin-top:5px; border-top:1px dashed rgba(255,255,255,0.1); padding-top:4px;">
+                        <div style="color:#059669; font-size:0.74rem; margin-top:5px; border-top:1px dashed #cbd5e1; padding-top:4px;">
                             <i class="bi bi-arrow-repeat me-1"></i> Jabatan guru akan disinkronkan menjadi: <strong>Kaprog <span class="jurusan-target-name"></span></strong>
                         </div>
                     </div>
@@ -214,8 +220,8 @@
                     <label class="field-label">Nama Ketua Jurusan Manual (Opsional)</label>
                     <input type="text" name="ketua_jurusan" id="editJurusanKetuaManual" class="form-input" placeholder="Terisi otomatis jika memilih guru">
                 </div>
-                <div class="modal-footer" style="border-top:1px solid var(--border-color); padding:14px 24px;">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" style="border-radius:10px; padding:8px 16px;">Batal</button>
+                <div class="modal-footer" style="border-top:1px solid #e2e8f0; padding:14px 24px; background:#f8fafc;">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal" style="border-radius:10px; padding:8px 18px; border:1px solid #cbd5e1; color:#475569; font-weight:600;">Batal</button>
                     <button type="submit" class="btn-save" style="width:auto; padding:8px 20px;"><i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan</button>
                 </div>
             </form>

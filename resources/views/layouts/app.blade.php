@@ -863,6 +863,12 @@
                             <span>Tugas Tambahan Guru</span>
                         </a>
                     </li>
+                    <li class="sidebar-nav-item">
+                        <a href="{{ route('admin.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('admin.ekstrakurikuler.*') || request()->routeIs('superadmin.master.ekstrakurikuler*') ? 'active' : '' }}">
+                            <i class="bi bi-stars" style="color:#10b981;"></i>
+                            <span>Ekstrakurikuler</span>
+                        </a>
+                    </li>
                 </ul>
 
                 {{-- ============================================================ --}}
@@ -935,7 +941,9 @@
                                 <li><a href="{{ route('akademik.jadwal.matrix') }}" class="{{ request()->routeIs('akademik.jadwal.matrix*') ? 'active' : '' }}"><i class="bi bi-grid-3x3 me-1"></i> Matriks Jadwal Resmi</a></li>
                                 <li><a href="{{ route('akademik.jadwal.sk_jam_mengajar.print') }}" target="_blank" class="{{ request()->routeIs('*.sk_jam_mengajar.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-person-fill me-1" style="color: #6366f1;"></i> Lampiran SK Jam Mengajar</a></li>
                                 <li><a href="{{ route('akademik.jadwal.sk_tugas_tambahan.print') }}" target="_blank" class="{{ request()->routeIs('*.sk_tugas_tambahan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-text-fill me-1" style="color: #f59e0b;"></i> Lampiran SK Tugas Tambahan</a></li>
+                                <li><a href="{{ route('guru.nilai.index') }}" class="{{ request()->routeIs('guru.nilai.*') ? 'active' : '' }}"><i class="bi bi-pencil-square me-1"></i> Input Nilai Mata Pelajaran</a></li>
                                 <li><a href="{{ route('akademik.nilai.index') }}" class="{{ request()->routeIs('akademik.nilai.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Rekap Nilai Siswa</a></li>
+                                <li><a href="{{ route('walikelas.leger') }}" class="{{ request()->routeIs('walikelas.leger*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark me-1"></i> Leger Nilai Per Rombel</a></li>
                                 <li><a href="{{ route('akademik.laporan.kehadiran.index') }}" class="{{ request()->routeIs('akademik.laporan.kehadiran.*') ? 'active' : '' }}"><i class="bi bi-person-check me-1"></i> Presensi Mengajar Guru</a></li>
                                 <li><a href="{{ route('presensi-harian.index') }}" class="{{ request()->routeIs('presensi-harian.*') ? 'active' : '' }}"><i class="bi bi-person-check-fill me-1"></i> Presensi Harian Siswa</a></li>
                                 <li><a href="{{ route('akademik.laporan.kbm.index') }}" class="{{ request()->routeIs('akademik.laporan.kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text me-1"></i> Jurnal Realisasi KBM</a></li>
@@ -969,6 +977,29 @@
                                 <li><a href="{{ route('bk.poin.index') }}" class="{{ request()->routeIs('bk.poin.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Akumulasi Poin Siswa</a></li>
                                 <li><a href="{{ route('bk.jenis-pelanggaran.index') }}" class="{{ request()->routeIs('bk.jenis-pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Data Pelanggaran</a></li>
                                 <li><a href="{{ route('bk.laporan.index') }}" class="{{ request()->routeIs('bk.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled me-1"></i> Laporan Berkala BK</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    @endif
+
+                    {{-- ============================================================ --}}
+                    {{-- 5B. EKSTRAKURIKULER (KESISWAAN)                              --}}
+                    {{-- ============================================================ --}}
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('kesiswaan') || auth()->user()->isWakaKesiswaan())
+                    <li class="sidebar-nav-item">
+                        <button type="button" 
+                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('admin.ekstrakurikuler.*') ? 'active' : '' }}" 
+                                onclick="toggleSidebarDropdown('menuEskulAdmin')" 
+                                aria-expanded="{{ request()->routeIs('admin.ekstrakurikuler.*') ? 'true' : 'false' }}">
+                            <i class="bi bi-award-fill" style="color:#10b981;"></i>
+                            <span>Ekstrakurikuler</span>
+                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                        </button>
+                        <div class="sidebar-dropdown-menu {{ request()->routeIs('admin.ekstrakurikuler.*') ? 'show' : '' }}" id="menuEskulAdmin">
+                            <ul class="sidebar-submenu">
+                                <li><a href="{{ route('admin.ekstrakurikuler.index') }}" class="{{ request()->routeIs('admin.ekstrakurikuler.index') || request()->routeIs('admin.ekstrakurikuler.show') ? 'active' : '' }}"><i class="bi bi-collection me-1"></i> Data Master Eskul</a></li>
+                                <li><a href="{{ route('admin.ekstrakurikuler.monitoring') }}" class="{{ request()->routeIs('admin.ekstrakurikuler.monitoring') ? 'active' : '' }}"><i class="bi bi-calendar2-range me-1"></i> Monitoring Mingguan</a></li>
+                                <li><a href="{{ route('admin.ekstrakurikuler.rekap-kelas') }}" class="{{ request()->routeIs('admin.ekstrakurikuler.rekap-kelas') ? 'active' : '' }}"><i class="bi bi-people me-1"></i> Rekap Per Kelas Siswa</a></li>
                             </ul>
                         </div>
                     </li>
@@ -1156,7 +1187,12 @@
                     <li class="sidebar-nav-item"><a href="{{ route('guru.minggu-efektif.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.minggu-efektif.*') ? 'active' : '' }}"><i class="bi bi-calendar-check" style="color:#10b981;"></i><span>Minggu Efektif</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('guru.rencana-pembelajaran.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rencana-pembelajaran.*') ? 'active' : '' }}"><i class="bi bi-book" style="color:#f43f5e;"></i><span>Rencana Pembelajaran</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('guru.laporan-kbm.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.laporan-kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text" style="color:#8b5cf6;"></i><span>Laporan KBM</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.nilai.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.nilai.*') ? 'active' : '' }}"><i class="bi bi-pencil-square" style="color:#38bdf8;"></i><span>Input Nilai Mapel</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('guru.absensi.index') }}" class="sidebar-nav-link {{ (request()->routeIs('guru.absensi.*') || request()->routeIs('guru.rekap-presensi.*') || request()->routeIs('rekap-kehadiran.saya*')) ? 'active' : '' }}"><i class="bi bi-calendar-check-fill" style="color:#10b981;"></i><span>Rekap Kehadiran Saya</span></a></li>
+                    @endif
+
+                    @if(auth()->user()->isPembinaEskul() || auth()->user()->hasTugasTambahan('pembina'))
+                    <li class="sidebar-nav-item"><a href="{{ route('guru.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.ekstrakurikuler.*') ? 'active' : '' }}"><i class="bi bi-award-fill" style="color:#10b981;"></i><span>Eskul Binaan Saya</span></a></li>
                     @endif
 
                     @if(auth()->user()->hasAnyTugasTambahan())
@@ -1166,6 +1202,8 @@
                     @if(auth()->user()->isWaliKelas())
                     <li class="sidebar-nav-item"><a href="{{ route('walikelas.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#6366f1;"></i><span>Jadwal Kelas Bimbingan</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('walikelas.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.dashboard') ? 'active' : '' }}"><i class="bi bi-person-badge-fill" style="color:#6366f1;"></i><span>Portal Wali Kelas</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('walikelas.leger') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.leger*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill" style="color:#8b5cf6;"></i><span>Leger Nilai Kelas</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('walikelas.eskul') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.eskul*') ? 'active' : '' }}"><i class="bi bi-award" style="color:#10b981;"></i><span>Eskul Siswa Bimbingan</span></a></li>
                     @endif
 
                     @if(auth()->user()->isKaprog())
@@ -1239,7 +1277,12 @@
                         <li class="sidebar-nav-item"><a href="{{ route('guru.minggu-efektif.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.minggu-efektif.*') ? 'active' : '' }}"><i class="bi bi-calendar-check" style="color:#10b981;"></i><span>Minggu Efektif</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.rencana-pembelajaran.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.rencana-pembelajaran.*') ? 'active' : '' }}"><i class="bi bi-book" style="color:#f43f5e;"></i><span>Rencana Pembelajaran</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.laporan-kbm.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.laporan-kbm.*') ? 'active' : '' }}"><i class="bi bi-journal-text" style="color:#8b5cf6;"></i><span>Laporan KBM</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('guru.nilai.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.nilai.*') ? 'active' : '' }}"><i class="bi bi-pencil-square" style="color:#38bdf8;"></i><span>Input Nilai Mapel</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('guru.absensi.index') }}" class="sidebar-nav-link {{ (request()->routeIs('guru.absensi.*') || request()->routeIs('guru.rekap-presensi.*') || request()->routeIs('rekap-kehadiran.saya*')) ? 'active' : '' }}"><i class="bi bi-calendar-check-fill" style="color:#10b981;"></i><span>Rekap Kehadiran Saya</span></a></li>
+                        @endif
+
+                        @if(auth()->user()->isPembinaEskul() || auth()->user()->hasTugasTambahan('pembina'))
+                        <li class="sidebar-nav-item"><a href="{{ route('guru.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.ekstrakurikuler.*') ? 'active' : '' }}"><i class="bi bi-award-fill" style="color:#10b981;"></i><span>Eskul Binaan Saya</span></a></li>
                         @endif
 
                         @if(auth()->user()->hasAnyTugasTambahan())
@@ -1250,6 +1293,8 @@
                         @if(auth()->user()->isWaliKelas())
                         <li class="sidebar-nav-item"><a href="{{ route('walikelas.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#6366f1;"></i><span>Jadwal Kelas Bimbingan</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('walikelas.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.dashboard') ? 'active' : '' }}"><i class="bi bi-person-badge-fill" style="color:#6366f1;"></i><span>Portal Wali Kelas</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('walikelas.leger') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.leger*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill" style="color:#8b5cf6;"></i><span>Leger Nilai Kelas</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('walikelas.eskul') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.eskul*') ? 'active' : '' }}"><i class="bi bi-award" style="color:#10b981;"></i><span>Eskul Siswa Bimbingan</span></a></li>
                         @endif
 
                         @if(auth()->user()->isKaprog())
@@ -1299,6 +1344,7 @@
                         @include('layouts._sidebar_rekap', ['mode' => 'nav', 'self' => true])
                     @elseif(auth()->user()->role === 'siswa')
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#10b981;"></i><span>Jadwal Pelajaran Kelas</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('siswa.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.ekstrakurikuler.*') ? 'active' : '' }}"><i class="bi bi-award-fill" style="color:#10b981;"></i><span>Ekstrakurikuler Saya</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#38bdf8;"></i><span>Profil & Biodata</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.tagihan.index') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.tagihan.*') ? 'active' : '' }}"><i class="bi bi-receipt" style="color:#f43f5e;"></i><span>Tagihan Saya</span></a></li>
                     @endif

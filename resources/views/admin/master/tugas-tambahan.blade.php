@@ -2,6 +2,10 @@
 @section('title', 'Data Master Tugas Tambahan')
 @section('page-title', 'Data Master - Tugas Tambahan Sekolah')
 
+@php
+    $errors = $errors ?? new \Illuminate\Support\ViewErrorBag();
+@endphp
+
 @section('dashboard-styles')
 .master-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
 @media (max-width: 992px) {
@@ -17,27 +21,30 @@
 .data-table tr:hover td { background: rgba(255,255,255,0.02); }
 .form-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; padding: 24px; }
 .field-label { font-size: 0.82rem; font-weight: 500; color: var(--text-muted); margin-bottom: 7px; display: block; }
-.field-required { color: var(--accent-gold); }
-.form-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-light); border-radius: 10px; padding: 10px 14px; font-family: 'Poppins', sans-serif; font-size: 0.85rem; margin-bottom: 14px; transition: all 0.25s ease; }
-.form-input:focus { outline: none; border-color: var(--primary-light); background: rgba(255,255,255,0.07); box-shadow: 0 0 0 3px rgba(45,138,78,0.15); }
+.field-required { color: #e11d48; }
+.form-input { width: 100%; background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; border-radius: 10px; padding: 10px 14px; font-family: 'Poppins', sans-serif; font-size: 0.85rem; margin-bottom: 14px; transition: all 0.25s ease; }
+.form-input:focus { outline: none; border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(5,150,105,0.15); color: #0f172a; }
+.form-input option { background: #ffffff; color: #0f172a; }
 .form-input.is-invalid { border-color: rgba(231,76,60,0.6); }
-.field-error { font-size: 0.76rem; color: #f1948a; margin-top: -10px; margin-bottom: 10px; }
+.field-error { font-size: 0.76rem; color: #e11d48; margin-top: -10px; margin-bottom: 10px; }
 .btn-save { display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg, var(--primary), var(--primary-light)); border: none; color: white; padding: 10px 22px; border-radius: 10px; font-size: 0.86rem; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; width: 100%; justify-content: center; transition: all 0.25s; }
-.btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(26,86,50,0.4); }
+.btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(5,150,105,0.3); }
 .action-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 500; cursor: pointer; border: none; font-family: 'Poppins', sans-serif; text-decoration: none; transition: all 0.2s; }
-.btn-edit { background: rgba(52, 152, 219, 0.12); color: #5dade2; border: 1px solid rgba(52, 152, 219, 0.25); }
-.btn-edit:hover { background: rgba(52, 152, 219, 0.25); color: #7fb3d5; }
-.btn-del { background: rgba(231,76,60,0.1); color: #f1948a; border: 1px solid rgba(231,76,60,0.2); }
+.btn-edit { background: rgba(52, 152, 219, 0.12); color: #2563eb; border: 1px solid rgba(52, 152, 219, 0.25); }
+.btn-edit:hover { background: rgba(52, 152, 219, 0.25); color: #1d4ed8; }
+.btn-del { background: rgba(231,76,60,0.1); color: #e11d48; border: 1px solid rgba(231,76,60,0.2); }
 .btn-del:hover { background: rgba(231,76,60,0.2); }
 .nav-master { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
 .nav-master a { padding: 8px 16px; border-radius: 10px; font-size: 0.82rem; font-weight: 500; text-decoration: none; border: 1px solid var(--border-color); color: var(--text-muted); transition: all 0.2s; }
 .nav-master a.active, .nav-master a:hover { background: var(--bg-card); color: var(--text-light); border-color: var(--primary-light); }
 
 /* Modal Styling */
-.modal-content { background-color: #14241b !important; border: 1px solid rgba(255,255,255,0.18) !important; border-radius: 20px; color: var(--text-light); box-shadow: 0 15px 50px rgba(0,0,0,0.9); }
-.modal-header { border-bottom: 1px solid var(--border-color); padding: 18px 24px; }
-.modal-footer { border-top: 1px solid var(--border-color); padding: 16px 24px; }
-.modal-backdrop.show { opacity: 0.75 !important; }
+.modal-content { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; border-radius: 20px; color: #0f172a !important; box-shadow: 0 25px 60px rgba(0,0,0,0.2) !important; }
+.modal-header { border-bottom: 1px solid #e2e8f0; padding: 18px 24px; background: #ffffff; border-top-left-radius: 20px; border-top-right-radius: 20px; }
+.modal-title { font-weight: 700; color: #0f172a !important; }
+.modal-body { padding: 24px; background: #ffffff; }
+.modal-footer { border-top: 1px solid #e2e8f0; padding: 16px 24px; background: #f8fafc; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+.modal-backdrop.show { opacity: 0.5 !important; }
 @endsection
 
 @section('content')
@@ -48,6 +55,7 @@
         <a href="{{ route('superadmin.master.jurusan') }}"><i class="bi bi-diagram-3 me-1"></i> Jurusan</a>
         <a href="{{ route('superadmin.master.kelas') }}"><i class="bi bi-collection me-1"></i> Kelas</a>
         <a href="{{ route('superadmin.master.tugas-tambahan') }}" class="active"><i class="bi bi-award me-1"></i> Tugas Tambahan</a>
+        <a href="{{ route('admin.ekstrakurikuler.index') }}"><i class="bi bi-stars me-1"></i> Ekstrakurikuler</a>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <a href="{{ route('superadmin.guru.index') }}" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; text-decoration:none; background:rgba(46,204,113,0.1); color:#58d68d; border:1px solid rgba(46,204,113,0.3); transition:all 0.2s;">
@@ -62,7 +70,7 @@
     </div>
 @endif
 
-@if($errors->any())
+@if(isset($errors) && $errors->any())
     <div style="background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);color:#f1948a;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ $errors->first() }}
     </div>
@@ -173,11 +181,11 @@
         <div class="modal-content">
             <form id="editForm" method="POST" action="">
                 @csrf @method('PUT')
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-pencil-square me-2" style="color:#5dade2;"></i>Edit Tugas Tambahan</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header" style="border-bottom:1px solid #e2e8f0; padding:18px 24px;">
+                    <h5 class="modal-title" style="font-weight:700;"><i class="bi bi-pencil-square me-2" style="color:#2563eb;"></i>Edit Tugas Tambahan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="padding:22px 24px;">
                     <label class="field-label">Nama Tugas Tambahan <span class="field-required">*</span></label>
                     <input type="text" name="nama" id="edit_nama" class="form-input" required>
 
@@ -192,13 +200,13 @@
                     <input type="number" name="nominal_gaji" id="edit_nominal_gaji" class="form-input" required min="0">
 
                     <label class="d-flex align-items-center gap-2" style="cursor:pointer;margin-top:6px;">
-                        <input type="checkbox" name="is_aktif" value="1" id="edit_is_aktif">
-                        <span style="font-size:0.86rem;">Status Aktif (Tampil di Pilihan Guru)</span>
+                        <input type="checkbox" name="is_aktif" value="1" id="edit_is_aktif" style="accent-color:var(--primary); width:16px; height:16px;">
+                        <span style="font-size:0.86rem; color:#334155; font-weight:500;">Status Aktif (Tampil di Pilihan Guru)</span>
                     </label>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-save" style="background:rgba(255,255,255,0.1);color:var(--text-light);" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn-save"><i class="bi bi-check-circle-fill"></i> Simpan Perubahan</button>
+                <div class="modal-footer" style="border-top:1px solid #e2e8f0; padding:14px 24px; background:#f8fafc;">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal" style="border-radius:10px; padding:8px 18px; border:1px solid #cbd5e1; color:#475569; font-weight:600; width:auto;">Batal</button>
+                    <button type="submit" class="btn-save" style="width:auto; padding:8px 20px;"><i class="bi bi-check-circle-fill me-1"></i> Simpan Perubahan</button>
                 </div>
             </form>
         </div>

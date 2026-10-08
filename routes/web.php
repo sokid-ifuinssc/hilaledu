@@ -43,6 +43,11 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Siswa;
 use App\Http\Controllers\WaliKelas;
+use App\Http\Controllers\Admin\EkstrakurikulerController;
+use App\Http\Controllers\Guru\GuruEkstrakurikulerController;
+use App\Http\Controllers\Guru\GuruNilaiController;
+use App\Http\Controllers\WaliKelas\WaliKelasLegerController;
+use App\Http\Controllers\Siswa\SiswaEkstrakurikulerController;
 
 // HILAL EDU BASE ROUTES
 /*
@@ -178,6 +183,8 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
         Route::post('/tugas-tambahan',                       [MasterController::class, 'storeTugasTambahan'])->name('tugas-tambahan.store');
         Route::put('/tugas-tambahan/{tugasTambahan}',        [MasterController::class, 'updateTugasTambahan'])->name('tugas-tambahan.update');
         Route::delete('/tugas-tambahan/{tugasTambahan}',     [MasterController::class, 'destroyTugasTambahan'])->name('tugas-tambahan.destroy');
+
+        Route::get('/ekstrakurikuler',                       [EkstrakurikulerController::class, 'index'])->name('ekstrakurikuler');
     });
 
     // ---- Kredensial & Reset Password Pengguna (Guru, Siswa, Tendik) ----
@@ -331,7 +338,6 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')-
     Route::get('/apps/{application}', fn($app) => redirect()->route('superadmin.apps.show', $app))->name('apps.show');
     Route::get('/database', fn() => redirect()->route('superadmin.database.index'))->name('database.index');
     Route::get('/kenaikan-kelas', fn() => redirect()->route('superadmin.kenaikan-kelas.index'))->name('kenaikan-kelas.index');
-    Route::get('/{any}', fn() => redirect()->route('superadmin.dashboard'))->where('any', '.*');
 });
 
 // ============================================================
@@ -518,7 +524,24 @@ Route::middleware('auth')->group(function () {
         Route::post('/keluhan/{keluhan}/saran', [KeluhanKbmController::class, 'storeSaran'])->name('keluhan.saran.store');
         Route::patch('/keluhan/saran/{saran}/tanggapi', [KeluhanKbmController::class, 'tanggapiSaran'])->name('keluhan.saran.tanggapi');
 
-        // 11. Menu Ubah Profil Guru (Sinkronisasi Penuh db_hilaledu)
+        // 11. Menu Input Nilai Mata Pelajaran Guru Pengampu
+        Route::get('/nilai', [GuruNilaiController::class, 'index'])->name('nilai.index');
+        Route::get('/nilai/{mataPelajaran}/{kelas}', [GuruNilaiController::class, 'input'])->name('nilai.input');
+        Route::post('/nilai/{mataPelajaran}/{kelas}', [GuruNilaiController::class, 'store'])->name('nilai.store');
+        Route::post('/nilai/{mataPelajaran}/{kelas}/sync-eskul', [GuruNilaiController::class, 'syncEskul'])->name('nilai.sync-eskul');
+
+        // 12. Menu Ekstrakurikuler Pembina Guru
+        Route::get('/ekstrakurikuler', [GuruEkstrakurikulerController::class, 'index'])->name('ekstrakurikuler.index');
+        Route::get('/ekstrakurikuler/{ekstrakurikuler}', [GuruEkstrakurikulerController::class, 'show'])->name('ekstrakurikuler.show');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/rencana', [GuruEkstrakurikulerController::class, 'storeRencana'])->name('ekstrakurikuler.rencana.store');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/laporan', [GuruEkstrakurikulerController::class, 'storeLaporan'])->name('ekstrakurikuler.laporan.store');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/presensi', [GuruEkstrakurikulerController::class, 'storePresensi'])->name('ekstrakurikuler.presensi.store');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/nilai', [GuruEkstrakurikulerController::class, 'storeNilai'])->name('ekstrakurikuler.nilai.store');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/anggota', [GuruEkstrakurikulerController::class, 'storeAnggota'])->name('ekstrakurikuler.anggota.store');
+        Route::delete('/ekstrakurikuler/{ekstrakurikuler}/anggota/{anggota}', [GuruEkstrakurikulerController::class, 'destroyAnggota'])->name('ekstrakurikuler.anggota.destroy');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/set-ketua', [GuruEkstrakurikulerController::class, 'setKetua'])->name('ekstrakurikuler.set-ketua');
+
+        // 13. Menu Ubah Profil Guru (Sinkronisasi Penuh db_hilaledu)
         Route::get('/profil', [GuruProfileController::class, 'edit'])->name('profile.edit');
         Route::put('/profil', [GuruProfileController::class, 'update'])->name('profile.update');
     });
@@ -792,6 +815,23 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifikasi/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifikasi.readAll');
 
     // ==========================================
+    // EKSTRAKURIKULER (ADMIN, SUPERADMIN, WAKA KESISWAAN)
+    // ==========================================
+    Route::prefix('admin/ekstrakurikuler')->name('admin.ekstrakurikuler.')->middleware('role:admin,superadmin,waka_kesiswaan')->group(function () {
+        Route::get('/', [EkstrakurikulerController::class, 'index'])->name('index');
+        Route::post('/', [EkstrakurikulerController::class, 'store'])->name('store');
+        Route::get('/monitoring-mingguan', [EkstrakurikulerController::class, 'monitoringMingguan'])->name('monitoring');
+        Route::get('/rekap-kelas', [EkstrakurikulerController::class, 'rekapPerKelas'])->name('rekap-kelas');
+        Route::get('/rekap-kelas/{kelas}/print', [EkstrakurikulerController::class, 'printRekapKelas'])->name('rekap-kelas.print');
+        Route::get('/{ekstrakurikuler}', [EkstrakurikulerController::class, 'show'])->name('show');
+        Route::put('/{ekstrakurikuler}', [EkstrakurikulerController::class, 'update'])->name('update');
+        Route::delete('/{ekstrakurikuler}', [EkstrakurikulerController::class, 'destroy'])->name('destroy');
+        Route::post('/{ekstrakurikuler}/anggota', [EkstrakurikulerController::class, 'storeAnggota'])->name('anggota.store');
+        Route::delete('/{ekstrakurikuler}/anggota/{anggota}', [EkstrakurikulerController::class, 'destroyAnggota'])->name('anggota.destroy');
+        Route::post('/{ekstrakurikuler}/set-ketua', [EkstrakurikulerController::class, 'setKetua'])->name('set-ketua');
+    });
+
+    // ==========================================
     // MONITORING BK (SUPERADMIN, ADMIN BK & GURU BK)
     // ==========================================
     Route::prefix('bk')->name('bk.')->middleware('role:admin,guru_bk,kepala_sekolah,waka_kesiswaan,kaprog,wali_kelas')->group(function () {
@@ -870,6 +910,15 @@ Route::middleware('auth')->group(function () {
 
         // Tagihan Siswa (Wali Kelas view)
         Route::get('/tagihan', [\App\Http\Controllers\Keuangan\TagihanController::class, 'walikelasTagihan'])->name('tagihan.index');
+
+        // Leger Nilai Mata Pelajaran Kelas Bimbingan
+        Route::get('/leger', [WaliKelasLegerController::class, 'leger'])->name('leger');
+        Route::get('/leger-index', [WaliKelasLegerController::class, 'leger'])->name('leger.index');
+        Route::get('/leger/print', [WaliKelasLegerController::class, 'printLeger'])->name('leger.print');
+
+        // Monitoring Ekstrakurikuler Kelas Bimbingan
+        Route::get('/ekstrakurikuler', [WaliKelasLegerController::class, 'eskul'])->name('eskul');
+        Route::get('/ekstrakurikuler-index', [WaliKelasLegerController::class, 'eskul'])->name('ekstrakurikuler.index');
     });
 
     // ==========================================
@@ -896,6 +945,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/progres/{pelanggaran}', [KepalaSekolah\ProgresController::class, 'show'])->name('progres.show');
         Route::post('/progres/{pelanggaran}/approve', [KepalaSekolah\ProgresController::class, 'approve'])->name('progres.approve');
         Route::post('/progres/{pelanggaran}/laporan', [KepalaSekolah\ProgresController::class, 'isiLaporan'])->name('progres.laporan');
+
+        // Monitoring Ekstrakurikuler Waka Kesiswaan
+        Route::get('/ekstrakurikuler', [EkstrakurikulerController::class, 'monitoringMingguan'])->name('ekstrakurikuler.index');
+        Route::get('/ekstrakurikuler/rekap-kelas', [EkstrakurikulerController::class, 'rekapPerKelas'])->name('ekstrakurikuler.rekap-kelas');
+        Route::get('/ekstrakurikuler/rekap-kelas/{kelas}/print', [EkstrakurikulerController::class, 'printRekapKelas'])->name('ekstrakurikuler.rekap-kelas.print');
     });
 
     // ==========================================
@@ -908,6 +962,13 @@ Route::middleware('auth')->group(function () {
         
         // Tagihan Saya
         Route::get('/tagihan', [\App\Http\Controllers\Keuangan\TagihanController::class, 'siswaTagihan'])->name('tagihan.index');
+
+        // Menu Ekstrakurikuler Siswa
+        Route::get('/ekstrakurikuler', [SiswaEkstrakurikulerController::class, 'index'])->name('ekstrakurikuler.index');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/presensi-mandiri', [SiswaEkstrakurikulerController::class, 'presensiMandiri'])->name('ekstrakurikuler.presensi-mandiri');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/absen-mandiri', [SiswaEkstrakurikulerController::class, 'presensiMandiri'])->name('ekstrakurikuler.absen-mandiri');
+        Route::get('/ekstrakurikuler/{ekstrakurikuler}/ketua-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiIndex'])->name('ekstrakurikuler.ketua-absensi');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/ketua-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiStore'])->name('ekstrakurikuler.ketua-absensi.store');
     });
 
     // Shortcut Menu Kerjasama

@@ -42,6 +42,26 @@ class Siswa extends Model
         return $this->hasMany(Pelanggaran::class);
     }
 
+    public function getNamaAttribute(): string
+    {
+        return $this->nama_lengkap ?: ($this->user->name ?? 'Siswa');
+    }
+
+    public function anggotaEkstrakurikulers()
+    {
+        return $this->hasMany(AnggotaEkstrakurikuler::class, 'siswa_id');
+    }
+
+    public function ekstrakurikulers()
+    {
+        return $this->belongsToMany(Ekstrakurikuler::class, 'anggota_ekstrakurikulers', 'siswa_id', 'ekstrakurikuler_id');
+    }
+
+    public function nilaiMataPelajarans()
+    {
+        return $this->hasMany(NilaiMataPelajaran::class, 'siswa_id');
+    }
+
     public function scopeAktif($query)
     {
         return $query->where('status', 'aktif');

@@ -54,6 +54,9 @@ class RoleMiddleware
                 if ($r === 'waka_kesiswaan' && ($user->hasRoleCategory('Kesiswaan') || $user->hasTugas('Kesiswaan') || $user->hasAdminRole('bk') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
+                if ($r === 'pembina_eskul' && ($user->isPembinaEskul() || $user->isSuperAdmin())) {
+                    $hasAccess = true; break;
+                }
             }
         }
 

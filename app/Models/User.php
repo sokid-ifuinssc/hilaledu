@@ -168,6 +168,19 @@ class User extends Authenticatable
                 }
             } catch (\Throwable $e) {}
 
+            // 4. Cek Penugasan Pembina Eskul
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasTable('ekstrakurikulers')) {
+                    $eskuls = \App\Models\Ekstrakurikuler::where('pembina_guru_id', $this->id)->get();
+                    foreach ($eskuls as $e) {
+                        $item = "Pembina " . trim($e->nama);
+                        if (!in_array($item, $list)) {
+                            $list[] = $item;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {}
+
             $list = array_values(array_unique(array_filter($list)));
         }
 
@@ -717,6 +730,58 @@ class User extends Authenticatable
         return $this->isSuperAdmin() || $this->hasAdminRole('payroll');
     }
 
+    public function isPembinaEskul(): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('ekstrakurikulers')) {
+                if (\App\Models\Ekstrakurikuler::where('pembina_guru_id', $this->id)->exists()) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {}
+        return $this->hasTugas('Pembina') || $this->hasRoleCategory('Pembina');
+    }
+
+    public function isKetuaEskul(): bool
+    {
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('ekstrakurikulers')) {
+                if (\App\Models\Ekstrakurikuler::where('ketua_siswa_id', $this->id)->exists()) {
+                    return true;
+                }
+            }
+            if (\Illuminate\Support\Facades\Schema::hasTable('anggota_ekstrakurikulers')) {
+                if (\App\Models\AnggotaEkstrakurikuler::where('siswa_id', $this->id)->where('jabatan', 'Ketua')->exists()) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {}
+        return false;
+    }
+
+    public function ekstrakurikulersDibina(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Ekstrakurikuler::class, 'pembina_guru_id');
+    }
+
+    public function ekstrakurikulersDiketuai(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Ekstrakurikuler::class, 'ketua_siswa_id');
+    }
+
+    public function anggotaEskuls(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\AnggotaEkstrakurikuler::class, 'siswa_id');
+    }
+
+    public function ekstrakurikulersDiikuti(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\Ekstrakurikuler::class, 'anggota_ekstrakurikulers', 'siswa_id', 'ekstrakurikuler_id')
+            ->withPivot(['jabatan', 'tahun_ajaran', 'semester', 'status', 'nilai_angka', 'nilai_huruf', 'catatan_nilai'])
+            ->withTimestamps();
+    }
+
     public function pengelolaAkademik(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(PengelolaAkademik::class, 'user_id');
@@ -894,5 +959,10 @@ class User extends Authenticatable
     public function getDashboardRoute(): string
     {
         return $this->dashboardRoute();
+    }
+
+    public function getNamaAttribute(): string
+    {
+        return $this->attributes['name'] ?? '';
     }
 }

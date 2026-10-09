@@ -985,7 +985,7 @@
                     {{-- ============================================================ --}}
                     {{-- 5B. EKSTRAKURIKULER (KESISWAAN)                              --}}
                     {{-- ============================================================ --}}
-                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('kesiswaan') || auth()->user()->isWakaKesiswaan())
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('kesiswaan') || auth()->user()->isWakaKesiswaan() || auth()->user()->isPembinaOsis())
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('admin.ekstrakurikuler.*') ? 'active' : '' }}" 
@@ -1330,6 +1330,26 @@
                         @if(auth()->check() && auth()->user()->canAccessPrakerin())
                         <li class="sidebar-nav-item"><a href="{{ route('prakerin.jurnal.index') }}" class="sidebar-nav-link {{ request()->routeIs('prakerin.jurnal.*') ? 'active' : '' }}"><i class="bi bi-briefcase" style="color:#fb923c;"></i><span>Jurnal Prakerin (PKL)</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('prakerin.laporan.index') }}" class="sidebar-nav-link {{ request()->routeIs('prakerin.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph" style="color:#fb923c;"></i><span>Laporan Prakerin</span></a></li>
+                        @endif
+
+                        @if(auth()->user()->isWakaKesiswaan() || auth()->user()->isPembinaOsis())
+                        <li class="sidebar-nav-item">
+                            <button type="button" 
+                                    class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('admin.ekstrakurikuler.*') ? 'active' : '' }}" 
+                                    onclick="toggleSidebarDropdown('menuEskulKesiswaanGuru')" 
+                                    aria-expanded="{{ request()->routeIs('admin.ekstrakurikuler.*') ? 'true' : 'false' }}">
+                                <i class="bi bi-award-fill" style="color:#10b981;"></i>
+                                <span>Monitoring Eskul (Kesiswaan & OSIS)</span>
+                                <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                            </button>
+                            <div class="sidebar-dropdown-menu {{ request()->routeIs('admin.ekstrakurikuler.*') ? 'show' : '' }}" id="menuEskulKesiswaanGuru">
+                                <ul class="sidebar-submenu">
+                                    <li><a href="{{ route('admin.ekstrakurikuler.index') }}" class="{{ request()->routeIs('admin.ekstrakurikuler.index') || request()->routeIs('admin.ekstrakurikuler.show') ? 'active' : '' }}"><i class="bi bi-collection me-1"></i> Data Master Eskul</a></li>
+                                    <li><a href="{{ route('admin.ekstrakurikuler.monitoring') }}" class="{{ request()->routeIs('admin.ekstrakurikuler.monitoring') ? 'active' : '' }}"><i class="bi bi-calendar2-range me-1"></i> Monitoring Mingguan</a></li>
+                                    <li><a href="{{ route('admin.ekstrakurikuler.rekap-kelas') }}" class="{{ request()->routeIs('admin.ekstrakurikuler.rekap-kelas') ? 'active' : '' }}"><i class="bi bi-people me-1"></i> Rekap Per Kelas Siswa</a></li>
+                                </ul>
+                            </div>
+                        </li>
                         @endif
 
                         <div class="sidebar-section-title mt-3">Layanan Pegawai</div>

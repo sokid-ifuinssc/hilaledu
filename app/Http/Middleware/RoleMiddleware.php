@@ -51,7 +51,10 @@ class RoleMiddleware
                 if ($r === 'kepala_sekolah' && ($user->hasTugasTambahan('Kepala Sekolah') || $user->hasTugas('Kepala Sekolah') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
-                if ($r === 'waka_kesiswaan' && ($user->hasRoleCategory('Kesiswaan') || $user->hasTugas('Kesiswaan') || $user->hasAdminRole('bk') || $user->isSuperAdmin())) {
+                if ($r === 'waka_kesiswaan' && ($user->hasRoleCategory('Kesiswaan') || $user->hasTugas('Kesiswaan') || $user->isWakaKesiswaan() || $user->hasAdminRole('bk') || $user->isSuperAdmin())) {
+                    $hasAccess = true; break;
+                }
+                if ($r === 'pembina_osis' && ($user->isPembinaOsis() || $user->hasTugas('OSIS') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
                 if ($r === 'pembina_eskul' && ($user->isPembinaEskul() || $user->isSuperAdmin())) {

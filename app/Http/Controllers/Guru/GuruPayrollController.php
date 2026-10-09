@@ -80,6 +80,9 @@ class GuruPayrollController extends Controller
         $setting = $user->payrollSetting;
         if (!$setting) {
             $setting = \App\Models\Payroll\PayrollSetting::syncTunjanganForUser($user);
+        } else {
+            // Selalu sinkronkan tunjangan (termasuk Pembina Eskul terbaru) sebelum loop
+            $setting = \App\Models\Payroll\PayrollSetting::syncTunjanganForUser($user);
         }
 
         $hasTampilGuru = \Illuminate\Support\Facades\Schema::hasColumn('payroll_periodes', 'tampil_ke_guru');
@@ -239,6 +242,35 @@ class GuruPayrollController extends Controller
                             'nominal'       => $totalTransport,
                             'keterangan'    => "{$kehadiran} Hari Hadir Mengajar x Rp " . number_format($tarifTransport, 0, ',', '.'),
                         ]);
+                    }
+
+                    $payroll->total_tunjangan = (float) $payroll->items()->where('jenis', 'penerimaan')->whereNotIn('nama_komponen', ['Gaji Pokok', 'Honor Jam Mengajar'])->sum('nominal');
+                    $payroll->recalculateTotals();
+
+                    // Sinkronkan tunjangan tugas tambahan (termasuk Pembina Eskul) di draft
+                    $detailTugas = $setting?->detail_tunjangan_tugas ?? [];
+                    if (is_array($detailTugas)) {
+                        foreach ($detailTugas as $namaTugas => $nom) {
+                            $nomFloat = (float) $nom;
+                            $kompKey  = 'Tugas Tambahan: ' . $namaTugas;
+                            $itemTugas = $payroll->items()->where('nama_komponen', $kompKey)->first();
+                            if ($nomFloat > 0) {
+                                if ($itemTugas) {
+                                    $itemTugas->update(['nominal' => $nomFloat]);
+                                } else {
+                                    \App\Models\Payroll\PayrollItem::create([
+                                        'payroll_id'    => $payroll->id,
+                                        'nama_komponen' => $kompKey,
+                                        'jenis'         => 'penerimaan',
+                                        'nominal'       => $nomFloat,
+                                        'keterangan'    => 'Tunjangan tugas tambahan rutin',
+                                    ]);
+                                }
+                            } elseif ($itemTugas) {
+                                // Hapus item jika nominalnya 0 (tugas sudah tidak aktif)
+                                $itemTugas->delete();
+                            }
+                        }
                     }
 
                     $payroll->total_tunjangan = (float) $payroll->items()->where('jenis', 'penerimaan')->whereNotIn('nama_komponen', ['Gaji Pokok', 'Honor Jam Mengajar'])->sum('nominal');

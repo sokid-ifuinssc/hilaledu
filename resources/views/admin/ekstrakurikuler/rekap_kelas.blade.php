@@ -18,7 +18,7 @@
                 </span>
                 Rekap Keanggotaan & Nilai Eskul Per Kelas
             </h1>
-            <p class="text-sm text-slate-500 mt-1">Laporan keikutsertaan eskul siswa, persentase kehadiran, dan nilai dari pembina eskul (Waka Kesiswaan & Wali Kelas)</p>
+            <p class="text-sm text-slate-500 mt-1">Laporan keikutsertaan eskul siswa, persentase kehadiran, dan nilai dari pembina eskul (Waka Kesiswaan, Pembina OSIS & Wali Kelas)</p>
         </div>
         <div class="flex items-center gap-2">
             @if($selectedKelasId)
@@ -31,6 +31,22 @@
                 <i class="bi bi-calendar2-range"></i>
                 Monitoring Mingguan
             </a>
+        </div>
+    </div>
+
+    <!-- Banner Info Integrasi Mapel TWP -->
+    <div class="bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3.5 text-emerald-950 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-sm shadow-emerald-200">
+            <i class="bi bi-link-45deg"></i>
+        </div>
+        <div class="text-xs">
+            <h3 class="font-bold text-sm text-emerald-950 flex items-center gap-2">
+                <span>Sinkronisasi Otomatis Mapel Team Work Project & Project Pancasila</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200/70 text-emerald-800 font-bold">Terintegrasi Raport & KBM</span>
+            </h3>
+            <p class="text-slate-600 mt-1 leading-relaxed">
+                Seluruh nilai angka, predikat huruf, dan catatan pembina eskul siswa pada tabel di bawah ini <strong>terhubung secara otomatis ke nilai mata pelajaran Team Work Project dan Project Pancasila</strong> di kelas yang bersangkutan, sehingga wali kelas dan guru mapel tidak perlu melakukan input ganda.
+            </p>
         </div>
     </div>
 

@@ -18,7 +18,7 @@
                 </span>
                 Monitoring Kegiatan Mingguan Eskul
             </h1>
-            <p class="text-sm text-slate-500 mt-1">Pantau keterlaksanaan kegiatan dan absensi ekstrakurikuler per rentang tanggal (Waka Kesiswaan & Admin)</p>
+            <p class="text-sm text-slate-500 mt-1">Pantau keterlaksanaan kegiatan, absensi, dan realisasi ekstrakurikuler per rentang tanggal (Waka Kesiswaan, Pembina OSIS & Admin)</p>
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('admin.ekstrakurikuler.rekap-kelas') }}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition">
@@ -29,6 +29,22 @@
                 <i class="bi bi-arrow-left"></i>
                 Daftar Eskul
             </a>
+        </div>
+    </div>
+
+    <!-- Banner Waka Kesiswaan & Pembina OSIS -->
+    <div class="bg-gradient-to-r from-indigo-50 via-blue-50 to-emerald-50 border border-indigo-200/80 rounded-2xl p-4 flex items-start gap-3.5 text-indigo-950 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl shrink-0 shadow-sm shadow-indigo-200">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="text-xs">
+            <h3 class="font-bold text-sm text-indigo-950 flex items-center gap-2">
+                <span>Monitoring Eskul Terpadu — Waka Kesiswaan & Pembina OSIS</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Terintegrasi KBM & Nilai</span>
+            </h3>
+            <p class="text-slate-600 mt-1 leading-relaxed">
+                Rencana dan laporan kegiatan ekstrakurikuler terjadwal mengikuti <strong>Minggu Efektif</strong> kalender akademik (dengan opsi <em>Kegiatan Tambahan</em> jika ada latihan/event di luar minggu efektif). Seluruh catatan presensi siswa otomatis disinkronkan ke mata pelajaran <strong>Team Work Project dan Project Pancasila</strong> di rombel kelas siswa masing-masing (X, XI, XII).
+            </p>
         </div>
     </div>
 
@@ -149,10 +165,19 @@
                                 </p>
                             </td>
                             <td class="px-4 py-3.5 max-w-xs">
-                                <div class="flex items-center gap-1.5 mb-1">
+                                <div class="flex items-center gap-1.5 mb-1 flex-wrap">
                                     <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-indigo-50 text-indigo-700">Pertemuan #{{ $lap->pertemuan_ke }}</span>
-                                    <span class="font-semibold text-slate-800 truncate">{{ $lap->nama_kegiatan }}</span>
+                                    @if($lap->tipe_jadwal === 'kegiatan_tambahan')
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                                            <i class="bi bi-plus-circle"></i> Tambahan Luar Minggu Efektif
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800">
+                                            <i class="bi bi-calendar-check"></i> Minggu Efektif {{ $lap->minggu_ke ? '#'.$lap->minggu_ke : '' }}
+                                        </span>
+                                    @endif
                                 </div>
+                                <div class="font-semibold text-slate-800 mb-0.5">{{ $lap->nama_kegiatan }}</div>
                                 <p class="text-[11px] text-slate-500 line-clamp-2">{{ $lap->ringkasan_materi ?: 'Tidak ada ringkasan materi.' }}</p>
                                 @if($lap->kendala_catatan)
                                     <p class="text-[10px] text-amber-600 bg-amber-50/70 rounded p-1 mt-1 border border-amber-100/50">
@@ -175,6 +200,11 @@
                                     <span class="text-blue-600">Izin: {{ $lap->jumlah_izin }}</span>
                                     <span class="text-amber-600">Sakit: {{ $lap->jumlah_sakit }}</span>
                                     <span class="text-rose-600">Alpa: {{ $lap->jumlah_alpa }}</span>
+                                </div>
+                                <div class="mt-1">
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/50" title="Kehadiran otomatis tersinkron ke pertemuan mapel Team Work Project & Project Pancasila">
+                                        <i class="bi bi-arrow-repeat"></i> Sync KBM Mapel TWP
+                                    </span>
                                 </div>
                             </td>
                             <td class="px-4 py-3.5 whitespace-nowrap">
@@ -238,8 +268,17 @@
                             <td class="px-4 py-3 font-semibold text-slate-800">
                                 {{ $ren->ekstrakurikuler->nama ?? '-' }}
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap font-bold text-indigo-600">
-                                Pertemuan #{{ $ren->pertemuan_ke }}
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="font-bold text-indigo-600 block">Pertemuan #{{ $ren->pertemuan_ke }}</span>
+                                @if($ren->tipe_jadwal === 'kegiatan_tambahan')
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 mt-0.5">
+                                        <i class="bi bi-plus-circle"></i> Tambahan
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800 mt-0.5">
+                                        <i class="bi bi-calendar-check"></i> ME {{ $ren->minggu_ke ? '#'.$ren->minggu_ke : '' }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 max-w-sm">
                                 <p class="font-semibold text-slate-800">{{ $ren->nama_kegiatan }}</p>

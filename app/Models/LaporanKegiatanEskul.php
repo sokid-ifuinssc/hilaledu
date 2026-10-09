@@ -16,6 +16,8 @@ class LaporanKegiatanEskul extends Model
     protected $fillable = [
         'ekstrakurikuler_id',
         'rencana_kegiatan_id',
+        'tipe_jadwal',
+        'minggu_ke',
         'tanggal_kegiatan',
         'pertemuan_ke',
         'nama_kegiatan',
@@ -35,6 +37,7 @@ class LaporanKegiatanEskul extends Model
         return [
             'tanggal_kegiatan' => 'date',
             'pertemuan_ke'    => 'integer',
+            'minggu_ke'       => 'integer',
             'jumlah_hadir'    => 'integer',
             'jumlah_izin'     => 'integer',
             'jumlah_sakit'    => 'integer',

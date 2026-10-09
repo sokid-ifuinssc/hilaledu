@@ -89,8 +89,16 @@ class SiswaEkstrakurikulerController extends Controller
             ->with(['pembina'])
             ->get();
 
+        // Seluruh eskul aktif di sekolah (untuk siswa memilih/mendaftar eskul)
+        $semuaEskuls = Ekstrakurikuler::where('is_aktif', true)
+            ->with(['pembina'])
+            ->withCount(['anggotas as total_anggota' => fn($q) => $q->where('status', 'aktif')])
+            ->orderBy('nama')
+            ->get();
+
         return view('siswa.ekstrakurikuler.index', compact(
             'keanggotaans',
+            'semuaEskuls',
             'laporans',
             'rencanas',
             'riwayatPresensi',
@@ -100,6 +108,57 @@ class SiswaEkstrakurikulerController extends Controller
             'ta',
             'sem'
         ));
+    }
+
+    /**
+     * Siswa memilih / mendaftar ke ekstrakurikuler
+     */
+    public function join(Ekstrakurikuler $ekstrakurikuler)
+    {
+        $user = auth()->user();
+        $ta = PengaturanSekolah::getActiveTahunAjaran();
+        $sem = PengaturanSekolah::getActiveSemester();
+
+        $anggota = AnggotaEkstrakurikuler::firstOrCreate(
+            [
+                'ekstrakurikuler_id' => $ekstrakurikuler->id,
+                'siswa_id'           => $user->id,
+                'tahun_ajaran'       => $ta,
+                'semester'           => $sem,
+            ],
+            [
+                'jabatan' => 'Anggota',
+                'status'  => 'aktif',
+            ]
+        );
+
+        if (!$anggota->wasRecentlyCreated && $anggota->status !== 'aktif') {
+            $anggota->update(['status' => 'aktif']);
+        }
+
+        return back()->with('success', "Selamat! Anda berhasil bergabung ke dalam ekstrakurikuler {$ekstrakurikuler->nama}.");
+    }
+
+    /**
+     * Siswa keluar / membatalkan keikutsertaan eskul
+     */
+    public function leave(Ekstrakurikuler $ekstrakurikuler)
+    {
+        $user = auth()->user();
+        $ta = PengaturanSekolah::getActiveTahunAjaran();
+        $sem = PengaturanSekolah::getActiveSemester();
+
+        AnggotaEkstrakurikuler::where('ekstrakurikuler_id', $ekstrakurikuler->id)
+            ->where('siswa_id', $user->id)
+            ->where('tahun_ajaran', $ta)
+            ->where('semester', $sem)
+            ->delete();
+
+        if ($ekstrakurikuler->ketua_siswa_id === $user->id) {
+            $ekstrakurikuler->update(['ketua_siswa_id' => null]);
+        }
+
+        return back()->with('success', "Anda telah membatalkan keikutsertaan pada ekstrakurikuler {$ekstrakurikuler->nama}.");
     }
 
     /**
@@ -154,7 +213,16 @@ class SiswaEkstrakurikulerController extends Controller
             $laporan->increment($request->status === 'Hadir' ? 'jumlah_hadir' : ($request->status === 'Izin' ? 'jumlah_izin' : 'jumlah_sakit'));
         }
 
-        return back()->with('success', "Absensi mandiri berhasil dicatat: Status {$request->status} pada {$ekstrakurikuler->nama}.");
+        // Sinkronkan absensi mandiri ke mapel Team Work Project dan Project Pancasila
+        \App\Services\EskulSyncService::syncPresensiSiswa(
+            $ekstrakurikuler,
+            $tanggal,
+            $user->id,
+            $request->status,
+            $request->keterangan ?: 'Absen Mandiri Siswa'
+        );
+
+        return back()->with('success', "Absensi mandiri berhasil dicatat dan disinkronkan ke Mapel Team Work Project & Project Pancasila: Status {$request->status} pada {$ekstrakurikuler->nama}.");
     }
 
     /**
@@ -255,6 +323,15 @@ class SiswaEkstrakurikulerController extends Controller
                         'metode_absen'        => 'ketua',
                         'diinput_oleh'        => $user->id,
                     ]
+                );
+
+                // Sinkronkan ke mapel Team Work Project dan Project Pancasila
+                \App\Services\EskulSyncService::syncPresensiSiswa(
+                    $ekstrakurikuler,
+                    $tanggal,
+                    (int)$siswaId,
+                    $status,
+                    $ket ?: 'Absensi oleh Ketua Eskul'
                 );
             }
 

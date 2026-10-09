@@ -242,17 +242,27 @@
                 @php
                     $bidangParam = 'waka_kurikulum';
                     $tLower = strtolower($tugas);
+                    $isPembinaEskul = str_starts_with($tLower, 'pembina ');
                     if (str_contains($tLower, 'hubin') || str_contains($tLower, 'humas') || str_contains($tLower, 'industri')) $bidangParam = 'waka_hubin';
                     elseif (str_contains($tLower, 'osis')) $bidangParam = 'pembina_osis';
                     elseif (str_contains($tLower, 'kesiswaan')) $bidangParam = 'waka_kesiswaan';
                     elseif (str_contains($tLower, 'sarpras')) $bidangParam = 'waka_sarpras';
                 @endphp
                 <div class="pt-3 border-t border-slate-100 space-y-2">
-                    <a href="{{ route('guru.kegiatan.create', ['bidang' => $bidangParam]) }}" 
-                       class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm shadow-emerald-600/20">
-                        <i class="bi-calendar-plus-fill"></i>
-                        <span>Input Kegiatan (Sinkron Kalender)</span>
-                    </a>
+                    @if($isPembinaEskul)
+                        {{-- Tombol khusus Pembina Eskul --}}
+                        <a href="{{ route('guru.ekstrakurikuler.index') }}" 
+                           class="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm shadow-purple-600/20">
+                            <i class="bi-trophy-fill"></i>
+                            <span>Kelola Ekstrakurikuler Saya</span>
+                        </a>
+                    @else
+                        <a href="{{ route('guru.kegiatan.create', ['bidang' => $bidangParam]) }}" 
+                           class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm shadow-emerald-600/20">
+                            <i class="bi-calendar-plus-fill"></i>
+                            <span>Input Kegiatan (Sinkron Kalender)</span>
+                        </a>
+                    @endif
                     <button type="button" 
                             @click="modalProgramKerja = true; selectedTugas = '{{ addslashes($tugas) }}'"
                             class="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-indigo-200">

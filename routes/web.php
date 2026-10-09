@@ -817,7 +817,7 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // EKSTRAKURIKULER (ADMIN, SUPERADMIN, WAKA KESISWAAN)
     // ==========================================
-    Route::prefix('admin/ekstrakurikuler')->name('admin.ekstrakurikuler.')->middleware('role:admin,superadmin,waka_kesiswaan')->group(function () {
+    Route::prefix('admin/ekstrakurikuler')->name('admin.ekstrakurikuler.')->middleware('role:admin,superadmin,waka_kesiswaan,pembina_osis')->group(function () {
         Route::get('/', [EkstrakurikulerController::class, 'index'])->name('index');
         Route::post('/', [EkstrakurikulerController::class, 'store'])->name('store');
         Route::get('/monitoring-mingguan', [EkstrakurikulerController::class, 'monitoringMingguan'])->name('monitoring');
@@ -965,6 +965,8 @@ Route::middleware('auth')->group(function () {
 
         // Menu Ekstrakurikuler Siswa
         Route::get('/ekstrakurikuler', [SiswaEkstrakurikulerController::class, 'index'])->name('ekstrakurikuler.index');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/join', [SiswaEkstrakurikulerController::class, 'join'])->name('ekstrakurikuler.join');
+        Route::delete('/ekstrakurikuler/{ekstrakurikuler}/leave', [SiswaEkstrakurikulerController::class, 'leave'])->name('ekstrakurikuler.leave');
         Route::post('/ekstrakurikuler/{ekstrakurikuler}/presensi-mandiri', [SiswaEkstrakurikulerController::class, 'presensiMandiri'])->name('ekstrakurikuler.presensi-mandiri');
         Route::post('/ekstrakurikuler/{ekstrakurikuler}/absen-mandiri', [SiswaEkstrakurikulerController::class, 'presensiMandiri'])->name('ekstrakurikuler.absen-mandiri');
         Route::get('/ekstrakurikuler/{ekstrakurikuler}/ketua-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiIndex'])->name('ekstrakurikuler.ketua-absensi');

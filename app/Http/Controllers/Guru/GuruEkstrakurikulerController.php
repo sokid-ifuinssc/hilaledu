@@ -111,6 +111,7 @@ class GuruEkstrakurikulerController extends Controller
             ->orderBy('name')
             ->get();
 
+        $kelases = \App\Models\Kelas::where('is_aktif', true)->orderBy('nama_kelas')->get();
         $eskul = $ekstrakurikuler;
 
         return view('guru.ekstrakurikuler.show', compact(
@@ -123,6 +124,7 @@ class GuruEkstrakurikulerController extends Controller
             'selectedTanggal',
             'presensis',
             'availableSiswas',
+            'kelases',
             'ta',
             'sem',
             'tab'
@@ -138,6 +140,8 @@ class GuruEkstrakurikulerController extends Controller
 
         $validated = $request->validate([
             'pertemuan_ke'      => 'required|integer|min:1',
+            'tipe_jadwal'       => 'nullable|in:minggu_efektif,kegiatan_tambahan',
+            'minggu_ke'         => 'nullable|integer|min:1|max:30',
             'tanggal_rencana'   => 'required|date',
             'nama_kegiatan'     => 'required|string|max:255',
             'deskripsi_rencana' => 'nullable|string',
@@ -148,12 +152,18 @@ class GuruEkstrakurikulerController extends Controller
             'nama_kegiatan.required'   => 'Nama/Materi kegiatan wajib diisi.',
         ]);
 
+        $validated['tipe_jadwal']        = $request->input('tipe_jadwal', 'minggu_efektif');
+        $validated['minggu_ke']          = $validated['tipe_jadwal'] === 'minggu_efektif' ? $request->input('minggu_ke') : null;
         $validated['ekstrakurikuler_id'] = $ekstrakurikuler->id;
         $validated['created_by']         = auth()->id();
 
         RencanaKegiatanEskul::create($validated);
 
-        return back()->with('success', "Rencana kegiatan pertemuan ke-{$validated['pertemuan_ke']} berhasil disimpan!");
+        $label = $validated['tipe_jadwal'] === 'minggu_efektif' && $validated['minggu_ke']
+            ? "Minggu Efektif ke-{$validated['minggu_ke']}"
+            : "Kegiatan Tambahan Luar Jadwal";
+
+        return back()->with('success', "Rencana kegiatan pertemuan ke-{$validated['pertemuan_ke']} ({$label}) berhasil disimpan!");
     }
 
     /**
@@ -167,6 +177,8 @@ class GuruEkstrakurikulerController extends Controller
 
         $validated = $request->validate([
             'rencana_kegiatan_id' => 'nullable|exists:rencana_kegiatan_eskuls,id',
+            'tipe_jadwal'         => 'nullable|in:minggu_efektif,kegiatan_tambahan',
+            'minggu_ke'           => 'nullable|integer|min:1|max:30',
             'tanggal_kegiatan'    => 'required|date',
             'pertemuan_ke'        => 'required|integer|min:1',
             'nama_kegiatan'       => 'required|string|max:255',
@@ -180,12 +192,25 @@ class GuruEkstrakurikulerController extends Controller
             'ringkasan_materi.required' => 'Ringkasan realisasi kegiatan wajib diisi.',
         ]);
 
-        // Jika rencana_kegiatan_id dipilih, pastikan tanggal & materi sinkron
+        // Jika rencana_kegiatan_id dipilih, pastikan tanggal, tipe jadwal & materi sinkron
         if (!empty($validated['rencana_kegiatan_id'])) {
             $rencana = RencanaKegiatanEskul::find($validated['rencana_kegiatan_id']);
-            if ($rencana && empty($request->tanggal_kegiatan)) {
-                $validated['tanggal_kegiatan'] = $rencana->tanggal_rencana->format('Y-m-d');
+            if ($rencana) {
+                if (empty($request->tanggal_kegiatan)) {
+                    $validated['tanggal_kegiatan'] = $rencana->tanggal_rencana->format('Y-m-d');
+                }
+                if (empty($request->tipe_jadwal)) {
+                    $validated['tipe_jadwal'] = $rencana->tipe_jadwal;
+                }
+                if (empty($request->minggu_ke)) {
+                    $validated['minggu_ke'] = $rencana->minggu_ke;
+                }
             }
+        }
+
+        $validated['tipe_jadwal'] = $validated['tipe_jadwal'] ?? 'minggu_efektif';
+        if ($validated['tipe_jadwal'] !== 'minggu_efektif') {
+            $validated['minggu_ke'] = null;
         }
 
         if ($request->hasFile('foto_dokumentasi')) {
@@ -265,6 +290,9 @@ class GuruEkstrakurikulerController extends Controller
                         'diinput_oleh'        => auth()->id(),
                     ]
                 );
+
+                // Sinkronkan absensi siswa ke mapel Team Work Project dan Project Pancasila
+                \App\Services\EskulSyncService::syncPresensiSiswa($ekstrakurikuler, $tanggal, (int)$siswaId, $status, $ket);
             }
 
             // Update agregat di laporan jika ada
@@ -282,7 +310,7 @@ class GuruEkstrakurikulerController extends Controller
             }
 
             DB::commit();
-            return back()->with('success', "Presensi eskul tanggal {$tanggal} berhasil disimpan!");
+            return back()->with('success', "Presensi eskul tanggal {$tanggal} berhasil disimpan dan disinkronkan ke Mapel Team Work Project & Project Pancasila!");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal menyimpan presensi: ' . $e->getMessage());
@@ -303,6 +331,7 @@ class GuruEkstrakurikulerController extends Controller
             'nilai_huruf.*' => 'nullable|in:A,B,C,D',
             'catatan'       => 'nullable|array',
             'catatan.*'     => 'nullable|string|max:500',
+            'nilai'         => 'nullable|array',
         ]);
 
         $ta = PengaturanSekolah::getActiveTahunAjaran();
@@ -318,10 +347,15 @@ class GuruEkstrakurikulerController extends Controller
             foreach ($anggotas as $anggota) {
                 $siswaId = $anggota->siswa_id;
 
-                $angka = isset($request->nilai_angka[$siswaId]) && $request->nilai_angka[$siswaId] !== ''
-                    ? (float)$request->nilai_angka[$siswaId] : null;
+                // Support baik format direct maupun nested array
+                $angka = null;
+                if (isset($request->nilai_angka[$siswaId]) && $request->nilai_angka[$siswaId] !== '') {
+                    $angka = (float)$request->nilai_angka[$siswaId];
+                } elseif (isset($request->nilai[$anggota->id]['nilai_angka']) && $request->nilai[$anggota->id]['nilai_angka'] !== '') {
+                    $angka = (float)$request->nilai[$anggota->id]['nilai_angka'];
+                }
 
-                $huruf = $request->nilai_huruf[$siswaId] ?? null;
+                $huruf = $request->nilai_huruf[$siswaId] ?? ($request->nilai[$anggota->id]['nilai_huruf'] ?? null);
                 if (empty($huruf) && $angka !== null) {
                     if ($angka >= 86) $huruf = 'A';
                     elseif ($angka >= 76) $huruf = 'B';
@@ -329,17 +363,22 @@ class GuruEkstrakurikulerController extends Controller
                     else $huruf = 'D';
                 }
 
-                $catatan = $request->catatan[$siswaId] ?? null;
+                $catatan = $request->catatan[$siswaId] ?? ($request->nilai[$anggota->id]['catatan'] ?? null);
 
                 $anggota->update([
                     'nilai_angka'   => $angka,
                     'nilai_huruf'   => $huruf,
                     'catatan_nilai' => $catatan,
                 ]);
+
+                // Sinkronkan nilai ke mapel Team Work Project dan Project Pancasila di kelas masing-masing
+                if ($angka !== null || !empty($huruf)) {
+                    \App\Services\EskulSyncService::syncNilaiSiswa($ekstrakurikuler, (int)$siswaId, $angka, $huruf, $catatan);
+                }
             }
 
             DB::commit();
-            return back()->with('success', 'Nilai ekstrakurikuler siswa berhasil diperbarui!');
+            return back()->with('success', 'Nilai ekstrakurikuler siswa berhasil diperbarui dan disinkronkan ke Mapel Team Work Project & Project Pancasila!');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal menyimpan nilai eskul: ' . $e->getMessage());

@@ -11,9 +11,39 @@
                 <span class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-indigo-200">
                     <i class="bi bi-award text-lg"></i>
                 </span>
-                Ekstrakurikuler Saya
+                Ekstrakurikuler Siswa
             </h1>
-            <p class="text-sm text-slate-500 mt-1">Pantau keikutsertaan eskul, riwayat absensi, absen mandiri, dan lihat nilai akhir dari pembina eskul.</p>
+            <p class="text-sm text-slate-500 mt-1">Pilih dan ikuti ekstrakurikuler, pantau jadwal latihan, lakukan absensi mandiri, serta lihat nilai akhir yang terintegrasi ke mapel Team Work Project & Project Pancasila.</p>
+        </div>
+    </div>
+
+    <!-- Alert Sukses / Gagal -->
+    @if(session('success'))
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-3 shadow-sm">
+            <i class="bi bi-check-circle-fill text-lg text-emerald-600 shrink-0"></i>
+            <div>{{ session('success') }}</div>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-3 shadow-sm">
+            <i class="bi bi-exclamation-triangle-fill text-lg text-rose-600 shrink-0"></i>
+            <div>{{ session('error') }}</div>
+        </div>
+    @endif
+
+    <!-- Banner Integrasi Mapel TWP & Project Pancasila -->
+    <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 border border-blue-200/80 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-blue-900 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl shrink-0 shadow-sm shadow-blue-200">
+            <i class="bi bi-link-45deg"></i>
+        </div>
+        <div class="text-xs">
+            <h3 class="font-bold text-sm text-blue-950 flex items-center gap-2">
+                <span>Integrasi Otomatis Mapel Team Work Project & Project Pancasila</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-200/70 text-blue-800 font-bold uppercase tracking-wider">Kelas X, XI, XII</span>
+            </h3>
+            <p class="text-blue-800/90 mt-1 leading-relaxed">
+                Setiap kehadiran (baik absensi oleh pembina, ketua eskul, maupun absen mandiri) dan nilai akhir ekstrakurikuler yang diberikan pembina <strong>secara otomatis disinkronkan ke pertemuan KBM dan nilai mata pelajaran Team Work Project & Project Pancasila</strong> di kelas Anda masing-masing.
+            </p>
         </div>
     </div>
 
@@ -39,8 +69,18 @@
         @endforeach
     @endif
 
-    <!-- Daftar Eskul yang Diikuti -->
+    <!-- Daftar Eskul yang Sedang Diikuti -->
     <div class="space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i class="bi bi-bookmark-check-fill text-indigo-600"></i>
+                Ekstrakurikuler yang Anda Ikuti
+            </h2>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
+                {{ $keanggotaans->count() }} Eskul Aktif
+            </span>
+        </div>
+
         @forelse($keanggotaans as $ang)
             @php
                 $eskul = $ang->ekstrakurikuler;
@@ -66,13 +106,22 @@
                         </div>
                     </div>
 
-                    <!-- Presensi Mandiri Button -->
-                    <div>
+                    <div class="flex items-center gap-2">
+                        <!-- Presensi Mandiri Button -->
                         <form action="{{ route('siswa.ekstrakurikuler.presensi-mandiri', $eskul->id) }}" method="POST">
                             @csrf
-                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition">
+                            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition">
                                 <i class="bi bi-geo-alt-fill"></i>
-                                Absen Mandiri Hari Ini
+                                Absen Mandiri
+                            </button>
+                        </form>
+                        <!-- Keluar Eskul Button -->
+                        <form action="{{ route('siswa.ekstrakurikuler.leave', $eskul->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan keikutsertaan dari ekstrakurikuler {{ $eskul->nama }}?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition">
+                                <i class="bi bi-box-arrow-right"></i>
+                                Keluar
                             </button>
                         </form>
                     </div>
@@ -152,11 +201,11 @@
                                             {{ \Carbon\Carbon::parse($pres->tanggal)->format('d M Y') }}
                                         </td>
                                         <td class="px-3 py-2 text-center whitespace-nowrap">
-                                            @if($pres->status == 'hadir')
+                                            @if(strtolower($pres->status) == 'hadir')
                                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">Hadir</span>
-                                            @elseif($pres->status == 'izin')
+                                            @elseif(strtolower($pres->status) == 'izin')
                                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">Izin</span>
-                                            @elseif($pres->status == 'sakit')
+                                            @elseif(strtolower($pres->status) == 'sakit')
                                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">Sakit</span>
                                             @else
                                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">Alpa</span>
@@ -182,14 +231,109 @@
                 </div>
             </div>
         @empty
-            <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-                <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-3xl mx-auto mb-3">
+            <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+                <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mx-auto mb-3">
                     <i class="bi bi-award"></i>
                 </div>
                 <h3 class="text-base font-bold text-slate-800">Anda Belum Terdaftar di Ekstrakurikuler</h3>
-                <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">Silakan hubungi pembina ekstrakurikuler atau waka kesiswaan untuk pendaftaran keanggotaan eskul.</p>
+                <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">Silakan pilih dan daftarkan diri Anda pada salah satu ekstrakurikuler yang tersedia pada katalog di bawah ini.</p>
             </div>
         @endforelse
+    </div>
+
+    <!-- Section Eksplorasi & Pilih Ekstrakurikuler Sekolah -->
+    <div class="mt-10 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200 pb-3">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="bi bi-compass text-indigo-600"></i>
+                    Pilihan Ekstrakurikuler Sekolah
+                </h2>
+                <p class="text-xs text-slate-500">Tersedia untuk seluruh siswa Kelas X, XI, dan XII. Pilih eskul sesuai minat dan bakat Anda.</p>
+            </div>
+            <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 self-start sm:self-auto">
+                {{ $semuaEskuls->count() }} Pilihan Eskul Aktif
+            </span>
+        </div>
+
+        @php
+            $terdaftarIds = $keanggotaans->pluck('ekstrakurikuler_id')->toArray();
+        @endphp
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            @forelse($semuaEskuls as $item)
+                @php
+                    $isEnrolled = in_array($item->id, $terdaftarIds);
+                @endphp
+                <div class="bg-white rounded-2xl border {{ $isEnrolled ? 'border-emerald-300 ring-2 ring-emerald-500/20' : 'border-slate-200' }} shadow-sm p-5 flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                        <div class="flex items-start justify-between gap-3 mb-3">
+                            <div class="w-11 h-11 rounded-xl {{ $isEnrolled ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600' }} flex items-center justify-center text-xl font-bold">
+                                <i class="bi bi-award"></i>
+                            </div>
+                            @if($isEnrolled)
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                                    <i class="bi bi-check-circle-fill"></i> Diikuti
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+                                    <i class="bi bi-people"></i> {{ $item->total_anggota ?? 0 }} Siswa
+                                </span>
+                            @endif
+                        </div>
+
+                        <h3 class="text-base font-bold text-slate-800">{{ $item->nama }}</h3>
+                        <p class="text-xs text-slate-500 mt-1 line-clamp-2">
+                            {{ $item->deskripsi ?: 'Tidak ada deskripsi ekstrakurikuler.' }}
+                        </p>
+
+                        <div class="space-y-1.5 mt-4 pt-3 border-t border-slate-100 text-xs">
+                            <div class="flex items-center gap-2 text-slate-600">
+                                <i class="bi bi-person-workspace text-slate-400 w-4"></i>
+                                <span class="truncate">Pembina: <b>{{ $item->pembina->name ?? 'Belum ditentukan' }}</b></span>
+                            </div>
+                            <div class="flex items-center gap-2 text-slate-600">
+                                <i class="bi bi-calendar3 text-slate-400 w-4"></i>
+                                <span>Jadwal: <b>{{ $item->hari ?: '-' }}</b> ({{ substr($item->jam_mulai,0,5) }} - {{ substr($item->jam_selesai,0,5) }})</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-slate-600">
+                                <i class="bi bi-geo-alt text-slate-400 w-4"></i>
+                                <span class="truncate">Tempat: <b>{{ $item->tempat ?: '-' }}</b></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-3 border-t border-slate-100">
+                        @if($isEnrolled)
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs text-emerald-700 font-semibold">
+                                    <i class="bi bi-check-all"></i> Anggota Aktif
+                                </span>
+                                <form action="{{ route('siswa.ekstrakurikuler.leave', $item->id) }}" method="POST" onsubmit="return confirm('Yakin ingin membatalkan keikutsertaan dari {{ $item->nama }}?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline">
+                                        Batal Ikut
+                                    </button>
+                                </form>
+                            </div>
+                        @else
+                            <form action="{{ route('siswa.ekstrakurikuler.join', $item->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition">
+                                    <i class="bi bi-plus-circle-fill"></i>
+                                    Pilih & Ikuti Eskul Ini
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="col-span-full bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
+                    Belum ada ekstrakurikuler yang dibuka untuk pendaftaran.
+                </div>
+            @endforelse
+        </div>
     </div>
 </div>
 @endsection

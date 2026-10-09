@@ -218,9 +218,20 @@
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between gap-2">
-                            <span class="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-black text-xs">
-                                Pertemuan Ke-{{ $r->pertemuan_ke }}
-                            </span>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-black text-xs">
+                                    Pertemuan Ke-{{ $r->pertemuan_ke }}
+                                </span>
+                                @if($r->tipe_jadwal === 'kegiatan_tambahan')
+                                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">
+                                        <i class="bi bi-plus-circle"></i> Kegiatan Tambahan
+                                    </span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold text-[10px]">
+                                        <i class="bi bi-calendar-check"></i> Minggu Efektif {{ $r->minggu_ke ? '#'.$r->minggu_ke : '' }}
+                                    </span>
+                                @endif
+                            </div>
                             @if($r->is_terlaksana)
                                 <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-[10px] flex items-center gap-1">
                                     <i class="bi bi-check-circle-fill"></i> Sudah Terlaksana
@@ -279,6 +290,15 @@
                                 <span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-xs">
                                     Pertemuan Ke-{{ $lap->pertemuan_ke }}
                                 </span>
+                                @if($lap->tipe_jadwal === 'kegiatan_tambahan')
+                                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">
+                                        <i class="bi bi-plus-circle"></i> Kegiatan Tambahan
+                                    </span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold text-[10px]">
+                                        <i class="bi bi-calendar-check"></i> Minggu Efektif {{ $lap->minggu_ke ? '#'.$lap->minggu_ke : '' }}
+                                    </span>
+                                @endif
                                 <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                                     <i class="bi bi-calendar3 text-blue-500"></i> {{ \Carbon\Carbon::parse($lap->tanggal_kegiatan)->isoFormat('dddd, D MMMM Y') }}
                                 </span>
@@ -328,7 +348,7 @@
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
                 <h3 class="text-sm font-bold text-slate-800">Presensi Anggota Eskul</h3>
-                <p class="text-xs text-slate-500">Pilih tanggal pertemuan untuk melihat dan mengisi absensi anggota.</p>
+                <p class="text-xs text-slate-500">Pilih tanggal pertemuan untuk melihat absensi anggota eskul (Sinkron otomatis ke Mapel Team Work Project & Project Pancasila).</p>
             </div>
             <form action="{{ route('admin.ekstrakurikuler.show', $ekstrakurikuler->id) }}" method="GET" class="flex items-center gap-2">
                 <input type="hidden" name="tab" value="presensi">
@@ -337,6 +357,11 @@
                     Buka Tanggal
                 </button>
             </form>
+        </div>
+
+        <div class="p-3.5 bg-blue-50/70 border border-blue-200/60 rounded-xl text-xs text-blue-900 flex items-center gap-2.5">
+            <i class="bi bi-arrow-repeat text-blue-600 text-base"></i>
+            <span>Setiap presensi pertemuan eskul yang disimpan otomatis tersinkronisasi ke absensi harian siswa dan jurnal KBM mata pelajaran <strong>Team Work Project dan Project Pancasila</strong> di kelas siswa masing-masing.</span>
         </div>
 
         <form action="{{ route('admin.ekstrakurikuler.show', $ekstrakurikuler->id) }}" method="POST">
@@ -400,11 +425,16 @@
         <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
                 <h3 class="text-sm font-bold text-slate-800">Rekapitulasi Nilai Ekstrakurikuler Siswa</h3>
-                <p class="text-xs text-slate-500">Nilai eskul yang diberikan oleh Guru Pembina untuk rapor dan portofolio siswa.</p>
+                <p class="text-xs text-slate-500">Nilai eskul yang diinput oleh Guru Pembina untuk rapor dan portofolio siswa.</p>
             </div>
-            <div class="text-xs font-semibold text-slate-500">
-                Nilai Eskul Terhubung Otomatis ke Rapor & Mapel Project
+            <div class="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <i class="bi bi-arrow-repeat me-1"></i> Sinkron Otomatis ke Mapel Team Work Project & Project Pancasila
             </div>
+        </div>
+
+        <div class="p-3.5 bg-emerald-50/70 border border-emerald-200/60 rounded-xl text-xs text-emerald-950 flex items-center gap-2.5">
+            <i class="bi bi-check-circle-fill text-emerald-600 text-base"></i>
+            <span>Nilai angka, predikat huruf, dan catatan capaian ekstrakurikuler otomatis tersinkron ke penilaian mata pelajaran <strong>Team Work Project dan Project Pancasila</strong> di kelas siswa masing-masing (X, XI, XII).</span>
         </div>
 
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -533,6 +563,20 @@
                     </div>
                 </div>
 
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Tipe Jadwal <span class="text-rose-500">*</span></label>
+                        <select name="tipe_jadwal" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium">
+                            <option value="minggu_efektif">Jadwal Minggu Efektif</option>
+                            <option value="kegiatan_tambahan">Kegiatan Tambahan (Luar ME)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Minggu Efektif Ke-</label>
+                        <input type="number" name="minggu_ke" min="1" max="52" placeholder="Contoh: 1, 2, dst" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">Judul / Materi Kegiatan <span class="text-rose-500">*</span></label>
                     <input type="text" name="nama_kegiatan" required placeholder="Contoh: Latihan Dasar Baris-Berbaris (PBB)..." class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -586,6 +630,20 @@
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Tanggal Kegiatan <span class="text-rose-500">*</span></label>
                         <input type="date" id="lap_tgl" name="tanggal_kegiatan" value="{{ date('Y-m-d') }}" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-700">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Tipe Jadwal <span class="text-rose-500">*</span></label>
+                        <select name="tipe_jadwal" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium">
+                            <option value="minggu_efektif">Jadwal Minggu Efektif</option>
+                            <option value="kegiatan_tambahan">Kegiatan Tambahan (Luar ME)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Minggu Efektif Ke-</label>
+                        <input type="number" name="minggu_ke" min="1" max="52" placeholder="Contoh: 1, 2, dst" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
 

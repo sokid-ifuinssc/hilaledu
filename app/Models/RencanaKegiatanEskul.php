@@ -17,6 +17,8 @@ class RencanaKegiatanEskul extends Model
     protected $fillable = [
         'ekstrakurikuler_id',
         'pertemuan_ke',
+        'tipe_jadwal',
+        'minggu_ke',
         'tanggal_rencana',
         'nama_kegiatan',
         'deskripsi_rencana',
@@ -29,6 +31,7 @@ class RencanaKegiatanEskul extends Model
         return [
             'tanggal_rencana' => 'date',
             'pertemuan_ke'    => 'integer',
+            'minggu_ke'       => 'integer',
         ];
     }
 

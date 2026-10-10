@@ -100,9 +100,24 @@ class WaliKelasLegerController extends Controller
             ->pluck('mata_pelajaran_id');
 
         if ($mapelIds->isEmpty()) {
-            $mapelIds = \App\Models\JadwalPelajaran::where('kelas_id', $kelas->id)
+            $mapelIds = \App\Models\JadwalPelajaran::where('kelas', $kelas->nama_kelas)
                 ->distinct()
                 ->pluck('mata_pelajaran_id');
+        }
+
+        if ($mapelIds->isEmpty()) {
+            $jurusanSingkatan = $kelas->jurusan?->singkatan;
+            $mapelIds = Kurikulum::where('is_aktif', true)
+                ->when($jurusanSingkatan, function ($q) use ($jurusanSingkatan) {
+                    $q->where(function ($sub) use ($jurusanSingkatan) {
+                        $sub->where('jurusan', $jurusanSingkatan)
+                            ->orWhereNull('jurusan')
+                            ->orWhere('jurusan', '')
+                            ->orWhere('jurusan', 'Semua');
+                    });
+                })
+                ->pluck('mata_pelajaran_id')
+                ->filter();
         }
 
         if ($mapelIds->isEmpty()) {

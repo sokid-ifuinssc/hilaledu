@@ -17,13 +17,14 @@
         </div>
     </div>
 
-    <!-- Alert Khusus Integrasi Eskul dengan Team Work Project & Pancasila -->
-    <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
-        <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 text-base shadow-sm">
-            <i class="bi bi-stars"></i>
+    <!-- Banner Panduan Input Nilai -->
+    <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/80 rounded-2xl p-4 flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 text-base shadow-sm shadow-blue-200">
+            <i class="bi bi-pencil-square"></i>
         </div>
-        <div class="text-xs text-emerald-950 leading-relaxed">
-            <span class="font-bold">Integrasi Nilai Ekstrakurikuler:</span> Khusus mata pelajaran <b>Team Work Project dan Project Pancasila</b> (P5), Anda dapat menggunakan fitur otomatis <b>"Tarik Nilai & Absensi Eskul"</b> di dalam halaman input nilai. Sistem akan otomatis menyambungkan persentase kehadiran eskul dan nilai dari pembina eskul menjadi komponen nilai siswa!
+        <div class="text-xs text-slate-700 leading-relaxed">
+            <p class="font-bold text-slate-800 text-sm mb-0.5">Input Nilai Mata Pelajaran yang Ditugaskan</p>
+            <p>Silakan pilih mata pelajaran di bawah untuk menginput nilai siswa yang Anda ampu. Untuk mata pelajaran reguler, Anda dapat memasukkan nilai tugas, UTS, dan UAS secara langsung. Khusus untuk mata pelajaran <b>Team Work Project dan Project Pancasila</b>, nilai dapat disinkronkan otomatis dari perolehan nilai & kehadiran ekstrakurikuler.</p>
         </div>
     </div>
 
@@ -33,7 +34,11 @@
             @php
                 $mapel = $item['mapel'];
                 $kelas = $item['kelas'];
-                $isEskulMapel = str_contains(strtolower($mapel->nama), 'team work') || str_contains(strtolower($mapel->nama), 'pancasila') || str_contains(strtolower($mapel->nama), 'project');
+                $namaLower = strtolower($mapel->nama);
+                $isEskulMapel = str_contains($namaLower, 'team work') 
+                    || str_contains($namaLower, 'project pancasila') 
+                    || str_contains($namaLower, 'work project')
+                    || str_starts_with(strtoupper($mapel->kode ?? ''), 'TWP');
             @endphp
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col overflow-hidden group">
                 <div class="p-5 flex-1 space-y-4">
@@ -43,23 +48,23 @@
                         </div>
                         @if($isEskulMapel)
                             <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                                <i class="bi bi-link-45deg"></i> Terkoneksi Eskul
+                                <i class="bi bi-stars"></i> Terintegrasi Eskul
                             </span>
                         @else
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                                Reguler
+                            <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                Mapel Reguler
                             </span>
                         @endif
                     </div>
 
                     <div>
-                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{{ $mapel->kode_mapel ?: 'MAPEL' }}</span>
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{{ $mapel->kode ?: ($mapel->kode_mapel ?: 'MAPEL') }}</span>
                         <h3 class="text-base font-bold text-slate-800 group-hover:text-blue-600 transition">
                             {{ $mapel->nama }}
                         </h3>
                         <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
                             <i class="bi bi-door-open text-slate-400"></i>
-                            Kelas: <b>{{ $kelas->nama_kelas }}</b> ({{ $kelas->jurusan ?: 'Umum' }})
+                            Kelas: <b>{{ $kelas->nama_kelas }}</b> ({{ $kelas->jurusan?->singkatan ?: ($kelas->jurusan?->nama ?: 'Umum') }})
                         </p>
                     </div>
 

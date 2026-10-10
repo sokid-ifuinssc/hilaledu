@@ -1073,101 +1073,56 @@ class AdminController extends Controller
 
     public function nilaiIndex(Request $request)
     {
-        $kelases = Kelas::where('is_aktif', true)->orderBy('nama')->get();
-        $selectedKelasId = $request->input('kelas_id', $kelases->first()?->id);
-        $selectedKelas = $selectedKelasId ? Kelas::with('waliKelasGuru')->find($selectedKelasId) : null;
+        $kelasList = Kelas::with(['jurusan', 'waliKelasGuru'])->where('is_aktif', true)->orderBy('nama_kelas')->get();
+        $kelases = $kelasList;
+        $selectedKelasId = $request->input('kelas_id', $kelasList->first()?->id);
+        $selectedKelas = $selectedKelasId ? Kelas::with(['jurusan', 'waliKelasGuru'])->find($selectedKelasId) : null;
 
         $ta = $request->input('tahun_ajaran', PengaturanSekolah::getActiveTahunAjaran());
+        $tahunAjaran = $ta;
         $sem = $request->input('semester', PengaturanSekolah::getActiveSemester());
+        $semester = $sem;
 
-        $siswas = collect();
-        $mapels = collect();
+        $built = $selectedKelas ? app(\App\Http\Controllers\WaliKelas\WaliKelasLegerController::class)->buildLegerData($selectedKelas, $ta, $sem) : ['mapels' => collect(), 'legerData' => []];
+        $cumulative = $selectedKelas ? app(\App\Http\Controllers\WaliKelas\WaliKelasLegerController::class)->buildCumulativeLegerData($selectedKelas) : ['mapels' => collect(), 'cumulativeRows' => [], 'semesterCols' => []];
+
+        $mapels = $built['mapels'];
+        $legerData = $built['legerData'];
+        $cumulativeMapels = $cumulative['mapels'];
+        $cumulativeRows = $cumulative['cumulativeRows'];
+        $semesterCols = $cumulative['semesterCols'];
+
+        $siswas = collect($legerData)->pluck('siswa');
         $matriksNilai = [];
         $rankingData = [];
         $rankings = [];
+        foreach ($legerData as $row) {
+            $sId = $row['siswa']->id;
+            $rankingData[$sId] = [
+                'total'     => $row['total_nilai'],
+                'rata_rata' => $row['rata_rata'],
+            ];
+            $rankings[$sId] = $row['rank'];
+        }
         $eskuls = collect();
 
-        if ($selectedKelas) {
-            $siswas = User::where('role', 'siswa')
-                ->where('kelas_id', $selectedKelas->id)
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get();
-
-            $mapelIds = \App\Models\NilaiMataPelajaran::where('kelas_id', $selectedKelas->id)
-                ->where('tahun_ajaran', $ta)
-                ->where('semester', $sem)
-                ->distinct()
-                ->pluck('mata_pelajaran_id');
-
-            if ($mapelIds->isEmpty()) {
-                $mapelIds = \App\Models\JadwalPelajaran::where('kelas_id', $selectedKelas->id)
-                    ->distinct()
-                    ->pluck('mata_pelajaran_id');
-            }
-
-            if ($mapelIds->isEmpty()) {
-                $mapelIds = MataPelajaran::where('is_aktif', true)
-                    ->where(function($q) use ($selectedKelas) {
-                        $q->where('tingkat', $selectedKelas->tingkat)
-                          ->orWhere('tingkat', 'semua');
-                    })
-                    ->pluck('id');
-            }
-
-            $mapels = MataPelajaran::whereIn('id', $mapelIds)->orderBy('kelompok')->orderBy('nama')->get();
-
-            $rawNilais = \App\Models\NilaiMataPelajaran::where('kelas_id', $selectedKelas->id)
-                ->where('tahun_ajaran', $ta)
-                ->where('semester', $sem)
-                ->get();
-
-            foreach ($rawNilais as $n) {
-                $matriksNilai[$n->siswa_id][$n->mata_pelajaran_id] = $n;
-            }
-
-            $eskuls = \App\Models\AnggotaEkstrakurikuler::with('ekstrakurikuler.pembina')
-                ->whereIn('siswa_id', $siswas->pluck('id'))
-                ->where('tahun_ajaran', $ta)
-                ->where('semester', $sem)
-                ->where('status', 'aktif')
-                ->get()
-                ->groupBy('siswa_id');
-
-            foreach ($siswas as $s) {
-                $totalNilai = 0;
-                $mapelCount = 0;
-                foreach ($mapels as $m) {
-                    $nilaiAkhir = $matriksNilai[$s->id][$m->id]->nilai_akhir ?? null;
-                    if ($nilaiAkhir !== null) {
-                        $totalNilai += $nilaiAkhir;
-                        $mapelCount++;
-                    }
-                }
-                $rataRata = $mapelCount > 0 ? round($totalNilai / $mapelCount, 1) : 0;
-                $rankingData[$s->id] = [
-                    'total'     => $totalNilai,
-                    'rata_rata' => $rataRata,
-                    'terisi'    => $mapelCount,
-                ];
-            }
-
-            $sortedRankings = collect($rankingData)->sortByDesc('rata_rata')->keys()->toArray();
-            foreach ($sortedRankings as $rank => $sId) {
-                $rankings[$sId] = $rank + 1;
-            }
-        }
-
         return view('akademik.nilai.index', compact(
+            'kelasList',
             'kelases',
             'selectedKelas',
             'siswas',
             'mapels',
+            'legerData',
+            'cumulativeMapels',
+            'cumulativeRows',
+            'semesterCols',
             'matriksNilai',
             'eskuls',
             'rankingData',
             'rankings',
+            'tahunAjaran',
             'ta',
+            'semester',
             'sem'
         ));
     }

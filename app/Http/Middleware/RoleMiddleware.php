@@ -45,7 +45,7 @@ class RoleMiddleware
                 if ($r === 'kaprog' && ($user->hasRoleCategory('Kaprog') || $user->hasTugas('Kaprog') || $user->hasTugas('Kepala Program') || $user->isKaprog() || $user->hasAdminRole('akademik') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
-                if ($r === 'wali_kelas' && ($user->hasRoleCategory('Wali Kelas') || $user->hasTugas('Wali Kelas') || $user->isWaliKelas() || $user->hasAdminRole('akademik') || $user->isSuperAdmin())) {
+                if ($r === 'wali_kelas' && ($user->hasRoleCategory('Wali Kelas') || $user->hasTugas('Wali Kelas') || $user->isWaliKelas() || $user->isKaprog() || $user->isWakaKurikulum() || $user->hasAdminRole('akademik') || $user->isSuperAdmin())) {
                     $hasAccess = true; break;
                 }
                 if ($r === 'kepala_sekolah' && ($user->hasTugasTambahan('Kepala Sekolah') || $user->hasTugas('Kepala Sekolah') || $user->isSuperAdmin())) {

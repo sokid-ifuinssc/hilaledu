@@ -1208,6 +1208,7 @@
 
                     @if(auth()->user()->isKaprog())
                     <li class="sidebar-nav-item"><a href="{{ route('kaprog.jadwal.matrix') }}" class="sidebar-nav-link {{ request()->routeIs('kaprog.jadwal*') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill" style="color:#10b981;"></i><span>Matriks Jadwal Jurusan</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('walikelas.leger') }}" class="sidebar-nav-link {{ request()->routeIs('*leger*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill" style="color:#8b5cf6;"></i><span>Leger Nilai Jurusan</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('kaprog.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('kaprog.dashboard') ? 'active' : '' }}"><i class="bi bi-mortarboard-fill" style="color:#8b5cf6;"></i><span>Portal Kaprog</span></a></li>
                     @endif
 
@@ -1299,6 +1300,7 @@
 
                         @if(auth()->user()->isKaprog())
                         <li class="sidebar-nav-item"><a href="{{ route('kaprog.jadwal.matrix') }}" class="sidebar-nav-link {{ request()->routeIs('kaprog.jadwal*') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill" style="color:#10b981;"></i><span>Matriks Jadwal Jurusan</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('walikelas.leger') }}" class="sidebar-nav-link {{ request()->routeIs('*leger*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill" style="color:#8b5cf6;"></i><span>Leger Nilai Jurusan</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('kaprog.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('kaprog.dashboard') ? 'active' : '' }}"><i class="bi bi-mortarboard-fill" style="color:#8b5cf6;"></i><span>Portal Kaprog</span></a></li>
                         @endif
 

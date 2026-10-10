@@ -241,6 +241,16 @@ class GuruNilaiController extends Controller
             $kelas = Kelas::findOrFail($kelasId);
         }
 
+        $namaLower = strtolower($mataPelajaran->nama);
+        $isEskulMapel = str_contains($namaLower, 'team work') 
+            || str_contains($namaLower, 'project pancasila') 
+            || str_contains($namaLower, 'work project')
+            || str_starts_with(strtoupper($mataPelajaran->kode ?? ''), 'TWP');
+
+        if (!$isEskulMapel) {
+            return back()->with('error', 'Penarikan nilai dan absensi ekstrakurikuler hanya diperbolehkan untuk mata pelajaran Team Work Project dan Project Pancasila.');
+        }
+
         $ta = $request->input('tahun_ajaran', PengaturanSekolah::getActiveTahunAjaran());
         $sem = $request->input('semester', PengaturanSekolah::getActiveSemester());
 

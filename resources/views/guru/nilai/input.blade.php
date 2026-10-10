@@ -63,40 +63,63 @@
     </div>
 
     @php
-        $isEskulMapel = str_contains(strtolower($mapel->nama), 'team work') || str_contains(strtolower($mapel->nama), 'pancasila') || str_contains(strtolower($mapel->nama), 'project');
+        $namaLower = strtolower($mapel->nama);
+        $isEskulMapel = str_contains($namaLower, 'team work') 
+            || str_contains($namaLower, 'project pancasila') 
+            || str_contains($namaLower, 'work project')
+            || str_starts_with(strtoupper($mapel->kode ?? ''), 'TWP');
     @endphp
 
-    <!-- Card Integrasi Khusus Eskul -->
-    <div class="bg-gradient-to-r {{ $isEskulMapel ? 'from-emerald-500 to-teal-600' : 'from-indigo-600 to-blue-600' }} text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/10 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-bold flex-shrink-0">
-                <i class="bi bi-stars"></i>
+    @if($isEskulMapel)
+        <!-- Card Integrasi Khusus Eskul (HANYA UNTUK TEAM WORK PROJECT & PROJECT PANCASILA) -->
+        <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/10 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-bold flex-shrink-0">
+                    <i class="bi bi-stars"></i>
+                </div>
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-100 text-[10px] font-bold uppercase tracking-wider mb-1">
+                        <i class="bi bi-shield-check"></i> Project Terintegrasi Eskul
+                    </div>
+                    <h3 class="text-base font-bold">Sinkronisasi Nilai Akhir dari Ekstrakurikuler</h3>
+                    <p class="text-xs text-emerald-100 max-w-2xl mt-0.5">
+                        Mata pelajaran ini adalah <b>Team Work Project & Project Pancasila</b>. Klik tombol di samping untuk menarik akumulasi nilai & absensi kegiatan ekstrakurikuler siswa menjadi nilai akhir mapel project ini.
+                    </p>
+                </div>
             </div>
             <div>
-                <h3 class="text-base font-bold">Sinkronisasi Nilai Akhir dari Ekstrakurikuler</h3>
-                <p class="text-xs text-emerald-100 max-w-2xl mt-0.5">
-                    @if($isEskulMapel)
-                        Mata pelajaran ini adalah project terintegrasi (<b>Team Work Project / Project Pancasila</b>). Klik tombol untuk otomatis menarik nilai akhir & absensi eskul seluruh siswa kelas ini.
-                    @else
-                        Tarik nilai ekstrakurikuler siswa untuk mengisi otomatis nilai akhir mata pelajaran ini berdasarkan partisipasi & nilai pembina eskul.
-                    @endif
-                </p>
+                <form action="{{ route('guru.nilai.sync-eskul', [$mapel->id, $kelas->id]) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menarik nilai eskul? Nilai akhir siswa pada mapel project ini akan disesuaikan dengan nilai dari pembina eskul.')">
+                    @csrf
+                    <input type="hidden" name="mata_pelajaran_id" value="{{ $mapel->id }}">
+                    <input type="hidden" name="kelas_id" value="{{ $kelas->id }}">
+                    <input type="hidden" name="tahun_ajaran" value="{{ $tahunAjaran }}">
+                    <input type="hidden" name="semester" value="{{ $semester }}">
+                    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-white text-emerald-800 hover:bg-emerald-50 transition shadow-sm whitespace-nowrap">
+                        <i class="bi bi-arrow-repeat text-sm"></i>
+                        Tarik Nilai dari Eskul
+                    </button>
+                </form>
             </div>
         </div>
-        <div>
-            <form action="{{ route('guru.nilai.sync-eskul', [$mapel->id, $kelas->id]) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menarik nilai eskul? Nilai akhir siswa pada mapel ini akan disesuaikan dengan nilai dari pembina eskul.')">
-                @csrf
-                <input type="hidden" name="mata_pelajaran_id" value="{{ $mapel->id }}">
-                <input type="hidden" name="kelas_id" value="{{ $kelas->id }}">
-                <input type="hidden" name="tahun_ajaran" value="{{ $tahunAjaran }}">
-                <input type="hidden" name="semester" value="{{ $semester }}">
-                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold bg-white text-emerald-800 hover:bg-emerald-50 transition shadow-sm whitespace-nowrap">
-                    <i class="bi bi-arrow-repeat text-sm"></i>
-                    Tarik Nilai dari Eskul
-                </button>
-            </form>
+    @else
+        <!-- Card Panduan Mapel Reguler -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg font-bold shrink-0 shadow-sm shadow-blue-200">
+                    <i class="bi bi-journal-check"></i>
+                </div>
+                <div>
+                    <h3 class="text-xs font-bold text-slate-800">Penilaian Mata Pelajaran Reguler: {{ $mapel->nama }}</h3>
+                    <p class="text-[11px] text-slate-500 mt-0.5">
+                        Silakan inputkan nilai akhir siswa (rentang 0 s.d 100) berdasarkan rekapitulasi nilai tugas, UTS/STS, dan UAS/SAS selama semester berjalan. Nilai yang Anda simpan akan langsung tercatat di <b>Leger Nilai Rombel</b>.
+                    </p>
+                </div>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 text-xs font-semibold text-blue-700 bg-white px-3 py-1.5 rounded-xl border border-blue-200 shadow-2xs shrink-0">
+                <i class="bi bi-check2-circle text-emerald-600"></i> Siap Diisi
+            </div>
         </div>
-    </div>
+    @endif
 
     <!-- Lembar Nilai Akhir Siswa -->
     <form action="{{ route('guru.nilai.store', [$mapel->id, $kelas->id]) }}" method="POST">

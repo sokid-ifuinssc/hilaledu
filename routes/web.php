@@ -887,6 +887,10 @@ Route::middleware('auth')->group(function () {
         // Matriks Jadwal Jurusan (Full)
         Route::get('/jadwal-matrix', [\App\Http\Controllers\Admin\JadwalMatrixController::class, 'kaprogMatrix'])->name('jadwal.matrix');
         Route::get('/jadwal-matrix/print', [\App\Http\Controllers\Admin\JadwalMatrixController::class, 'kaprogPrintMatrix'])->name('jadwal.matrix.print');
+
+        // Leger Nilai Jurusan Kaprog
+        Route::get('/leger', [\App\Http\Controllers\WaliKelas\WaliKelasLegerController::class, 'leger'])->name('leger');
+        Route::get('/leger/print', [\App\Http\Controllers\WaliKelas\WaliKelasLegerController::class, 'printLeger'])->name('leger.print');
     });
 
     // ==========================================

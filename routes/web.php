@@ -911,6 +911,7 @@ Route::middleware('auth')->group(function () {
         // Jadwal Pelajaran Kelas Bimbingan
         Route::get('/jadwal', [WaliKelas\DashboardController::class, 'jadwalKelas'])->name('jadwal');
         Route::get('/jadwal/print', [WaliKelas\DashboardController::class, 'printJadwalKelas'])->name('jadwal.print');
+        Route::get('/jadwal/matrix/print', [\App\Http\Controllers\Admin\JadwalMatrixController::class, 'printMatrix'])->name('jadwal.matrix.print');
 
         // Tagihan Siswa (Wali Kelas view)
         Route::get('/tagihan', [\App\Http\Controllers\Keuangan\TagihanController::class, 'walikelasTagihan'])->name('tagihan.index');

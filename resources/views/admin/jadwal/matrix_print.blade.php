@@ -8,29 +8,46 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @page {
-            size: 330mm 215mm; /* F4 Landscape Size */
-            margin: 5mm;
+            size: 330mm 215mm; /* Kertas F4 / Folio Landscape (330 x 215 mm) */
+            margin: 3mm 4mm 3mm 4mm;
         }
         @media print {
             .no-print {
                 display: none !important;
             }
-            body {
+            html, body {
+                width: 330mm !important;
+                height: 215mm !important;
+                max-height: 215mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
                 background: white !important;
                 color: black !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                margin: 0;
-                padding: 0;
-            }
-            .page-break {
-                page-break-after: always;
             }
             .fit-one-page {
-                height: 100vh !important;
-                max-height: 100vh !important;
+                width: 100% !important;
+                height: 100% !important;
+                max-height: 209mm !important;
                 display: flex !important;
                 flex-direction: column !important;
+                justify-content: space-between !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+                page-break-inside: avoid !important;
+                page-break-after: avoid !important;
+                page-break-before: avoid !important;
+                padding: 1mm 2mm !important;
+            }
+            table th, table td {
+                padding-top: 1px !important;
+                padding-bottom: 1px !important;
+                line-height: 1.05 !important;
+            }
+            * {
+                page-break-inside: avoid !important;
             }
         }
     </style>
@@ -44,7 +61,9 @@
                 <a href="{{ route('admin.jadwal.matrix', request()->query()) }}" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition">
                     &larr; Kembali ke Tampilan Layar
                 </a>
-                <span class="text-xs font-semibold text-slate-600">Dokumen Cetak Format Resmi Landscape A4</span>
+                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                    📄 Cetak Kertas F4 / Folio (330 x 215 mm) &bull; 1 Halaman Pas
+                </span>
             </div>
             <div class="flex items-center gap-2">
                 <button onclick="window.print()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center gap-2 cursor-pointer">
@@ -52,7 +71,7 @@
                         <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
                         <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"/>
                     </svg>
-                    <span>Cetak Sekarang (Print / PDF)</span>
+                    <span>Cetak Sekarang (Kertas F4 - 1 Halaman)</span>
                 </button>
             </div>
         </div>
@@ -167,24 +186,24 @@
         </div>
 
         <!-- BAGIAN PALING BAWAH: TTD KEPSEK, CATATAN JUMAT, & TTD WAKA KURIKULUM (SESUAI DATA MASTER) -->
-        <div class="mt-1 pt-1 border-t border-black grid grid-cols-12 gap-3 items-start text-[9.5px] flex-shrink-0">
+        <div class="mt-0.5 pt-0.5 border-t border-black grid grid-cols-12 gap-2 items-start text-[8.5px] flex-shrink-0">
 
             <!-- TTD KEPALA SEKOLAH (KIRI) -->
             <div class="col-span-5 text-center space-y-0.5">
-                <p class="font-semibold">Mengetahui,</p>
-                <p class="font-black leading-tight">Kepala {{ $settings['nama_sekolah'] ?? 'SMK Plus Al-Hilal Arjawinangun' }}</p>
-                <div class="h-14 flex items-center justify-center">
-                    <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wider">[ Tanda Tangan & Cap ]</span>
+                <p class="font-semibold text-[8px] leading-tight">Mengetahui,</p>
+                <p class="font-black leading-tight text-[8.5px]">Kepala {{ $settings['nama_sekolah'] ?? 'SMK Plus Al-Hilal Arjawinangun' }}</p>
+                <div class="h-8 flex items-center justify-center">
+                    <span class="text-[7.5px] text-slate-400 font-bold uppercase tracking-wider">[ Tanda Tangan & Cap ]</span>
                 </div>
-                <p class="font-black underline underline-offset-2 text-[10px] uppercase">{{ $settings['nama_kepala_sekolah'] ?? 'Mukhammad Mansyur, S.Pt' }}</p>
+                <p class="font-black underline underline-offset-2 text-[9.5px] uppercase">{{ $settings['nama_kepala_sekolah'] ?? 'Mukhammad Mansyur, S.Pt' }}</p>
                 @if(!empty($settings['nip_kepala_sekolah']))
-                <p class="text-[8.5px] font-bold">NIP. {{ $settings['nip_kepala_sekolah'] }}</p>
+                <p class="text-[8px] font-bold">NIP. {{ $settings['nip_kepala_sekolah'] }}</p>
                 @endif
             </div>
 
             <!-- CATATAN KHUSUS HARI JUMAT (TENGAH) -->
-            <div class="col-span-2 flex flex-col items-center justify-center pt-1">
-                <div class="border border-black p-1.5 text-[8px] leading-tight text-center w-full">
+            <div class="col-span-2 flex flex-col items-center justify-center pt-0.5">
+                <div class="border border-black p-1 text-[7.5px] leading-tight text-center w-full">
                     <div class="font-black mb-0.5">*) Untuk Hari Jumat:</div>
                     <p>Semua jam dikurangi 15 menit, jam istirahat setelah jam ke-4 (30 menit), dan setelah jam ke-6 pulang.</p>
                 </div>
@@ -192,19 +211,19 @@
 
             <!-- TITIMANGSA & TTD WAKA KURIKULUM (KANAN) -->
             <div class="col-span-5 text-center space-y-0.5">
-                <div class="text-[9px] font-bold mb-0.5">
-                    <div class="text-[8px] font-bold uppercase tracking-wider">BERLAKU MULAI 1 SEPTEMBER 2026</div>
+                <div class="text-[8.5px] font-bold mb-0.5">
+                    <div class="text-[7.5px] font-bold uppercase tracking-wider">BERLAKU MULAI 1 SEPTEMBER 2026</div>
                     <div class="font-black">{{ $settings['titimangsa'] ?? 'Arjawinangun, 1 September 2026' }}</div>
                 </div>
-                <p class="font-black leading-tight">Waka Kurikulum,</p>
-                <div class="h-12 flex items-center justify-center">
-                    <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wider">[ Tanda Tangan ]</span>
+                <p class="font-black leading-tight text-[8.5px]">Waka Kurikulum,</p>
+                <div class="h-7 flex items-center justify-center">
+                    <span class="text-[7.5px] text-slate-400 font-bold uppercase tracking-wider">[ Tanda Tangan ]</span>
                 </div>
-                <p class="font-black underline underline-offset-2 text-[10px] uppercase">{{ $settings['nama_waka_kurikulum'] ?? 'Sokid, S.T, M.Kom' }}</p>
+                <p class="font-black underline underline-offset-2 text-[9.5px] uppercase">{{ $settings['nama_waka_kurikulum'] ?? 'Sokid, S.T, M.Kom' }}</p>
                 @if(!empty($settings['nip_waka_kurikulum']))
-                <p class="text-[8.5px] font-bold">NIP. {{ $settings['nip_waka_kurikulum'] }}</p>
+                <p class="text-[8px] font-bold">NIP. {{ $settings['nip_waka_kurikulum'] }}</p>
                 @else
-                <p class="text-[8.5px] font-bold">NIP. -</p>
+                <p class="text-[8px] font-bold">NIP. -</p>
                 @endif
             </div>
 

@@ -29,12 +29,17 @@
             <!-- Action Buttons -->
             <div class="flex items-center gap-3 shrink-0 flex-wrap">
                 <a href="{{ route('walikelas.jadwal.print') }}" target="_blank"
-                   class="px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-extrabold text-xs rounded-2xl border border-white/20 shadow-md transition flex items-center gap-2">
-                    <i class="bi bi-printer-fill text-base text-amber-300"></i>
-                    <span>Cetak Lembar Jadwal</span>
+                   class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-md transition flex items-center gap-2">
+                    <i class="bi bi-printer-fill text-sm"></i>
+                    <span>Cetak Jadwal Kelas (Kertas F4 - 1 Halaman)</span>
+                </a>
+                <a href="{{ route('walikelas.jadwal.matrix.print', ['kelas' => $namaKelas]) }}" target="_blank"
+                   class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-extrabold text-xs rounded-2xl border border-white/20 shadow-md transition flex items-center gap-2">
+                    <i class="bi bi-grid-3x3 text-sm text-cyan-300"></i>
+                    <span>Cetak Matriks Jadwal Resmi (Kertas F4)</span>
                 </a>
                 <a href="{{ route('walikelas.dashboard') }}" 
-                   class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
+                   class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-indigo-600/30 transition flex items-center gap-2">
                     <i class="bi bi-arrow-left"></i>
                     <span>Dashboard Wali Kelas</span>
                 </a>

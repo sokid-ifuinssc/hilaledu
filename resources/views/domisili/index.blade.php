@@ -4,32 +4,70 @@
 @section('page-title', 'Peta & Sebaran Domisili')
 
 @push('head')
-<!-- Leaflet CSS via Cloudflare CDNJS & jsDelivr Fallback -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-Zcn6bjR/8RBhbYUEfl3UBlhp6frHI5f2757GVucUfeCGZKOGlsNO304NPC9Gim5HgWXNXWgYehPH4vQRCwgQGA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<!-- Leaflet CSS: Local Asset dengan CDN Fallback -->
+<link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
-    /* CRITICAL: Leaflet Tile & SVG fixes against Tailwind CSS and Bootstrap resets */
-    .leaflet-container img.leaflet-tile {
-        max-width: none !important;
-        max-height: none !important;
-        width: 256px !important;
-        height: 256px !important;
+    /* CRITICAL: Leaflet Structural Styles untuk menjamin posisi absolut tile & kontrol tidak berantakan */
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-zoom-box,
+    .leaflet-image-layer,
+    .leaflet-layer {
+        position: absolute !important;
+        left: 0;
+        top: 0;
     }
-    .leaflet-container img {
-        max-width: none !important;
-        max-height: none !important;
+    .leaflet-container {
+        overflow: hidden !important;
+        position: relative !important;
+        -webkit-tap-highlight-color: transparent;
     }
-    .leaflet-pane svg {
-        max-width: none !important;
-        max-height: none !important;
+    .leaflet-tile {
+        filter: inherit;
+        visibility: hidden;
     }
+    .leaflet-tile-loaded {
+        visibility: inherit !important;
+    }
+    .leaflet-zoom-animated {
+        transform-origin: 0 0;
+    }
+    .leaflet-top,
+    .leaflet-bottom {
+        position: absolute !important;
+        z-index: 1000 !important;
+        pointer-events: none;
+    }
+    .leaflet-top { top: 0; }
+    .leaflet-right { right: 0; }
+    .leaflet-bottom { bottom: 0; }
+    .leaflet-left { left: 0; }
+    .leaflet-control {
+        float: left;
+        clear: both;
+        pointer-events: auto;
+    }
+    /* Fix Tailwind CSS & Bootstrap img/svg reset */
+    .leaflet-container img.leaflet-tile,
+    .leaflet-container img,
+    .leaflet-pane svg,
     .leaflet-tile-container img {
         max-width: none !important;
+        max-height: none !important;
     }
     #domisiliMap {
         height: 520px;
         min-height: 520px;
         width: 100%;
         border-radius: 14px;
+        position: relative;
+        overflow: hidden;
         z-index: 10;
         background-color: #f1f5f9;
     }
@@ -530,25 +568,24 @@
 </div>
 
 @push('scripts')
-<!-- Leaflet JS via Cloudflare CDNJS with fallback -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Leaflet JS via Local Vendor Asset dengan Multi-CDN Fallback -->
+<script src="{{ asset('vendor/leaflet/leaflet.js') }}"></script>
 <script>
-    // Fallback jika CDN Cloudflare terblokir ISP lokal
     if (typeof L === 'undefined') {
-        const fallbackScript = document.createElement('script');
-        fallbackScript.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js';
-        fallbackScript.onload = function() {
+        const cdnScript = document.createElement('script');
+        cdnScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+        cdnScript.onload = function() {
             if (typeof initLeafletMap === 'function') initLeafletMap();
         };
-        fallbackScript.onerror = function() {
-            const unpkgScript = document.createElement('script');
-            unpkgScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-            unpkgScript.onload = function() {
+        cdnScript.onerror = function() {
+            const jsdelivrScript = document.createElement('script');
+            jsdelivrScript.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js';
+            jsdelivrScript.onload = function() {
                 if (typeof initLeafletMap === 'function') initLeafletMap();
             };
-            document.head.appendChild(unpkgScript);
+            document.head.appendChild(jsdelivrScript);
         };
-        document.head.appendChild(fallbackScript);
+        document.head.appendChild(cdnScript);
     }
 </script>
 
@@ -576,9 +613,9 @@ window.addEventListener('load', function() {
 let initRetries = 0;
 function startMapInitialization() {
     if (typeof L === 'undefined') {
-        if (initRetries < 15) {
+        if (initRetries < 20) {
             initRetries++;
-            setTimeout(startMapInitialization, 250);
+            setTimeout(startMapInitialization, 200);
         } else {
             const mapEl = document.getElementById('domisiliMap');
             if (mapEl) {
@@ -597,6 +634,10 @@ function startMapInitialization() {
         return;
     }
 
+    if (L.Icon && L.Icon.Default) {
+        L.Icon.Default.imagePath = "{{ asset('vendor/leaflet/images') }}/";
+    }
+
     initLeafletMap();
     loadMapGeoData(currentGeoRole);
 }
@@ -610,6 +651,8 @@ function initLeafletMap() {
     mapInstance = L.map('domisiliMap', {
         center: SCHOOL_COORDS,
         zoom: 11,
+        minZoom: 6,
+        maxZoom: 19,
         zoomControl: true,
         scrollWheelZoom: true
     });

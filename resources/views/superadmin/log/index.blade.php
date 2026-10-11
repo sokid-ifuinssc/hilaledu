@@ -4,31 +4,69 @@
 @section('page-title', 'Log Akses, Pemantauan Lokasi & Keaktifan Akun')
 
 @push('head')
-<!-- Leaflet CSS via Cloudflare CDNJS with fallback -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-Zcn6bjR/8RBhbYUEfl3UBlhp6frHI5f2757GVucUfeCGZKOGlsNO304NPC9Gim5HgWXNXWgYehPH4vQRCwgQGA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<!-- Leaflet CSS: Local Asset dengan CDN Fallback -->
+<link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
-    /* CRITICAL: Leaflet Tile & SVG fixes against Tailwind CSS and Bootstrap resets */
-    .leaflet-container img.leaflet-tile {
-        max-width: none !important;
-        max-height: none !important;
-        width: 256px !important;
-        height: 256px !important;
+    /* CRITICAL: Leaflet Structural Styles untuk menjamin posisi absolut tile & kontrol tidak berantakan */
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-zoom-box,
+    .leaflet-image-layer,
+    .leaflet-layer {
+        position: absolute !important;
+        left: 0;
+        top: 0;
     }
-    .leaflet-container img {
-        max-width: none !important;
-        max-height: none !important;
+    .leaflet-container {
+        overflow: hidden !important;
+        position: relative !important;
+        -webkit-tap-highlight-color: transparent;
     }
-    .leaflet-pane svg {
-        max-width: none !important;
-        max-height: none !important;
+    .leaflet-tile {
+        filter: inherit;
+        visibility: hidden;
     }
+    .leaflet-tile-loaded {
+        visibility: inherit !important;
+    }
+    .leaflet-zoom-animated {
+        transform-origin: 0 0;
+    }
+    .leaflet-top,
+    .leaflet-bottom {
+        position: absolute !important;
+        z-index: 1000 !important;
+        pointer-events: none;
+    }
+    .leaflet-top { top: 0; }
+    .leaflet-right { right: 0; }
+    .leaflet-bottom { bottom: 0; }
+    .leaflet-left { left: 0; }
+    .leaflet-control {
+        float: left;
+        clear: both;
+        pointer-events: auto;
+    }
+    /* Fix Tailwind CSS & Bootstrap img/svg reset */
+    .leaflet-container img.leaflet-tile,
+    .leaflet-container img,
+    .leaflet-pane svg,
     .leaflet-tile-container img {
         max-width: none !important;
+        max-height: none !important;
     }
     #loginMap {
         height: 520px;
         min-height: 520px;
         width: 100%;
+        position: relative;
+        overflow: hidden;
         z-index: 10;
         background-color: #f1f5f9;
     }
@@ -1147,18 +1185,28 @@
 @endsection
 
 @section('scripts')
-{{-- Leaflet.js CDN dengan Multi-CDN Fallback (Cloudflare -> jsDelivr -> unpkg) --}}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzpf9gpdQPTifNXgoUpRlfrphSDAvvW0AD62eKGnDA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Leaflet JS via Local Vendor Asset dengan Multi-CDN Fallback -->
+<script src="{{ asset('vendor/leaflet/leaflet.js') }}"></script>
 <script>
     if (typeof L === 'undefined') {
-        const fallbackScript = document.createElement('script');
-        fallbackScript.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
-        fallbackScript.onerror = function() {
-            const unpkgScript = document.createElement('script');
-            unpkgScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-            document.head.appendChild(unpkgScript);
+        const cdnScript = document.createElement('script');
+        cdnScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+        cdnScript.onload = function() {
+            @if($activeTab === 'peta')
+            startLogMapInitialization();
+            @endif
         };
-        document.head.appendChild(fallbackScript);
+        cdnScript.onerror = function() {
+            const jsdelivrScript = document.createElement('script');
+            jsdelivrScript.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js';
+            jsdelivrScript.onload = function() {
+                @if($activeTab === 'peta')
+                startLogMapInitialization();
+                @endif
+            };
+            document.head.appendChild(jsdelivrScript);
+        };
+        document.head.appendChild(cdnScript);
     }
 </script>
 
@@ -1185,9 +1233,9 @@ window.addEventListener('load', function() {
 
 function startLogMapInitialization() {
     if (typeof L === 'undefined') {
-        if (initLogMapRetries < 15) {
+        if (initLogMapRetries < 20) {
             initLogMapRetries++;
-            setTimeout(startLogMapInitialization, 250);
+            setTimeout(startLogMapInitialization, 200);
         } else {
             const mapContainer = document.getElementById('loginMap');
             if (mapContainer) {
@@ -1206,6 +1254,10 @@ function startLogMapInitialization() {
         return;
     }
 
+    if (L.Icon && L.Icon.Default) {
+        L.Icon.Default.imagePath = "{{ asset('vendor/leaflet/images') }}/";
+    }
+
     initMap();
 }
 
@@ -1217,6 +1269,8 @@ function initMap() {
     loginMap = L.map('loginMap', {
         center: [-2.5489, 118.0149],
         zoom: 5,
+        minZoom: 3,
+        maxZoom: 19,
         zoomControl: true,
         scrollWheelZoom: true
     });

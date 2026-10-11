@@ -1216,6 +1216,7 @@
                     <li class="sidebar-nav-item"><a href="{{ route('walikelas.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.dashboard') ? 'active' : '' }}"><i class="bi bi-person-badge-fill" style="color:#6366f1;"></i><span>Portal Wali Kelas</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('walikelas.leger') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.leger*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill" style="color:#8b5cf6;"></i><span>Leger Nilai Kelas</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('walikelas.eskul') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.eskul*') ? 'active' : '' }}"><i class="bi bi-award" style="color:#10b981;"></i><span>Eskul Siswa Bimbingan</span></a></li>
+                    <li class="sidebar-nav-item"><a href="{{ route('domisili.index') }}" class="sidebar-nav-link {{ request()->routeIs('domisili.*') ? 'active' : '' }}"><i class="bi bi-geo-alt-fill" style="color:#10b981;"></i><span>Sebaran Domisili Siswa</span></a></li>
                     @endif
 
                     @if(auth()->user()->isKaprog())
@@ -1228,7 +1229,7 @@
                     <li class="sidebar-nav-item"><a href="{{ route('presensi-harian.index') }}" class="sidebar-nav-link {{ request()->routeIs('presensi-harian.*') ? 'active' : '' }}"><i class="bi bi-person-lines-fill" style="color:#0ea5e9;"></i><span>Monitoring Absensi Siswa</span></a></li>
                     @endif
 
-                    @if(auth()->user()->canAccessDomisili())
+                    @if(auth()->user()->canAccessDomisili() && !auth()->user()->isWaliKelas())
                     <li class="sidebar-nav-item"><a href="{{ route('domisili.index') }}" class="sidebar-nav-link {{ request()->routeIs('domisili.*') ? 'active' : '' }}"><i class="bi bi-geo-alt-fill" style="color:#10b981;"></i><span>Sebaran Domisili</span></a></li>
                     @endif
 
@@ -1312,6 +1313,7 @@
                         <li class="sidebar-nav-item"><a href="{{ route('walikelas.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.dashboard') ? 'active' : '' }}"><i class="bi bi-person-badge-fill" style="color:#6366f1;"></i><span>Portal Wali Kelas</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('walikelas.leger') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.leger*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill" style="color:#8b5cf6;"></i><span>Leger Nilai Kelas</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('walikelas.eskul') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.eskul*') ? 'active' : '' }}"><i class="bi bi-award" style="color:#10b981;"></i><span>Eskul Siswa Bimbingan</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('domisili.index') }}" class="sidebar-nav-link {{ request()->routeIs('domisili.*') ? 'active' : '' }}"><i class="bi bi-geo-alt-fill" style="color:#10b981;"></i><span>Sebaran Domisili Siswa</span></a></li>
                         @endif
 
                         @if(auth()->user()->isKaprog())
@@ -1370,7 +1372,7 @@
                         </li>
                         @endif
 
-                        @if(auth()->user()->canAccessDomisili())
+                        @if(auth()->user()->canAccessDomisili() && !auth()->user()->isWaliKelas())
                         <li class="sidebar-nav-item"><a href="{{ route('domisili.index') }}" class="sidebar-nav-link {{ request()->routeIs('domisili.*') ? 'active' : '' }}"><i class="bi bi-geo-alt-fill" style="color:#10b981;"></i><span>Sebaran Domisili</span></a></li>
                         @endif
 

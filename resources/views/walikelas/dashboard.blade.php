@@ -32,6 +32,11 @@
                 </div>
             </div>
             <div class="flex items-center gap-3 shrink-0 flex-wrap">
+                <a href="{{ route('domisili.index') }}"
+                   class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 border border-emerald-400/30">
+                    <i class="bi bi-geo-alt-fill text-sm"></i>
+                    <span>Sebaran Domisili Siswa</span>
+                </a>
                 <a href="{{ route('walikelas.jadwal') }}"
                    class="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-md transition flex items-center gap-2">
                     <i class="bi bi-calendar3-week-fill text-sm"></i>

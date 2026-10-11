@@ -63,19 +63,34 @@
 
         <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div class="space-y-2.5">
-                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-400/20 text-emerald-200 text-xs font-bold border border-emerald-300/30 shadow-xs">
-                    <i class="bi bi-geo-alt-fill text-emerald-300"></i> Pemetaan Geografis Warga Sekolah
-                </div>
+                @if($selectedKelas || $isWaliKelasOnly)
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/25 text-amber-200 text-xs font-bold border border-amber-300/40 shadow-xs">
+                        <i class="bi bi-people-fill text-amber-300"></i> Mode Monitoring Wali Kelas: {{ $selectedKelas->nama_lengkap ?? $selectedKelas->nama ?? ($myKelasList->first()->nama ?? 'Kelas Binaan') }}
+                    </div>
+                @else
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-400/20 text-emerald-200 text-xs font-bold border border-emerald-300/30 shadow-xs">
+                        <i class="bi bi-geo-alt-fill text-emerald-300"></i> Pemetaan Geografis Warga Sekolah
+                    </div>
+                @endif
                 <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3 drop-shadow-sm" style="color: #ffffff !important;">
-                    Sebaran Domisili Guru & Siswa
+                    @if($selectedKelas || $isWaliKelasOnly)
+                        Sebaran Domisili Siswa Kelas {{ $selectedKelas->nama ?? ($myKelasList->first()->nama ?? '') }}
+                    @else
+                        Sebaran Domisili Guru & Siswa
+                    @endif
                 </h1>
                 <p class="text-emerald-100 text-xs sm:text-sm max-w-2xl leading-relaxed font-medium" style="color: #ecfdf5 !important;">
-                    Pemetaan wilayah tempat tinggal tenaga pendidik, kependidikan, dan peserta didik SMK Plus Al Hilal untuk analisis zonasi, keterjangkauan transportasi, dan perumusan kebijakan bimbingan.
+                    @if($selectedKelas || $isWaliKelasOnly)
+                        Pemetaan domisili siswa kelas binaan untuk memudahkan perencanaan kunjungan rumah (home visit), pemantauan zonasi tempat tinggal, dan komunikasi darurat dengan orang tua/wali murid.
+                    @else
+                        Pemetaan wilayah tempat tinggal tenaga pendidik, kependidikan, dan peserta didik SMK Plus Al Hilal untuk analisis zonasi, keterjangkauan transportasi, dan perumusan kebijakan bimbingan.
+                    @endif
                 </p>
                 <div class="flex flex-wrap items-center gap-2 pt-2 text-xs">
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-shield-check text-emerald-300"></i> Superadmin</span>
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-person-badge text-emerald-300"></i> Kepala Sekolah</span>
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-diagram-3 text-emerald-300"></i> Para Wakil Kepala</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-person-lines-fill text-emerald-300"></i> Wali Kelas</span>
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-people text-emerald-300"></i> Pembina OSIS</span>
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-heart-pulse text-emerald-300"></i> Guru BK</span>
                 </div>
@@ -165,15 +180,21 @@
                 
                 <!-- Filter Cepat Peran di Peta -->
                 <div class="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-semibold">
-                    <button type="button" onclick="filterMapByRole('all')" id="btnRoleAll" class="px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-800 transition">
-                        Semua
-                    </button>
-                    <button type="button" onclick="filterMapByRole('siswa')" id="btnRoleSiswa" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
-                        Siswa
-                    </button>
-                    <button type="button" onclick="filterMapByRole('guru')" id="btnRoleGuru" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
-                        Guru & Tendik
-                    </button>
+                    @if($isWaliKelasOnly)
+                        <button type="button" class="px-3 py-1.5 rounded-lg bg-white shadow-xs text-emerald-800 font-bold transition flex items-center gap-1.5">
+                            <i class="bi bi-mortarboard-fill text-emerald-600"></i> Siswa Kelas Binaan
+                        </button>
+                    @else
+                        <button type="button" onclick="filterMapByRole('all')" id="btnRoleAll" class="px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-800 transition font-bold">
+                            Semua
+                        </button>
+                        <button type="button" onclick="filterMapByRole('siswa')" id="btnRoleSiswa" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+                            Siswa
+                        </button>
+                        <button type="button" onclick="filterMapByRole('guru')" id="btnRoleGuru" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+                            Guru & Tendik
+                        </button>
+                    @endif
                 </div>
             </div>
 
@@ -194,12 +215,14 @@
                         <span class="w-3.5 h-3.5 rounded-full bg-teal-500 opacity-80 inline-block"></span>
                         <span>Kluster Siswa Terbanyak</span>
                     </div>
+                    @if(!$isWaliKelasOnly)
                     <div class="flex items-center gap-2 text-slate-600">
                         <span class="w-3.5 h-3.5 rounded-full bg-indigo-600 opacity-80 inline-block"></span>
                         <span>Kluster Guru Terbanyak</span>
                     </div>
+                    @endif
                     <div class="text-[10px] text-slate-400 pt-1">
-                        *Ukuran lingkaran = jumlah populasi warga
+                        *Klik lingkaran untuk nama siswa, kontak WA & rute kunjungan
                     </div>
                 </div>
             </div>
@@ -283,16 +306,47 @@
 
             <!-- Form Filter & Pencarian -->
             <form method="GET" action="{{ route('domisili.index') }}" class="flex flex-wrap items-center gap-2">
-                <!-- Filter Peran -->
+                <!-- Filter Rombel Kelas -->
+                <select name="kelas_id" onchange="this.form.submit()" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 max-w-[210px]">
+                    @if($isWaliKelasOnly)
+                        @foreach($myKelasList as $mk)
+                            <option value="{{ $mk->id }}" {{ $kelasFilter == $mk->id ? 'selected' : '' }}>
+                                ⭐ {{ $mk->nama_lengkap ?? $mk->nama ?? $mk->nama_kelas }} (Kelas Binaan)
+                            </option>
+                        @endforeach
+                    @else
+                        <option value="">Semua Rombel Kelas</option>
+                        @if($isWaliKelas && $myKelasList->count())
+                            <optgroup label="Kelas Binaan Saya (Wali Kelas)">
+                                @foreach($myKelasList as $mk)
+                                    <option value="{{ $mk->id }}" {{ $kelasFilter == $mk->id ? 'selected' : '' }}>
+                                        ⭐ {{ $mk->nama_lengkap ?? $mk->nama ?? $mk->nama_kelas }} (Kelas Saya)
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endif
+                        <optgroup label="Seluruh Rombel">
+                            @foreach($allKelasList as $ak)
+                                <option value="{{ $ak->id }}" {{ $kelasFilter == $ak->id ? 'selected' : '' }}>
+                                    {{ $ak->nama_lengkap ?? $ak->nama ?? $ak->nama_kelas }}
+                                </option>
+                            @endforeach
+                        </optgroup>
+                    @endif
+                </select>
+
+                @if(!$isWaliKelasOnly)
+                <!-- Filter Peran (Hanya jika pimpinan) -->
                 <select name="role" onchange="this.form.submit()" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                     <option value="all" {{ $roleFilter === 'all' ? 'selected' : '' }}>Semua Peran</option>
                     <option value="guru" {{ $roleFilter === 'guru' ? 'selected' : '' }}>Guru (Pendidik)</option>
                     <option value="tendik" {{ $roleFilter === 'tendik' ? 'selected' : '' }}>Tenaga Kependidikan</option>
                     <option value="siswa" {{ $roleFilter === 'siswa' ? 'selected' : '' }}>Siswa</option>
                 </select>
+                @endif
 
                 <!-- Filter Kabupaten -->
-                <select name="kabupaten" onchange="this.form.submit()" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 max-w-[160px]">
+                <select name="kabupaten" onchange="this.form.submit()" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 max-w-[150px]">
                     <option value="">Semua Kab/Kota</option>
                     @foreach($listKabupaten as $k)
                         <option value="{{ $k }}" {{ $kabupatenFilter == $k ? 'selected' : '' }}>{{ $k }}</option>
@@ -301,7 +355,7 @@
 
                 <!-- Input Pencarian -->
                 <div class="relative">
-                    <input type="text" name="q" value="{{ $search }}" placeholder="Cari nama / desa..." class="pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-44 sm:w-56">
+                    <input type="text" name="q" value="{{ $search }}" placeholder="Cari nama / alamat / ortu..." class="pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-44 sm:w-56">
                     <i class="bi bi-search absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
                 </div>
 
@@ -309,7 +363,7 @@
                     Cari
                 </button>
 
-                @if(!empty($search) || $roleFilter !== 'all' || !empty($kabupatenFilter))
+                @if(!empty($search) || (!empty($kelasFilter) && !$isWaliKelasOnly) || ($roleFilter !== 'all' && !$isWaliKelasOnly) || !empty($kabupatenFilter))
                     <a href="{{ route('domisili.index') }}" class="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition" title="Reset Filter">
                         <i class="bi bi-x-circle"></i>
                     </a>
@@ -317,19 +371,18 @@
             </form>
         </div>
 
-        <!-- Tabel Warga -->
+        <!-- Tabel Warga / Siswa -->
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="bg-slate-50 text-slate-600 uppercase tracking-wider text-[11px] font-bold border-y border-slate-100">
-                        <th class="py-3 px-4">Warga Sekolah</th>
-                        <th class="py-3 px-3">Peran / Jabatan</th>
+                        <th class="py-3 px-4">Nama Siswa / Warga</th>
+                        <th class="py-3 px-3">Rombel / Peran</th>
                         <th class="py-3 px-3">Alamat Lengkap</th>
-                        <th class="py-3 px-3">Desa / Kelurahan</th>
-                        <th class="py-3 px-3">Kecamatan</th>
-                        <th class="py-3 px-3">Kabupaten / Kota</th>
-                        <th class="py-3 px-3">Provinsi</th>
-                        <th class="py-3 px-4 text-center">Kontak</th>
+                        <th class="py-3 px-3">Desa & Kecamatan</th>
+                        <th class="py-3 px-3">Kab / Kota</th>
+                        <th class="py-3 px-3">Orang Tua (Ayah / Ibu)</th>
+                        <th class="py-3 px-4 text-center">Hubungi & Home Visit</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-slate-700">
@@ -342,76 +395,98 @@
                                         {{ strtoupper(substr($u->name, 0, 1)) }}
                                     </div>
                                     <div class="min-w-0">
-                                        <span class="font-bold text-slate-800 block truncate max-w-[180px]">{{ $u->name }}</span>
-                                        <span class="text-[11px] text-slate-400 block">{{ $u->nip ? ($u->role === 'siswa' ? 'NIS: '.$u->nip : 'NIP: '.$u->nip) : 'Username: '.$u->username }}</span>
+                                        <span class="font-bold text-slate-800 block truncate max-w-[170px]">{{ $u->name }}</span>
+                                        <span class="text-[11px] text-slate-400 block">{{ $u->nip ? ($u->role === 'siswa' ? 'NIS: '.$u->nip : 'NIP: '.$u->nip) : 'User: '.$u->username }}</span>
                                     </div>
                                 </div>
                             </td>
 
-                            <!-- Peran -->
+                            <!-- Peran / Rombel -->
                             <td class="py-3 px-3">
                                 @if($u->role === 'guru')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
-                                        Guru Pengajar
+                                        Guru
                                     </span>
                                 @elseif($u->role === 'tendik')
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60">
                                         Tendik
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                                        Siswa ({{ $u->kelas->nama_kelas ?? $u->kelas->nama ?? 'Belum Rombel' }})
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-mono">
+                                        {{ $u->kelas->nama_kelas ?? $u->kelas->nama ?? 'Belum Rombel' }}
                                     </span>
                                 @endif
                             </td>
 
                             <!-- Alamat Lengkap -->
-                            <td class="py-3 px-3 max-w-[200px]">
-                                <span class="line-clamp-2 text-slate-600" title="{{ $u->alamat }}">
+                            <td class="py-3 px-3 max-w-[190px]">
+                                <span class="line-clamp-2 text-slate-700" title="{{ $u->alamat }}">
                                     {{ $u->alamat ?: '-' }}
                                 </span>
                             </td>
 
-                            <!-- Desa -->
-                            <td class="py-3 px-3 font-medium text-slate-800">
-                                {{ $u->desa ?: '-' }}
+                            <!-- Desa & Kecamatan -->
+                            <td class="py-3 px-3">
+                                <span class="font-bold text-slate-800 block">{{ $u->desa ?: '-' }}</span>
+                                <span class="text-[11px] text-slate-500">Kec. {{ $u->kecamatan ?: '-' }}</span>
                             </td>
 
-                            <!-- Kecamatan -->
-                            <td class="py-3 px-3 font-medium text-slate-800">
-                                {{ $u->kecamatan ?: '-' }}
+                            <!-- Kabupaten & Provinsi -->
+                            <td class="py-3 px-3">
+                                <span class="font-semibold text-slate-800 block">{{ $u->kabupaten ?: '-' }}</span>
+                                <span class="text-[11px] text-slate-400">{{ $u->provinsi ?: 'Jawa Barat' }}</span>
                             </td>
 
-                            <!-- Kabupaten -->
-                            <td class="py-3 px-3 font-semibold text-slate-900">
-                                {{ $u->kabupaten ?: '-' }}
-                            </td>
-
-                            <!-- Provinsi -->
-                            <td class="py-3 px-3 text-slate-500">
-                                {{ $u->provinsi ?: 'Jawa Barat' }}
-                            </td>
-
-                            <!-- Kontak WhatsApp -->
-                            <td class="py-3 px-4 text-center">
-                                @if(!empty($u->no_hp))
-                                    @php
-                                        $cleanHp = preg_replace('/[^0-9]/', '', $u->no_hp);
-                                        if (str_starts_with($cleanHp, '0')) {
-                                            $cleanHp = '62' . substr($cleanHp, 1);
-                                        }
-                                    @endphp
-                                    <a href="https://wa.me/{{ $cleanHp }}" target="_blank" class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition inline-flex items-center justify-center" title="Hubungi WA: {{ $u->no_hp }}">
-                                        <i class="bi bi-whatsapp"></i>
-                                    </a>
+                            <!-- Orang Tua -->
+                            <td class="py-3 px-3">
+                                @if($u->role === 'siswa')
+                                    <div class="text-[11px] space-y-0.5">
+                                        <div><span class="text-slate-400">Ayah:</span> <strong>{{ $u->nama_ayah ?: '-' }}</strong></div>
+                                        <div><span class="text-slate-400">Ibu:</span> <strong>{{ $u->nama_ibu ?: '-' }}</strong></div>
+                                    </div>
                                 @else
-                                    <span class="text-slate-300">-</span>
+                                    <span class="text-slate-400">-</span>
                                 @endif
+                            </td>
+
+                            <!-- Aksi Hubungi & Kunjungan (Home Visit) -->
+                            <td class="py-3 px-4 text-center">
+                                <div class="inline-flex items-center gap-1.5">
+                                    {{-- WhatsApp Siswa / User --}}
+                                    @if(!empty($u->no_hp))
+                                        @php
+                                            $cleanHp = preg_replace('/[^0-9]/', '', $u->no_hp);
+                                            if (str_starts_with($cleanHp, '0')) $cleanHp = '62' . substr($cleanHp, 1);
+                                        @endphp
+                                        <a href="https://wa.me/{{ $cleanHp }}" target="_blank" class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition inline-flex items-center justify-center shadow-xs" title="Chat WA {{ $u->role === 'siswa' ? 'Siswa' : 'User' }}: {{ $u->no_hp }}">
+                                            <i class="bi bi-whatsapp"></i>
+                                        </a>
+                                    @endif
+
+                                    {{-- WhatsApp Orang Tua --}}
+                                    @if(!empty($u->no_hp_ortu))
+                                        @php
+                                            $cleanHpO = preg_replace('/[^0-9]/', '', $u->no_hp_ortu);
+                                            if (str_starts_with($cleanHpO, '0')) $cleanHpO = '62' . substr($cleanHpO, 1);
+                                        @endphp
+                                        <a href="https://wa.me/{{ $cleanHpO }}" target="_blank" class="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-600 hover:text-white transition inline-flex items-center justify-center shadow-xs" title="Chat WA Orang Tua ({{ $u->nama_ayah ?: 'Ortu' }}): {{ $u->no_hp_ortu }}">
+                                            <i class="bi bi-telephone-outbound-fill"></i>
+                                        </a>
+                                    @endif
+
+                                    {{-- Petunjuk Rute Google Maps Home Visit --}}
+                                    @php
+                                        $fullAddress = trim(($u->alamat ? $u->alamat.', ' : '').($u->desa ? $u->desa.', ' : '').($u->kecamatan ? $u->kecamatan.', ' : '').($u->kabupaten ?: 'Cirebon'));
+                                    @endphp
+                                    <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($fullAddress) }}" target="_blank" class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition inline-flex items-center justify-center shadow-xs" title="Buka Rute Google Maps untuk Kunjungan Rumah (Home Visit): {{ $fullAddress }}">
+                                        <i class="bi bi-geo-alt-fill"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-8 text-slate-400">
+                            <td colspan="7" class="text-center py-8 text-slate-400">
                                 <i class="bi bi-geo-alt text-3xl block mb-2 text-slate-300"></i>
                                 Tidak ditemukan data warga sesuai kriteria pencarian.
                             </td>
@@ -436,14 +511,15 @@
 <script>
 let mapInstance = null;
 let markersLayer = null;
-let currentGeoRole = 'all';
+let currentGeoRole = '{{ $isWaliKelasOnly ? "siswa" : "all" }}';
+const currentKelasId = '{{ $kelasFilter }}';
 
 // Koordinat SMK Plus Al Hilal (Pusat Sekolah di Arjawinangun, Cirebon)
 const SCHOOL_COORDS = [-6.6465, 108.4110];
 
 document.addEventListener('DOMContentLoaded', function () {
     initLeafletMap();
-    loadMapGeoData('all');
+    loadMapGeoData(currentGeoRole);
 });
 
 function initLeafletMap() {
@@ -513,7 +589,9 @@ function loadMapGeoData(role) {
         statusText.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Memuat data kluster sebaran...';
     }
 
-    fetch(`{{ route('domisili.geo-data') }}?role=${encodeURIComponent(role)}`)
+    const apiUrl = `{{ route('domisili.geo-data') }}?role=${encodeURIComponent(role)}&kelas_id=${encodeURIComponent(currentKelasId)}`;
+
+    fetch(apiUrl)
         .then(res => res.json())
         .then(data => {
             if (!data || !data.clusters) return;
@@ -521,7 +599,6 @@ function loadMapGeoData(role) {
             markersLayer.clearLayers();
 
             data.clusters.forEach(cluster => {
-                // Jangan timpa tepat di atas marker sekolah jika label bukan desa/kecamatan khusus
                 let radius = Math.max(10, Math.min(32, cluster.total * 2.5));
 
                 // Tentukan warna berdasarkan dominasi
@@ -546,36 +623,91 @@ function loadMapGeoData(role) {
                     color: '#ffffff',
                     weight: 2,
                     opacity: 1,
-                    fillOpacity: 0.75
+                    fillOpacity: 0.8
                 }).addTo(markersLayer);
 
                 // Tooltip
-                circle.bindTooltip(`<strong>${cluster.label}</strong><br/>${cluster.total} warga terdaftar`, {
+                circle.bindTooltip(`<strong>${cluster.label}</strong><br/>${cluster.total} terdaftar (Siswa: ${cluster.siswa})`, {
                     direction: 'top',
                     offset: [0, -radius]
                 });
 
-                // Sample list HTML
+                // Sample Siswa / Warga dengan Tombol WhatsApp & Rute Google Maps Home Visit
                 let sampleHtml = '';
                 if (cluster.sample && cluster.sample.length > 0) {
-                    sampleHtml = '<div style="margin-top: 8px; border-top: 1px solid #f1f5f9; padding-top: 6px;">' +
-                        '<div style="font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 4px;">CONTOH WARGA:</div>' +
-                        '<ul style="margin: 0; padding-left: 14px; font-size: 11px; color: #334155;">' +
-                        cluster.sample.map(s => `<li>${s.name} <span style="font-size: 9px; color: #94a3b8;">(${s.role})</span></li>`).join('') +
-                        '</ul></div>';
+                    sampleHtml = `
+                        <div style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 8px; max-height: 220px; overflow-y: auto;">
+                            <div style="font-size: 10px; font-weight: 800; color: #475569; margin-bottom: 6px; text-transform: uppercase;">
+                                Daftar Siswa / Warga di Wilayah Ini:
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                    ` +
+                    cluster.sample.map(s => {
+                        let roleBadge = s.role === 'siswa' 
+                            ? `<span style="background: #ecfdf5; color: #047857; padding: 1px 5px; border-radius: 4px; font-size: 9px; font-weight: 700;">${s.kelas || 'Siswa'}</span>`
+                            : `<span style="background: #e0e7ff; color: #3730a3; padding: 1px 5px; border-radius: 4px; font-size: 9px; font-weight: 700;">${s.role}</span>`;
+
+                        // WhatsApp Siswa
+                        let waBtn = '';
+                        if (s.no_hp) {
+                            let cleanHp = s.no_hp.replace(/[^0-9]/g, '');
+                            if (cleanHp.startsWith('0')) cleanHp = '62' + cleanHp.substring(1);
+                            waBtn = `<a href="https://wa.me/${cleanHp}" target="_blank" title="Chat WA Siswa (${s.no_hp})" style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: #25d366; color: white; text-decoration: none; font-size: 10px; font-weight: bold;">WA</a>`;
+                        }
+
+                        // WhatsApp Ortu
+                        let waOrtuBtn = '';
+                        if (s.no_hp_ortu) {
+                            let cleanHpO = s.no_hp_ortu.replace(/[^0-9]/g, '');
+                            if (cleanHpO.startsWith('0')) cleanHpO = '62' + cleanHpO.substring(1);
+                            waOrtuBtn = `<a href="https://wa.me/${cleanHpO}" target="_blank" title="Chat WA Orang Tua (${s.nama_ayah || 'Ortu'}: ${s.no_hp_ortu})" style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: #0d9488; color: white; text-decoration: none; font-size: 9px; font-weight: bold;">Ortu</a>`;
+                        }
+
+                        // Link Rute Google Maps Home Visit
+                        let fullAdr = [s.alamat, cluster.desa, cluster.kecamatan, cluster.kabupaten].filter(Boolean).join(', ');
+                        let mapsBtn = `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAdr)}" target="_blank" title="Buka Rute Home Visit: ${fullAdr}" style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: #2563eb; color: white; text-decoration: none; font-size: 11px;">📍</a>`;
+
+                        let ortuInfo = '';
+                        if (s.nama_ayah || s.nama_ibu) {
+                            ortuInfo = `<div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">Ortu: <strong>${s.nama_ayah || s.nama_ibu}</strong></div>`;
+                        }
+
+                        return `
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 8px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                                    <span style="font-weight: 700; font-size: 11px; color: #1e293b;">${s.name}</span>
+                                    ${roleBadge}
+                                </div>
+                                ${ortuInfo}
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1;">
+                                    <span style="font-size: 9.5px; color: #64748b; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${s.alamat || cluster.label}">${s.alamat || cluster.label}</span>
+                                    <div style="display: flex; gap: 3px;">
+                                        ${waBtn}
+                                        ${waOrtuBtn}
+                                        ${mapsBtn}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') +
+                    `</div></div>`;
                 }
 
-                // Popup
+                // Popup Wilayah
+                let mapsRegionUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cluster.label)}`;
                 circle.bindPopup(`
-                    <div style="font-family: inherit; min-width: 190px;">
-                        <h4 style="font-size: 13px; font-weight: 800; color: #0f172a; margin: 0 0 2px 0;">${cluster.label}</h4>
-                        <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">
-                            Total: <strong>${cluster.total}</strong> Warga Sekolah
+                    <div style="font-family: inherit; min-width: 210px; max-width: 280px;">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; margin-bottom: 4px;">
+                            <h4 style="font-size: 13px; font-weight: 800; color: #0f172a; margin: 0;">${cluster.label}</h4>
+                            <a href="${mapsRegionUrl}" target="_blank" title="Buka Daerah di Google Maps" style="font-size: 10px; color: #2563eb; text-decoration: none; font-weight: 700; white-space: nowrap;">Peta ↗</a>
                         </div>
-                        <div style="display: flex; gap: 6px; font-size: 10px;">
+                        <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">
+                            Total: <strong>${cluster.total}</strong> Warga Sekolah Terdaftar
+                        </div>
+                        <div style="display: flex; gap: 4px; font-size: 10px;">
+                            <span style="background: #ccfbf1; color: #0f766e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Siswa: ${cluster.siswa}</span>
                             <span style="background: #eef2ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Guru: ${cluster.guru}</span>
                             <span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Tendik: ${cluster.tendik}</span>
-                            <span style="background: #ccfbf1; color: #0f766e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Siswa: ${cluster.siswa}</span>
                         </div>
                         ${sampleHtml}
                     </div>
@@ -595,17 +727,27 @@ function loadMapGeoData(role) {
 }
 
 function filterMapByRole(role) {
-    document.getElementById('btnRoleAll').className = role === 'all' 
-        ? 'px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-800 transition font-bold' 
-        : 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+    const btnAll = document.getElementById('btnRoleAll');
+    const btnSiswa = document.getElementById('btnRoleSiswa');
+    const btnGuru = document.getElementById('btnRoleGuru');
 
-    document.getElementById('btnRoleSiswa').className = role === 'siswa' 
-        ? 'px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-800 transition font-bold' 
-        : 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+    if (btnAll) {
+        btnAll.className = role === 'all' 
+            ? 'px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-800 transition font-bold' 
+            : 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+    }
 
-    document.getElementById('btnRoleGuru').className = role === 'guru' 
-        ? 'px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-800 transition font-bold' 
-        : 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+    if (btnSiswa) {
+        btnSiswa.className = role === 'siswa' 
+            ? 'px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-800 transition font-bold' 
+            : 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+    }
+
+    if (btnGuru) {
+        btnGuru.className = role === 'guru' 
+            ? 'px-3 py-1.5 rounded-lg bg-white shadow-xs text-slate-800 transition font-bold' 
+            : 'px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition';
+    }
 
     loadMapGeoData(role);
 }

@@ -740,6 +740,7 @@ class User extends Authenticatable
             || $this->isWakaHubin()
             || $this->isPembinaOsis()
             || $this->isBk()
+            || $this->isWaliKelas()
             || $this->hasAdminRole('akademik')
             || $this->hasAdminRole('bk');
     }

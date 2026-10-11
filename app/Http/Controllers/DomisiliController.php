@@ -20,15 +20,47 @@ class DomisiliController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk melihat peta dan sebaran domisili.');
         }
 
-        $roleFilter = $request->get('role', 'all');
+        $currentUser = auth()->user();
+        $isWaliKelas = $currentUser->isWaliKelas();
+        $myKelasList = Kelas::where('wali_kelas_id', $currentUser->id)->with('jurusan')->get();
+        $myKelasIds  = $myKelasList->pluck('id')->toArray();
+
+        // Cek apakah pimpinan sekolah (bisa melihat seluruh warga/kelas)
+        $isPimpinan = $currentUser->isSuperAdmin()
+            || $currentUser->isKepalaSekolah()
+            || $currentUser->isWakaKurikulum()
+            || $currentUser->isWakaKesiswaan()
+            || $currentUser->isWakaSarpras()
+            || $currentUser->isWakaHubin()
+            || $currentUser->isPembinaOsis()
+            || $currentUser->isBk()
+            || $currentUser->hasAdminRole('akademik')
+            || $currentUser->hasAdminRole('bk');
+
+        $isWaliKelasOnly = $isWaliKelas && !$isPimpinan;
+
+        $roleFilter      = $request->get('role', $isWaliKelasOnly ? 'siswa' : 'all');
         $kabupatenFilter = $request->get('kabupaten');
         $kecamatanFilter = $request->get('kecamatan');
-        $search = $request->get('q');
+        $kelasFilter     = $request->get('kelas_id');
+        $search          = $request->get('q');
+
+        // Jika Wali Kelas murni dan belum pilih kelas, pilih kelas pertamanya
+        if ($isWaliKelasOnly && empty($kelasFilter) && count($myKelasIds) > 0) {
+            $kelasFilter = $myKelasIds[0];
+        }
 
         // Query dasar warga sekolah (hanya user aktif & role yang relevan)
         $query = User::query()
             ->whereIn('role', ['guru', 'tendik', 'siswa'])
             ->where('is_active', true);
+
+        // Jika filter kelas diterapkan
+        if (!empty($kelasFilter)) {
+            $query->where('kelas_id', $kelasFilter);
+        } elseif ($isWaliKelasOnly && count($myKelasIds) > 0) {
+            $query->whereIn('kelas_id', $myKelasIds)->where('role', 'siswa');
+        }
 
         if ($roleFilter !== 'all' && in_array($roleFilter, ['guru', 'tendik', 'siswa'])) {
             $query->where('role', $roleFilter);
@@ -53,7 +85,9 @@ class DomisiliController extends Controller
                   ->orWhere('alamat', 'LIKE', "%{$search}%")
                   ->orWhere('desa', 'LIKE', "%{$search}%")
                   ->orWhere('kecamatan', 'LIKE', "%{$search}%")
-                  ->orWhere('kabupaten', 'LIKE', "%{$search}%");
+                  ->orWhere('kabupaten', 'LIKE', "%{$search}%")
+                  ->orWhere('nama_ayah', 'LIKE', "%{$search}%")
+                  ->orWhere('nama_ibu', 'LIKE', "%{$search}%");
             });
         }
 
@@ -64,22 +98,21 @@ class DomisiliController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        // Statistik Keseluruhan
-        $totalGuru   = User::where('role', 'guru')->where('is_active', true)->count();
-        $totalTendik = User::where('role', 'tendik')->where('is_active', true)->count();
-        $totalSiswa  = User::where('role', 'siswa')->where('is_active', true)->count();
-        $totalWarga  = $totalGuru + $totalTendik + $totalSiswa;
+        // Statistik
+        $scopeQuery = clone $query;
+        $totalWarga = (clone $scopeQuery)->count();
+        $totalGuru   = (clone $scopeQuery)->where('role', 'guru')->count();
+        $totalTendik = (clone $scopeQuery)->where('role', 'tendik')->count();
+        $totalSiswa  = (clone $scopeQuery)->where('role', 'siswa')->count();
 
-        $totalTerisi = User::whereIn('role', ['guru', 'tendik', 'siswa'])
-            ->where('is_active', true)
+        $totalTerisi = (clone $scopeQuery)
             ->whereNotNull('kabupaten')
             ->where('kabupaten', '!=', '')
             ->where('kabupaten', '!=', '0')
             ->count();
 
         // Agregasi Bersih & Normalisasi Kabupaten & Kecamatan
-        $rawRecords = User::whereIn('role', ['guru', 'tendik', 'siswa'])
-            ->where('is_active', true)
+        $rawRecords = (clone $scopeQuery)
             ->whereNotNull('kabupaten')
             ->where('kabupaten', '!=', '')
             ->where('kabupaten', '!=', '0')
@@ -120,6 +153,10 @@ class DomisiliController extends Controller
         $listKabupaten = array_keys($kabCounts);
         sort($listKabupaten);
 
+        // Daftar Rombel Kelas untuk Filter
+        $allKelasList = Kelas::with('jurusan')->get()->sortBy('nama_lengkap');
+        $selectedKelas = !empty($kelasFilter) ? Kelas::with('jurusan')->find($kelasFilter) : null;
+
         return view('domisili.index', compact(
             'users',
             'totalGuru',
@@ -130,6 +167,13 @@ class DomisiliController extends Controller
             'topKabupaten',
             'topKecamatan',
             'listKabupaten',
+            'allKelasList',
+            'myKelasList',
+            'isWaliKelas',
+            'isWaliKelasOnly',
+            'isPimpinan',
+            'selectedKelas',
+            'kelasFilter',
             'roleFilter',
             'kabupatenFilter',
             'kecamatanFilter',
@@ -146,7 +190,29 @@ class DomisiliController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $roleFilter = $request->get('role', 'all');
+        $currentUser = auth()->user();
+        $isWaliKelas = $currentUser->isWaliKelas();
+        $myKelasIds  = Kelas::where('wali_kelas_id', $currentUser->id)->pluck('id')->toArray();
+
+        $isPimpinan = $currentUser->isSuperAdmin()
+            || $currentUser->isKepalaSekolah()
+            || $currentUser->isWakaKurikulum()
+            || $currentUser->isWakaKesiswaan()
+            || $currentUser->isWakaSarpras()
+            || $currentUser->isWakaHubin()
+            || $currentUser->isPembinaOsis()
+            || $currentUser->isBk()
+            || $currentUser->hasAdminRole('akademik')
+            || $currentUser->hasAdminRole('bk');
+
+        $isWaliKelasOnly = $isWaliKelas && !$isPimpinan;
+
+        $roleFilter  = $request->get('role', $isWaliKelasOnly ? 'siswa' : 'all');
+        $kelasFilter = $request->get('kelas_id');
+
+        if ($isWaliKelasOnly && empty($kelasFilter) && count($myKelasIds) > 0) {
+            $kelasFilter = $myKelasIds[0];
+        }
 
         $query = User::query()
             ->whereIn('role', ['guru', 'tendik', 'siswa'])
@@ -155,11 +221,20 @@ class DomisiliController extends Controller
             ->where('kabupaten', '!=', '')
             ->where('kabupaten', '!=', '0');
 
+        if (!empty($kelasFilter)) {
+            $query->where('kelas_id', $kelasFilter);
+        } elseif ($isWaliKelasOnly && count($myKelasIds) > 0) {
+            $query->whereIn('kelas_id', $myKelasIds)->where('role', 'siswa');
+        }
+
         if ($roleFilter !== 'all' && in_array($roleFilter, ['guru', 'tendik', 'siswa'])) {
             $query->where('role', $roleFilter);
         }
 
-        $allUsers = $query->select('id', 'name', 'role', 'desa', 'kecamatan', 'kabupaten', 'provinsi')->get();
+        $allUsers = $query->select(
+            'id', 'name', 'role', 'nip', 'no_hp', 'no_hp_ortu', 'nama_ayah', 'nama_ibu', 
+            'alamat', 'desa', 'kecamatan', 'kabupaten', 'provinsi', 'kelas_id'
+        )->with('kelas')->get();
 
         // Kelompokkan per wilayah (Kecamatan + Kabupaten atau Desa jika ada)
         $clusters = [];
@@ -202,10 +277,16 @@ class DomisiliController extends Controller
                 $clusters[$groupKey]['siswa']++;
             }
 
-            if (count($clusters[$groupKey]['sample']) < 6) {
+            if (count($clusters[$groupKey]['sample']) < 8) {
                 $clusters[$groupKey]['sample'][] = [
-                    'name' => $user->name,
-                    'role' => $user->role,
+                    'name'        => $user->name,
+                    'role'        => $user->role,
+                    'kelas'       => $user->kelas->nama_kelas ?? $user->kelas->nama ?? '',
+                    'alamat'      => $user->alamat,
+                    'no_hp'       => $user->no_hp,
+                    'no_hp_ortu'  => $user->no_hp_ortu,
+                    'nama_ayah'   => $user->nama_ayah,
+                    'nama_ibu'    => $user->nama_ibu,
                 ];
             }
         }

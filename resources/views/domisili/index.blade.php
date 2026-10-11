@@ -9,6 +9,13 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
+    .domisili-banner {
+        background: linear-gradient(135deg, #064e3b 0%, #047857 40%, #0f172a 100%) !important;
+        border-radius: 20px !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0 12px 30px -4px rgba(6, 78, 59, 0.4) !important;
+        color: #ffffff !important;
+    }
     .domisili-card {
         background: #ffffff;
         border-radius: 16px;
@@ -32,57 +39,53 @@
         padding: 4px;
     }
     .school-pulse-marker {
-        width: 20px;
-        height: 20px;
-        background: #059669;
-        border: 3px solid #ffffff;
+        width: 22px;
+        height: 22px;
+        background: #10b981;
+        border: 3.5px solid #ffffff;
         border-radius: 50%;
-        box-shadow: 0 0 0 rgba(5, 150, 105, 0.6);
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0.7);
         animation: schoolPulse 2s infinite;
     }
     @keyframes schoolPulse {
-        0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7); }
-        70% { box-shadow: 0 0 0 16px rgba(5, 150, 105, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8); }
+        70% { box-shadow: 0 0 0 18px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
 </style>
 
 <div class="space-y-6 pb-12">
-    <!-- Header Banner -->
-    <div class="domisili-card p-6 sm:p-8 bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white relative overflow-hidden">
-        <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+    <!-- Header Banner dengan Kontras Tinggi & Teks Jelas -->
+    <div class="domisili-banner p-6 sm:p-8 relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 opacity-15 pointer-events-none text-white">
             <i class="bi bi-geo-alt-fill text-[200px]"></i>
         </div>
 
         <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div class="space-y-2">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold backdrop-blur-xs border border-emerald-500/30">
-                    <i class="bi bi-geo-alt"></i> Pemetaan Geografis Warga Sekolah
+            <div class="space-y-2.5">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-400/20 text-emerald-200 text-xs font-bold border border-emerald-300/30 shadow-xs">
+                    <i class="bi bi-geo-alt-fill text-emerald-300"></i> Pemetaan Geografis Warga Sekolah
                 </div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3 drop-shadow-sm" style="color: #ffffff !important;">
                     Sebaran Domisili Guru & Siswa
                 </h1>
-                <p class="text-emerald-100/80 text-sm max-w-2xl leading-relaxed">
+                <p class="text-emerald-100 text-xs sm:text-sm max-w-2xl leading-relaxed font-medium" style="color: #ecfdf5 !important;">
                     Pemetaan wilayah tempat tinggal tenaga pendidik, kependidikan, dan peserta didik SMK Plus Al Hilal untuk analisis zonasi, keterjangkauan transportasi, dan perumusan kebijakan bimbingan.
                 </p>
-                <div class="flex flex-wrap items-center gap-2 pt-2 text-xs text-emerald-200/70">
-                    <span class="inline-flex items-center gap-1"><i class="bi bi-shield-check text-emerald-400"></i> Superadmin</span>
-                    <span>•</span>
-                    <span class="inline-flex items-center gap-1"><i class="bi bi-person-badge text-emerald-400"></i> Kepala Sekolah</span>
-                    <span>•</span>
-                    <span class="inline-flex items-center gap-1"><i class="bi bi-diagram-3 text-emerald-400"></i> Para Wakil Kepala</span>
-                    <span>•</span>
-                    <span class="inline-flex items-center gap-1"><i class="bi bi-people text-emerald-400"></i> Pembina OSIS</span>
-                    <span>•</span>
-                    <span class="inline-flex items-center gap-1"><i class="bi bi-heart-pulse text-emerald-400"></i> Guru BK</span>
+                <div class="flex flex-wrap items-center gap-2 pt-2 text-xs">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-shield-check text-emerald-300"></i> Superadmin</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-person-badge text-emerald-300"></i> Kepala Sekolah</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-diagram-3 text-emerald-300"></i> Para Wakil Kepala</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-people text-emerald-300"></i> Pembina OSIS</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-white border border-white/25 font-semibold"><i class="bi bi-heart-pulse text-emerald-300"></i> Guru BK</span>
                 </div>
             </div>
 
-            <div class="flex items-center gap-3 self-stretch sm:self-auto">
-                <button onclick="window.print()" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-xs transition flex items-center gap-2 border border-white/10 shadow-xs">
+            <div class="flex items-center gap-3 self-stretch sm:self-auto flex-shrink-0">
+                <button onclick="window.print()" class="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition flex items-center gap-2 border border-white/20 shadow-xs">
                     <i class="bi bi-printer"></i> Cetak Ringkasan
                 </button>
-                <button onclick="focusSchoolLocation()" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+                <button onclick="focusSchoolLocation()" class="px-4 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 text-xs font-extrabold transition flex items-center gap-2 shadow-lg shadow-emerald-950/20">
                     <i class="bi bi-crosshair"></i> Fokus Kampus
                 </button>
             </div>
@@ -451,12 +454,27 @@ function initLeafletMap() {
         scrollWheelZoom: true
     });
 
-    // Layer CartoDB Positron / OpenStreetMap Clean
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
+    // Layer OpenStreetMap Resmi (100% Gratis, Jernih, Lengkap & Bebas API Key)
+    const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> kontributor',
         maxZoom: 19
     }).addTo(mapInstance);
+
+    // Alternatif Layer Satelit Esri (Bebas API Key)
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri World Imagery',
+        maxZoom: 18
+    });
+
+    // Tambahkan kontrol pemilih jenis peta (Peta Jalan vs Satelit)
+    L.control.layers({
+        "🗺️ Peta Jalan": osmLayer,
+        "🛰️ Citra Satelit": satelliteLayer
+    }, null, { position: 'topright' }).addTo(mapInstance);
+
+    setTimeout(() => {
+        if (mapInstance) mapInstance.invalidateSize();
+    }, 300);
 
     // Marker Pusat Sekolah SMK Plus Al Hilal
     const schoolIcon = L.divIcon({

@@ -77,39 +77,48 @@ class DomisiliController extends Controller
             ->where('kabupaten', '!=', '0')
             ->count();
 
-        // Top 5 Kabupaten
-        $topKabupaten = User::whereIn('role', ['guru', 'tendik', 'siswa'])
+        // Agregasi Bersih & Normalisasi Kabupaten & Kecamatan
+        $rawRecords = User::whereIn('role', ['guru', 'tendik', 'siswa'])
             ->where('is_active', true)
             ->whereNotNull('kabupaten')
             ->where('kabupaten', '!=', '')
             ->where('kabupaten', '!=', '0')
-            ->select('kabupaten', DB::raw('count(*) as total'))
-            ->groupBy('kabupaten')
-            ->orderByDesc('total')
-            ->limit(8)
+            ->select('kabupaten', 'kecamatan')
             ->get();
 
-        // Top 8 Kecamatan
-        $topKecamatan = User::whereIn('role', ['guru', 'tendik', 'siswa'])
-            ->where('is_active', true)
-            ->whereNotNull('kecamatan')
-            ->where('kecamatan', '!=', '')
-            ->where('kecamatan', '!=', '0')
-            ->select('kecamatan', 'kabupaten', DB::raw('count(*) as total'))
-            ->groupBy('kecamatan', 'kabupaten')
-            ->orderByDesc('total')
-            ->limit(8)
-            ->get();
+        $kabCounts = [];
+        $kecCounts = [];
 
-        // Daftar Kabupaten untuk filter
-        $listKabupaten = User::whereIn('role', ['guru', 'tendik', 'siswa'])
-            ->where('is_active', true)
-            ->whereNotNull('kabupaten')
-            ->where('kabupaten', '!=', '')
-            ->where('kabupaten', '!=', '0')
-            ->distinct()
-            ->orderBy('kabupaten')
-            ->pluck('kabupaten');
+        foreach ($rawRecords as $rec) {
+            $normKab = WilayahIndonesiaService::normalizeKabupatenName($rec->kabupaten);
+            if (!empty($normKab)) {
+                $kabCounts[$normKab] = ($kabCounts[$normKab] ?? 0) + 1;
+            }
+
+            if (!empty($rec->kecamatan) && $rec->kecamatan !== '0') {
+                $cleanKec = trim(preg_replace('/^(kec\.|kecamatan)\s+/i', '', $rec->kecamatan));
+                $cleanKec = ucwords(strtolower($cleanKec));
+                if (!empty($cleanKec)) {
+                    $kecCounts[$cleanKec] = ($kecCounts[$cleanKec] ?? 0) + 1;
+                }
+            }
+        }
+
+        arsort($kabCounts);
+        arsort($kecCounts);
+
+        $topKabupaten = collect($kabCounts)->slice(0, 8)->map(fn($total, $kab) => (object)[
+            'kabupaten' => $kab,
+            'total'     => $total
+        ])->values();
+
+        $topKecamatan = collect($kecCounts)->slice(0, 8)->map(fn($total, $kec) => (object)[
+            'kecamatan' => $kec,
+            'total'     => $total
+        ])->values();
+
+        $listKabupaten = array_keys($kabCounts);
+        sort($listKabupaten);
 
         return view('domisili.index', compact(
             'users',

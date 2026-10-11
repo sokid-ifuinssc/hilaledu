@@ -1142,12 +1142,27 @@ function initMap() {
         scrollWheelZoom: true
     });
 
-    // Tile Layer: OpenStreetMap Voyager / CartoDB Positron
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
+    // Base Layer OpenStreetMap Resmi (100% Bebas API Key & Gratis Selamanya)
+    const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> kontributor',
         maxZoom: 19
     }).addTo(loginMap);
+
+    // Alternatif Citra Satelit Esri (Bebas API Key)
+    const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri World Imagery',
+        maxZoom: 18
+    });
+
+    // Kontrol pemilih tampilan peta (Jalan vs Satelit)
+    L.control.layers({
+        "🗺️ Peta Jalan": osmLayer,
+        "🛰️ Citra Satelit": satLayer
+    }, null, { position: 'topright' }).addTo(loginMap);
+
+    setTimeout(() => {
+        if (loginMap) loginMap.invalidateSize();
+    }, 300);
 
     markersLayer = L.layerGroup().addTo(loginMap);
 

@@ -192,6 +192,11 @@ class Kelas extends Model
         return $this->belongsTo(User::class, 'wali_kelas_id');
     }
 
+    public function waliKelas(): BelongsTo
+    {
+        return $this->waliKelasGuru();
+    }
+
     public function siswas(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(User::class, 'kelas_id')->where('role', 'siswa');

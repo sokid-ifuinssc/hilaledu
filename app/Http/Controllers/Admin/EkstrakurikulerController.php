@@ -380,7 +380,7 @@ class EkstrakurikulerController extends Controller
     {
         $kelases = Kelas::orderBy('nama_kelas')->get();
         $selectedKelasId = $request->input('kelas_id', $kelases->first()?->id);
-        $selectedKelas = $selectedKelasId ? Kelas::with('waliKelasGuru')->find($selectedKelasId) : null;
+        $selectedKelas = $selectedKelasId ? Kelas::with(['waliKelasGuru', 'jurusan'])->find($selectedKelasId) : null;
 
         $ta = $request->input('tahun_ajaran', PengaturanSekolah::getActiveTahunAjaran());
         $sem = $request->input('semester', PengaturanSekolah::getActiveSemester());
@@ -450,6 +450,8 @@ class EkstrakurikulerController extends Controller
      */
     public function printRekapKelas(Request $request, Kelas $kelas)
     {
+        $kelas->loadMissing(['waliKelasGuru', 'jurusan']);
+
         $ta = $request->input('tahun_ajaran', PengaturanSekolah::getActiveTahunAjaran());
         $sem = $request->input('semester', PengaturanSekolah::getActiveSemester());
 

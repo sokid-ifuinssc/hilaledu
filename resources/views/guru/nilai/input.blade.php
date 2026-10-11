@@ -45,7 +45,7 @@
                 Input Nilai Akhir: {{ $mapel->nama }}
             </h1>
             <p class="text-sm text-slate-500 mt-1">
-                Kelas: <b>{{ $kelas->nama_kelas }}</b> ({{ $kelas->jurusan ?: 'Umum' }}) • Tahun Ajaran: <b>{{ $tahunAjaran }} ({{ ucfirst($semester) }})</b>
+                Kelas: <b>{{ $kelas->nama_kelas }}</b> ({{ $kelas->jurusan?->singkatan ?: ($kelas->jurusan?->nama ?: 'Umum') }}) • Tahun Ajaran: <b>{{ $tahunAjaran }} ({{ ucfirst($semester) }})</b>
             </p>
         </div>
         <div class="flex items-center gap-2">

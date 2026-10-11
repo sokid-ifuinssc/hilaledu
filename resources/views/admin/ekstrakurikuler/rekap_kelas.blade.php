@@ -55,11 +55,11 @@
         <form method="GET" action="{{ route('admin.ekstrakurikuler.rekap-kelas') }}" class="flex flex-col sm:flex-row items-end gap-3">
             <div class="flex-1 w-full">
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Rombel / Kelas Siswa</label>
-                <select name="kelas_id" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+                <select name="kelas_id" onchange="this.form.submit()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
                     <option value="">-- Pilih Kelas untuk Menampilkan Rekap --</option>
                     @foreach($kelasList as $k)
                         <option value="{{ $k->id }}" {{ $selectedKelasId == $k->id ? 'selected' : '' }}>
-                            {{ $k->nama_kelas }} @if($k->jurusan) ({{ $k->jurusan }}) @endif
+                            {{ $k->nama_kelas ?? $k->nama }}
                         </option>
                     @endforeach
                 </select>
@@ -76,7 +76,7 @@
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <p class="text-xs text-slate-500 font-medium">Kelas / Rombel</p>
                 <h4 class="text-lg font-bold text-slate-800 mt-1">{{ $selectedKelas->nama_kelas }}</h4>
-                <p class="text-[11px] text-slate-400 mt-0.5">{{ $selectedKelas->tingkat ? 'Tingkat ' . $selectedKelas->tingkat : '' }} {{ $selectedKelas->jurusan }}</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">{{ $selectedKelas->tingkat ? 'Tingkat ' . $selectedKelas->tingkat : '' }}{{ $selectedKelas->jurusan?->nama ? ' • ' . $selectedKelas->jurusan->nama : '' }}</p>
             </div>
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <p class="text-xs text-slate-500 font-medium">Total Siswa Terdaftar</p>
@@ -90,7 +90,7 @@
             </div>
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <p class="text-xs text-slate-500 font-medium">Wali Kelas</p>
-                <h4 class="text-lg font-bold text-slate-800 mt-1 truncate">{{ $selectedKelas->waliKelas->name ?? '-' }}</h4>
+                <h4 class="text-lg font-bold text-slate-800 mt-1 truncate">{{ $selectedKelas->waliKelasGuru->name ?? ($selectedKelas->wali_kelas ?: '-') }}</h4>
                 <p class="text-[11px] text-slate-400 mt-0.5">Guru Pembimbing</p>
             </div>
         </div>

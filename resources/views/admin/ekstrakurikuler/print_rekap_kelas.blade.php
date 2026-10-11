@@ -109,13 +109,13 @@
     <table class="meta-table">
         <tr>
             <td style="width: 15%; font-weight: bold;">Kelas / Rombel</td>
-            <td style="width: 35%;">: {{ $kelas->nama_kelas }} ({{ $kelas->jurusan ?: 'Umum' }})</td>
+            <td style="width: 35%;">: {{ $kelas->nama_kelas }}{{ $kelas->jurusan?->nama ? ' (' . $kelas->jurusan->nama . ')' : '' }}</td>
             <td style="width: 18%; font-weight: bold;">Tingkat</td>
             <td style="width: 32%;">: Kelas {{ $kelas->tingkat ?: '-' }}</td>
         </tr>
         <tr>
             <td style="font-weight: bold;">Wali Kelas</td>
-            <td>: {{ $kelas->waliKelas->name ?? '-' }}</td>
+            <td>: {{ $kelas->waliKelasGuru->name ?? ($kelas->wali_kelas ?: '-') }}</td>
             <td style="font-weight: bold;">Jumlah Siswa</td>
             <td>: {{ $rekapData->count() }} Siswa</td>
         </tr>

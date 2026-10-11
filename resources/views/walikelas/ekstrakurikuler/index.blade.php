@@ -46,7 +46,7 @@
                     <select name="kelas_id" onchange="this.form.submit()" class="w-full px-3 py-2 text-xs rounded-xl border border-emerald-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-semibold bg-white">
                         @foreach($kelasList as $k)
                             <option value="{{ $k->id }}" {{ $kelas->id == $k->id ? 'selected' : '' }}>
-                                {{ $k->nama_kelas }} ({{ $k->jurusan ?: 'Umum' }}) - Wali Kelas: {{ $k->waliKelas->name ?? ($k->wali_kelas ?: 'Belum diset') }}
+                                {{ $k->nama_kelas ?? $k->nama }} - Wali Kelas: {{ $k->waliKelasGuru->name ?? ($k->wali_kelas ?: 'Belum diset') }}
                             </option>
                         @endforeach
                     </select>

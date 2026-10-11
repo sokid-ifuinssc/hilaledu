@@ -23,6 +23,27 @@ class AuthController extends Controller
             $request->session()->regenerate();
             
             $user = Auth::user();
+
+            // Cek apakah akun aktif
+            if (!$user->is_active) {
+                app(\App\Services\LoginLogService::class)->logFailed(
+                    $login ?? '',
+                    'Akun dinonaktifkan oleh Administrator',
+                    $request,
+                    $user
+                );
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Akun Anda dinonaktifkan oleh Administrator. Silakan hubungi pihak sekolah.',
+                ])->onlyInput('email');
+            }
+
+            // Catat login berhasil
+            app(\App\Services\LoginLogService::class)->logSuccess($user, $request);
+
             if ($user->isSuperAdmin()) {
                 return redirect()->intended(route('superadmin.dashboard'));
             } elseif ($user->role === 'admin') {
@@ -40,6 +61,15 @@ class AuthController extends Controller
             
             return redirect()->intended('/dashboard');
         }
+
+        // Catat login gagal
+        $attemptedUser = \App\Models\User::where($fieldType, $login)->first();
+        app(\App\Services\LoginLogService::class)->logFailed(
+            $login ?? '',
+            $attemptedUser ? 'Kata sandi tidak sesuai' : 'Akun tidak terdaftar',
+            $request,
+            $attemptedUser
+        );
 
         return back()->withErrors([
             'email' => 'Email atau kata sandi salah.',

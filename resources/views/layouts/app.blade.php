@@ -1146,6 +1146,12 @@
                             <span>Backup & Pulihkan Database</span>
                         </a>
                     </li>
+                    <li class="sidebar-nav-item">
+                        <a href="{{ route('superadmin.log-aktivitas.index') }}" class="sidebar-nav-link {{ request()->routeIs('superadmin.log-aktivitas.*') ? 'active' : '' }}">
+                            <i class="bi bi-shield-check" style="color:#10b981;"></i>
+                            <span>Log Akses & Keaktifan</span>
+                        </a>
+                    </li>
                 </ul>
                 @endif
 

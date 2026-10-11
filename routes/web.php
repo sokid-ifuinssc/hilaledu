@@ -7,6 +7,7 @@ use App\Http\Controllers\SuperAdmin\UserController as SuperAdminUserController;
 use App\Http\Controllers\SuperAdmin\AppController as SuperAdminAppController;
 use App\Http\Controllers\SuperAdmin\CredentialController;
 use App\Http\Controllers\SuperAdmin\DatabaseController;
+use App\Http\Controllers\SuperAdmin\LoginLogController;
 use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\MasterController;
@@ -219,6 +220,17 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
         Route::get('/download/{file}',  [DatabaseController::class, 'downloadBackup'])->name('download');
         Route::delete('/delete/{file}', [DatabaseController::class, 'deleteBackup'])->name('delete');
         Route::post('/restore/{file}',  [DatabaseController::class, 'restoreBackup'])->name('restore');
+    });
+
+    // ---- Log Aktivitas Login, Pemantauan Lokasi (Peta) & Keaktifan Akun ----
+    Route::prefix('log-aktivitas')->name('log-aktivitas.')->group(function () {
+        Route::get('/',                     [LoginLogController::class, 'index'])->name('index');
+        Route::get('/geo-data',             [LoginLogController::class, 'geoData'])->name('geo-data');
+        Route::get('/user-audit/{user}',    [LoginLogController::class, 'userAudit'])->name('user-audit');
+        Route::post('/user-action/{user}',  [LoginLogController::class, 'resolveUserIssue'])->name('user-action');
+        Route::post('/sample-data',         [LoginLogController::class, 'generateSampleData'])->name('sample-data');
+        Route::get('/export',               [LoginLogController::class, 'exportLogs'])->name('export');
+        Route::post('/clear',               [LoginLogController::class, 'clearLogs'])->name('clear');
     });
 
     // ============================================================

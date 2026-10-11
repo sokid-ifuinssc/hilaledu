@@ -32,6 +32,7 @@ class SSOController extends Controller
             ->first();
 
         if (!$user) {
+            app(\App\Services\LoginLogService::class)->logFailed($login, 'Pengguna SSO tidak ditemukan', $request);
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Pengguna tidak ditemukan.',
@@ -39,6 +40,7 @@ class SSOController extends Controller
         }
 
         if (!Hash::check($password, $user->password)) {
+            app(\App\Services\LoginLogService::class)->logFailed($login, 'Password SSO salah', $request, $user);
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Password yang Anda masukkan salah.',
@@ -46,11 +48,15 @@ class SSOController extends Controller
         }
 
         if (!$user->is_active) {
+            app(\App\Services\LoginLogService::class)->logFailed($login, 'Akun SSO tidak aktif / dinonaktifkan', $request, $user);
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Akun Anda tidak aktif.',
             ], 403);
         }
+
+        // Catat login berhasil via SSO
+        app(\App\Services\LoginLogService::class)->logSuccess($user, $request);
 
         $appSlug = $request->input('app_slug');
         $app = null;

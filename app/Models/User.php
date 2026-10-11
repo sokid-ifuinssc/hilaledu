@@ -730,6 +730,20 @@ class User extends Authenticatable
         return $this->isSuperAdmin() || $this->hasAdminRole('payroll');
     }
 
+    public function canAccessDomisili(): bool
+    {
+        return $this->isSuperAdmin()
+            || $this->isKepalaSekolah()
+            || $this->isWakaKurikulum()
+            || $this->isWakaKesiswaan()
+            || $this->isWakaSarpras()
+            || $this->isWakaHubin()
+            || $this->isPembinaOsis()
+            || $this->isBk()
+            || $this->hasAdminRole('akademik')
+            || $this->hasAdminRole('bk');
+    }
+
     public function isPembinaEskul(): bool
     {
         if ($this->isSuperAdmin()) return true;

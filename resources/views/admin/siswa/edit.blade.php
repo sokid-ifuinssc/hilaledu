@@ -88,6 +88,38 @@
                     <input type="text" name="no_hp" value="{{ old('no_hp', $siswa->no_hp) }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-xs">
                 </div>
 
+                {{-- Nama Ayah --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Ayah</label>
+                    <input type="text" name="nama_ayah" value="{{ old('nama_ayah', $siswa->nama_ayah) }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-xs">
+                </div>
+
+                {{-- Nama Ibu --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Ibu</label>
+                    <input type="text" name="nama_ibu" value="{{ old('nama_ibu', $siswa->nama_ibu) }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-xs">
+                </div>
+
+                {{-- No HP Ortu --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">No. HP / WhatsApp Orang Tua</label>
+                    <input type="text" name="no_hp_ortu" value="{{ old('no_hp_ortu', $siswa->no_hp_ortu) }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-xs">
+                </div>
+
+                {{-- Alamat Lengkap --}}
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Alamat Lengkap (Jalan / RT / RW)</label>
+                    <textarea name="alamat" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-xs" placeholder="Jl. Raya No. 12, RT 01 / RW 02">{{ old('alamat', $siswa->alamat) }}</textarea>
+                </div>
+
+                <x-wilayah-dropdown 
+                    :provinsi="old('provinsi', $siswa->provinsi ?: 'Jawa Barat')"
+                    :kabupaten="old('kabupaten', $siswa->kabupaten)"
+                    :kecamatan="old('kecamatan', $siswa->kecamatan)"
+                    :desa="old('desa', $siswa->desa)"
+                    layout="grid"
+                />
+
                 {{-- Password Baru (Opsional) --}}
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Password Baru (Kosongkan jika tidak diubah)</label>

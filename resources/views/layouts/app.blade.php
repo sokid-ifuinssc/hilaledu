@@ -901,6 +901,12 @@
                         </a>
                     </li>
                     <li class="sidebar-nav-item">
+                        <a href="{{ route('domisili.index') }}" class="sidebar-nav-link {{ request()->routeIs('domisili.*') ? 'active' : '' }}">
+                            <i class="bi bi-geo-alt-fill" style="color:#10b981;"></i>
+                            <span>Sebaran Domisili</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-nav-item">
                         <a href="{{ route('superadmin.users.index') }}" class="sidebar-nav-link {{ request()->routeIs('superadmin.users.*') ? 'active' : '' }}">
                             <i class="bi bi-people" style="color:#38bdf8;"></i>
                             <span>Semua Akun Pengguna</span>
@@ -1222,6 +1228,10 @@
                     <li class="sidebar-nav-item"><a href="{{ route('presensi-harian.index') }}" class="sidebar-nav-link {{ request()->routeIs('presensi-harian.*') ? 'active' : '' }}"><i class="bi bi-person-lines-fill" style="color:#0ea5e9;"></i><span>Monitoring Absensi Siswa</span></a></li>
                     @endif
 
+                    @if(auth()->user()->canAccessDomisili())
+                    <li class="sidebar-nav-item"><a href="{{ route('domisili.index') }}" class="sidebar-nav-link {{ request()->routeIs('domisili.*') ? 'active' : '' }}"><i class="bi bi-geo-alt-fill" style="color:#10b981;"></i><span>Sebaran Domisili</span></a></li>
+                    @endif
+
                     <li class="sidebar-nav-item"><a href="{{ route('guru.cuti.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.cuti.*') ? 'active' : '' }}"><i class="bi bi-calendar2-minus" style="color:#ef4444;"></i><span>Pengajuan Cuti</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('guru.kegiatan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.kegiatan.*') ? 'active' : '' }}"><i class="bi bi-calendar-star" style="color:#8b5cf6;"></i><span>Kegiatan Sekolah</span></a></li>
                     <li class="sidebar-nav-item"><a href="{{ route('guru.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('guru.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#fbbf24;"></i><span>Profil & Pendidikan</span></a></li>
@@ -1358,6 +1368,10 @@
                                 </ul>
                             </div>
                         </li>
+                        @endif
+
+                        @if(auth()->user()->canAccessDomisili())
+                        <li class="sidebar-nav-item"><a href="{{ route('domisili.index') }}" class="sidebar-nav-link {{ request()->routeIs('domisili.*') ? 'active' : '' }}"><i class="bi bi-geo-alt-fill" style="color:#10b981;"></i><span>Sebaran Domisili</span></a></li>
                         @endif
 
                         <div class="sidebar-section-title mt-3">Layanan Pegawai</div>

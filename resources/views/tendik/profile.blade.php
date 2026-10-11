@@ -234,23 +234,16 @@ select.form-input option { background: #1e1e1e; color: #fff; }
                 <label class="field-label">Alamat Lengkap (Jalan, RT/RW, No. Rumah)</label>
                 <textarea name="alamat" class="form-input" rows="2" placeholder="Jl. Raya Sukajadi No. 12, RT 01 / RW 02">{{ old('alamat', $user->alamat) }}</textarea>
             </div>
-            <div class="col-md-3">
-                <label class="field-label">Desa / Kelurahan</label>
-                <input type="text" name="desa" class="form-input" value="{{ old('desa', $user->desa) }}" placeholder="Desa / Kelurahan">
-            </div>
-            <div class="col-md-3">
-                <label class="field-label">Kecamatan</label>
-                <input type="text" name="kecamatan" class="form-input" value="{{ old('kecamatan', $user->kecamatan) }}" placeholder="Kecamatan">
-            </div>
-            <div class="col-md-3">
-                <label class="field-label">Kabupaten / Kota</label>
-                <input type="text" name="kabupaten" class="form-input" value="{{ old('kabupaten', $user->kabupaten) }}" placeholder="Kabupaten / Kota">
-            </div>
-            <div class="col-md-3">
-                <label class="field-label">Provinsi</label>
-                <input type="text" name="provinsi" class="form-input" value="{{ old('provinsi', $user->provinsi) }}" placeholder="Provinsi">
-            </div>
         </div>
+
+        {{-- Dropdown Wilayah Bertingkat (Provinsi, Kab/Kota, Kecamatan, Desa) --}}
+        <x-wilayah-dropdown 
+            :provinsi="old('provinsi', $user->provinsi ?: 'Jawa Barat')"
+            :kabupaten="old('kabupaten', $user->kabupaten)"
+            :kecamatan="old('kecamatan', $user->kecamatan)"
+            :desa="old('desa', $user->desa)"
+            layout="bootstrap"
+        />
 
         {{-- Section 3: Riwayat Pendidikan Berjenjang --}}
         <div class="form-section-title">

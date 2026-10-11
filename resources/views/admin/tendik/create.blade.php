@@ -93,23 +93,15 @@ select.form-input option { background: #1e1e1e; }
                 <label class="field-label">Alamat Lengkap (Jalan / RT / RW)</label>
                 <textarea name="alamat" class="form-input" rows="2" placeholder="Jl. Raya Sukajadi No. 12, RT 01 / RW 02">{{ old('alamat') }}</textarea>
             </div>
-            <div class="col-md-3">
-                <label class="field-label">Desa / Kelurahan</label>
-                <input type="text" name="desa" class="form-input" value="{{ old('desa') }}" placeholder="Desa / Kelurahan">
-            </div>
-            <div class="col-md-3">
-                <label class="field-label">Kecamatan</label>
-                <input type="text" name="kecamatan" class="form-input" value="{{ old('kecamatan') }}" placeholder="Kecamatan">
-            </div>
-            <div class="col-md-3">
-                <label class="field-label">Kabupaten / Kota</label>
-                <input type="text" name="kabupaten" class="form-input" value="{{ old('kabupaten') }}" placeholder="Kabupaten / Kota">
-            </div>
-            <div class="col-md-3">
-                <label class="field-label">Provinsi</label>
-                <input type="text" name="provinsi" class="form-input" value="{{ old('provinsi') }}" placeholder="Provinsi">
-            </div>
         </div>
+
+        <x-wilayah-dropdown 
+            :provinsi="old('provinsi', 'Jawa Barat')"
+            :kabupaten="old('kabupaten')"
+            :kecamatan="old('kecamatan')"
+            :desa="old('desa')"
+            layout="bootstrap"
+        />
 
         <div class="form-section-title">Riwayat Pendidikan (SD, SMP, SMA, S1, S2)</div>
         <div class="row g-3">

@@ -187,27 +187,15 @@ select.form-input option { background: #1a2e24; }
                 <textarea name="alamat" class="form-input {{ $errors->has('alamat') ? 'is-invalid' : '' }}" rows="2" placeholder="Jl. Raya No. 12, RT 01 / RW 02">{{ old('alamat', $guru->alamat) }}</textarea>
                 @error('alamat')<div class="field-error">{{ $message }}</div>@enderror
             </div>
-            <div class="col-md-3">
-                <label class="field-label">Desa / Kelurahan</label>
-                <input type="text" name="desa" class="form-input {{ $errors->has('desa') ? 'is-invalid' : '' }}" value="{{ old('desa', $guru->desa) }}" placeholder="Desa / Kelurahan">
-                @error('desa')<div class="field-error">{{ $message }}</div>@enderror
-            </div>
-            <div class="col-md-3">
-                <label class="field-label">Kecamatan</label>
-                <input type="text" name="kecamatan" class="form-input {{ $errors->has('kecamatan') ? 'is-invalid' : '' }}" value="{{ old('kecamatan', $guru->kecamatan) }}" placeholder="Kecamatan">
-                @error('kecamatan')<div class="field-error">{{ $message }}</div>@enderror
-            </div>
-            <div class="col-md-3">
-                <label class="field-label">Kabupaten / Kota</label>
-                <input type="text" name="kabupaten" class="form-input {{ $errors->has('kabupaten') ? 'is-invalid' : '' }}" value="{{ old('kabupaten', $guru->kabupaten) }}" placeholder="Kabupaten / Kota">
-                @error('kabupaten')<div class="field-error">{{ $message }}</div>@enderror
-            </div>
-            <div class="col-md-3">
-                <label class="field-label">Provinsi</label>
-                <input type="text" name="provinsi" class="form-input {{ $errors->has('provinsi') ? 'is-invalid' : '' }}" value="{{ old('provinsi', $guru->provinsi) }}" placeholder="Provinsi">
-                @error('provinsi')<div class="field-error">{{ $message }}</div>@enderror
-            </div>
         </div>
+
+        <x-wilayah-dropdown 
+            :provinsi="old('provinsi', $guru->provinsi ?: 'Jawa Barat')"
+            :kabupaten="old('kabupaten', $guru->kabupaten)"
+            :kecamatan="old('kecamatan', $guru->kecamatan)"
+            :desa="old('desa', $guru->desa)"
+            layout="bootstrap"
+        />
 
         <div class="form-section-title">Riwayat Pendidikan (SD, SMP, SMA, S1, S2)</div>
         <div class="row g-3">

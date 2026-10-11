@@ -49,6 +49,8 @@ use App\Http\Controllers\Guru\GuruEkstrakurikulerController;
 use App\Http\Controllers\Guru\GuruNilaiController;
 use App\Http\Controllers\WaliKelas\WaliKelasLegerController;
 use App\Http\Controllers\Siswa\SiswaEkstrakurikulerController;
+use App\Http\Controllers\WilayahController;
+use App\Http\Controllers\DomisiliController;
 
 // HILAL EDU BASE ROUTES
 /*
@@ -988,6 +990,20 @@ Route::middleware('auth')->group(function () {
         Route::post('/ekstrakurikuler/{ekstrakurikuler}/absen-mandiri', [SiswaEkstrakurikulerController::class, 'presensiMandiri'])->name('ekstrakurikuler.absen-mandiri');
         Route::get('/ekstrakurikuler/{ekstrakurikuler}/ketua-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiIndex'])->name('ekstrakurikuler.ketua-absensi');
         Route::post('/ekstrakurikuler/{ekstrakurikuler}/ketua-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiStore'])->name('ekstrakurikuler.ketua-absensi.store');
+    });
+
+    // ==========================================
+    // API DATA WILAYAH INDONESIA (DROPDOWN BERTINGKAT)
+    // ==========================================
+    Route::get('/api/wilayah/data', [WilayahController::class, 'getWilayahData'])->name('api.wilayah.data');
+
+    // ==========================================
+    // MENU SEBARAN DOMISILI WARGA SEKOLAH
+    // (Superadmin, Kepala Sekolah, Waka, Pembina OSIS, BK)
+    // ==========================================
+    Route::prefix('domisili')->name('domisili.')->group(function () {
+        Route::get('/', [DomisiliController::class, 'index'])->name('index');
+        Route::get('/geo-data', [DomisiliController::class, 'geoData'])->name('geo-data');
     });
 
     // Shortcut Menu Kerjasama

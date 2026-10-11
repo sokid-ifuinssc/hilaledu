@@ -116,6 +116,20 @@
                     <input type="text" name="no_hp_ortu" value="{{ old('no_hp_ortu') }}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-xs">
                 </div>
 
+                {{-- Alamat Lengkap --}}
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Alamat Lengkap (Jalan / RT / RW)</label>
+                    <textarea name="alamat" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-xs" placeholder="Jl. Raya No. 12, RT 01 / RW 02">{{ old('alamat') }}</textarea>
+                </div>
+
+                <x-wilayah-dropdown 
+                    :provinsi="old('provinsi', 'Jawa Barat')"
+                    :kabupaten="old('kabupaten')"
+                    :kecamatan="old('kecamatan')"
+                    :desa="old('desa')"
+                    layout="grid"
+                />
+
                 {{-- Password --}}
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Password Login *</label>

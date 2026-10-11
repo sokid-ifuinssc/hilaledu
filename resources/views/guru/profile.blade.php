@@ -300,42 +300,19 @@
                 <!-- Alamat Jalan / Blok -->
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-bold text-slate-700 mb-1.5">Alamat Jalan / Blok / RT / RW</label>
-                    <input type="text" name="alamat" value="{{ old('alamat', $user->alamat ?: $guruHilal?->alamat) }}"
-                           placeholder="Contoh: Jl. H. Manshur No. 07 Blok 02"
-                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
+                    <textarea name="alamat" rows="2"
+                              placeholder="Contoh: Blok 4 Dar Al Quran RT 01/02"
+                              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">{{ old('alamat', $user->alamat ?: $guruHilal?->alamat) }}</textarea>
                 </div>
 
-                <!-- Desa / Kelurahan -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Desa / Kelurahan</label>
-                    <input type="text" name="desa" value="{{ old('desa', $user->desa ?: $userHilal?->desa) }}"
-                           placeholder="Contoh: Tegalgubug"
-                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
-                </div>
-
-                <!-- Kecamatan -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Kecamatan</label>
-                    <input type="text" name="kecamatan" value="{{ old('kecamatan', $user->kecamatan ?: $userHilal?->kecamatan) }}"
-                           placeholder="Contoh: Arjawinangun"
-                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
-                </div>
-
-                <!-- Kabupaten / Kota -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Kabupaten / Kota</label>
-                    <input type="text" name="kabupaten" value="{{ old('kabupaten', $user->kabupaten ?: $userHilal?->kabupaten) }}"
-                           placeholder="Contoh: Cirebon"
-                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
-                </div>
-
-                <!-- Provinsi -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Provinsi</label>
-                    <input type="text" name="provinsi" value="{{ old('provinsi', $user->provinsi ?: ($userHilal?->provinsi ?: 'Jawa Barat')) }}"
-                           placeholder="Contoh: Jawa Barat"
-                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition">
-                </div>
+                {{-- Dropdown Wilayah Bertingkat (Provinsi, Kab/Kota, Kecamatan, Desa) --}}
+                <x-wilayah-dropdown 
+                    :provinsi="old('provinsi', $user->provinsi ?: ($userHilal?->provinsi ?: 'Jawa Barat'))"
+                    :kabupaten="old('kabupaten', $user->kabupaten ?: $userHilal?->kabupaten)"
+                    :kecamatan="old('kecamatan', $user->kecamatan ?: $userHilal?->kecamatan)"
+                    :desa="old('desa', $user->desa ?: $userHilal?->desa)"
+                    layout="grid"
+                />
 
             </div>
         </div>

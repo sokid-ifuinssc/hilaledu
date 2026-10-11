@@ -3,9 +3,39 @@
 @section('title', 'Log Akses & Keaktifan Pengguna')
 @section('page-title', 'Log Akses, Pemantauan Lokasi & Keaktifan Akun')
 
+@push('head')
+<!-- Leaflet CSS via Cloudflare CDNJS with fallback -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-Zcn6bjR/8RBhbYUEfl3UBlhp6frHI5f2757GVucUfeCGZKOGlsNO304NPC9Gim5HgWXNXWgYehPH4vQRCwgQGA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<style>
+    /* CRITICAL: Leaflet Tile & SVG fixes against Tailwind CSS and Bootstrap resets */
+    .leaflet-container img.leaflet-tile {
+        max-width: none !important;
+        max-height: none !important;
+        width: 256px !important;
+        height: 256px !important;
+    }
+    .leaflet-container img {
+        max-width: none !important;
+        max-height: none !important;
+    }
+    .leaflet-pane svg {
+        max-width: none !important;
+        max-height: none !important;
+    }
+    .leaflet-tile-container img {
+        max-width: none !important;
+    }
+    #loginMap {
+        height: 520px;
+        min-height: 520px;
+        width: 100%;
+        z-index: 10;
+        background-color: #f1f5f9;
+    }
+</style>
+@endpush
+
 @section('dashboard-styles')
-/* Leaflet CSS via CDN */
-@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 
 .log-page-container {
     padding-bottom: 40px;
@@ -1117,22 +1147,71 @@
 @endsection
 
 @section('scripts')
-{{-- Leaflet.js CDN --}}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{{-- Leaflet.js CDN dengan Multi-CDN Fallback (Cloudflare -> jsDelivr -> unpkg) --}}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-BwHfrr4c9kmRkLw6iXFdzcdWV/PGkVgiIyIWLLlTSXzWQzpf9gpdQPTifNXgoUpRlfrphSDAvvW0AD62eKGnDA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+    if (typeof L === 'undefined') {
+        const fallbackScript = document.createElement('script');
+        fallbackScript.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+        fallbackScript.onerror = function() {
+            const unpkgScript = document.createElement('script');
+            unpkgScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            document.head.appendChild(unpkgScript);
+        };
+        document.head.appendChild(fallbackScript);
+    }
+</script>
 
 <script>
 let loginMap = null;
 let markersLayer = null;
+let initLogMapRetries = 0;
 
 document.addEventListener('DOMContentLoaded', function () {
     @if($activeTab === 'peta')
-    initMap();
+    startLogMapInitialization();
     @endif
 });
 
+window.addEventListener('load', function() {
+    if (loginMap) {
+        loginMap.invalidateSize();
+    } else {
+        @if($activeTab === 'peta')
+        startLogMapInitialization();
+        @endif
+    }
+});
+
+function startLogMapInitialization() {
+    if (typeof L === 'undefined') {
+        if (initLogMapRetries < 15) {
+            initLogMapRetries++;
+            setTimeout(startLogMapInitialization, 250);
+        } else {
+            const mapContainer = document.getElementById('loginMap');
+            if (mapContainer) {
+                mapContainer.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center; padding:20px; color:#475569;">
+                        <i class="bi bi-wifi-off" style="font-size:36px; color:#ef4444; margin-bottom:12px;"></i>
+                        <h5 style="font-weight:800; font-size:16px; margin-bottom:6px; color:#0f172a;">Koneksi Peta Sedang Terhambat</h5>
+                        <p style="font-size:12px; max-width:360px; margin-bottom:14px;">Pustaka peta interaktif memerlukan sambungan internet aktif. Data riwayat dan log audit tetap berfungsi penuh.</p>
+                        <button onclick="location.reload()" class="btn btn-emerald btn-sm rounded-pill px-3 py-1.5" style="background:#059669; color:white; border:none; font-weight:700;">
+                            <i class="bi bi-arrow-clockwise"></i> Coba Muat Ulang
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        return;
+    }
+
+    initMap();
+}
+
 function initMap() {
     const mapContainer = document.getElementById('loginMap');
-    if (!mapContainer) return;
+    if (!mapContainer || loginMap) return;
 
     // Inisialisasi peta terpusat di kepulauan Indonesia (Lat: -2.5, Lng: 118.0)
     loginMap = L.map('loginMap', {
@@ -1142,27 +1221,52 @@ function initMap() {
         scrollWheelZoom: true
     });
 
-    // Base Layer OpenStreetMap Resmi (100% Bebas API Key & Gratis Selamanya)
-    const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> kontributor',
-        maxZoom: 19
+    // 1. Layer Utama: CartoDB Voyager (Sangat Cepat, Jernih, Kontras Tinggi di Indonesia, Bebas API Key)
+    const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(loginMap);
 
-    // Alternatif Citra Satelit Esri (Bebas API Key)
+    // 2. Layer Alternatif: OpenStreetMap Resmi dengan Multi Subdomain
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        subdomains: ['a', 'b', 'c'],
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> kontributor'
+    });
+
+    // 3. Layer Alternatif: Esri Satelit (Citra Satelit Resolusi Tinggi Bebas API Key)
     const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: '&copy; Esri World Imagery',
         maxZoom: 18
     });
 
-    // Kontrol pemilih tampilan peta (Jalan vs Satelit)
+    // 4. Layer Alternatif: Esri Peta Jalan
+    const esriStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri Street Map',
+        maxZoom: 18
+    });
+
+    // Kontrol pemilih tampilan peta
     L.control.layers({
-        "🗺️ Peta Jalan": osmLayer,
+        "🗺️ Peta Jernih (Cepat)": cartoVoyager,
+        "📍 OpenStreetMap": osmLayer,
+        "🛣️ Peta Jalan Esri": esriStreetLayer,
         "🛰️ Citra Satelit": satLayer
     }, null, { position: 'topright' }).addTo(loginMap);
 
-    setTimeout(() => {
-        if (loginMap) loginMap.invalidateSize();
-    }, 300);
+    // Staggered InvalidateSize untuk mencegah petak abu-abu
+    const forceRedraw = () => { if (loginMap) loginMap.invalidateSize(); };
+    setTimeout(forceRedraw, 80);
+    setTimeout(forceRedraw, 250);
+    setTimeout(forceRedraw, 600);
+    setTimeout(forceRedraw, 1200);
+    setTimeout(forceRedraw, 2500);
+    window.addEventListener('resize', forceRedraw);
+
+    if (window.ResizeObserver) {
+        new ResizeObserver(forceRedraw).observe(mapContainer);
+    }
 
     markersLayer = L.layerGroup().addTo(loginMap);
 

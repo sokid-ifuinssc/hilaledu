@@ -71,8 +71,8 @@
             <p class="text-xs text-amber-700 leading-relaxed max-w-md mx-auto">
                 Anda belum ditugaskan mengajar di jadwal pelajaran manapun. Silakan hubungi <strong>Admin Akademik</strong> atau <strong>Waka Kurikulum</strong> untuk ploting jadwal terlebih dahulu.
             </p>
-            <a href="{{ route('guru.jadwal.index') }}" class="inline-block px-4 py-2 mt-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition">
-                Cek Jadwal Saya
+            <a href="{{ route('guru.dashboard') }}" class="inline-block px-4 py-2 mt-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition">
+                Cek Jadwal Saya di Dashboard
             </a>
         </div>
         @else

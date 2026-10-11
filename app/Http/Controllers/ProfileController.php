@@ -12,13 +12,20 @@ use Illuminate\View\View;
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Display the user's profile form by redirecting to appropriate role profile.
      */
-    public function edit(Request $request): View
+    public function edit(Request $request): RedirectResponse
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        $user = $request->user();
+        if ($user->isGuru()) {
+            return redirect()->route('guru.profile.edit');
+        } elseif ($user->isTendik()) {
+            return redirect()->route('tendik.profile.edit');
+        } elseif ($user->isSiswa()) {
+            return redirect()->route('siswa.profile.edit');
+        }
+
+        return redirect()->route('home');
     }
 
     /**

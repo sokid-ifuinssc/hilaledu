@@ -85,4 +85,15 @@ class AuthController extends Controller
 
         return redirect('/');
     }
+
+    public function switchRole(Request $request)
+    {
+        $role = $request->input('role');
+        $user = Auth::user();
+        if ($user && ($role === $user->role || $user->hasAdminRole($role))) {
+            session(['active_role' => $role]);
+            return back()->with('success', 'Peran berhasil dialihkan ke ' . ucfirst($role));
+        }
+        return back()->with('error', 'Peran yang dipilih tidak valid.');
+    }
 }

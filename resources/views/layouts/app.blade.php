@@ -779,6 +779,7 @@
 
         @yield('dashboard-styles')
     </style>
+    @stack('head')
 </head>
 <body>
     <!-- Sidebar Overlay Mobile -->

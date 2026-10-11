@@ -286,17 +286,17 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('kerjasama', \App\Http\Controllers\Prakerin\KerjasamaController::class);
 
         // Master Mitra DU/DI & Pembimbing
-        Route::resource('dudi', \App\Http\Controllers\Prakerin\DudiController::class);
+        Route::resource('dudi', \App\Http\Controllers\Prakerin\DudiController::class)->except(['show']);
         Route::resource('pembimbing-dudi', \App\Http\Controllers\Prakerin\PembimbingDudiController::class);
         Route::post('/pembimbing-dudi/{pembimbingDudi}/toggle', [\App\Http\Controllers\Prakerin\PembimbingDudiController::class, 'toggleStatus'])->name('pembimbing-dudi.toggle');
 
         // Master Periode & Penempatan Prakerin Siswa
-        Route::resource('periode', \App\Http\Controllers\Prakerin\PeriodePrakerinController::class);
+        Route::resource('periode', \App\Http\Controllers\Prakerin\PeriodePrakerinController::class)->except(['show']);
         Route::resource('penempatan', \App\Http\Controllers\Prakerin\PenempatanController::class);
 
         // Industri & Jurnal Harian (Legacy & Live)
-        Route::resource('industri', \App\Http\Controllers\Prakerin\IndustriController::class);
-        Route::resource('jurnal', \App\Http\Controllers\Prakerin\JurnalPrakerinController::class);
+        Route::resource('industri', \App\Http\Controllers\Prakerin\IndustriController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('jurnal', \App\Http\Controllers\Prakerin\JurnalPrakerinController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::post('/jurnal/{jurnal}/approve', [\App\Http\Controllers\Prakerin\JurnalPrakerinController::class, 'approve'])->name('jurnal.approve');
         Route::post('/jurnal/{jurnal}/reject', [\App\Http\Controllers\Prakerin\JurnalPrakerinController::class, 'reject'])->name('jurnal.reject');
 
@@ -318,8 +318,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/tagihan/generate-rutin', [\App\Http\Controllers\Keuangan\TagihanController::class, 'generateRutin'])->name('tagihan.generate_rutin');
         Route::post('/tagihan/clean-duplicates', [\App\Http\Controllers\Keuangan\TagihanController::class, 'cleanDuplicates'])->name('tagihan.clean_duplicates');
 
-        Route::resource('tagihan', \App\Http\Controllers\Keuangan\TagihanController::class);
-        Route::resource('pembayaran', \App\Http\Controllers\Keuangan\PembayaranController::class);
+        Route::resource('tagihan', \App\Http\Controllers\Keuangan\TagihanController::class)->only(['index', 'store', 'show', 'destroy']);
+        Route::resource('pembayaran', \App\Http\Controllers\Keuangan\PembayaranController::class)->only(['index', 'store', 'destroy']);
         Route::get('/laporan', [\App\Http\Controllers\Keuangan\LaporanController::class, 'index'])->name('laporan.index');
         Route::get('/laporan/print', [\App\Http\Controllers\Keuangan\LaporanController::class, 'print'])->name('laporan.print');
     });
@@ -855,6 +855,7 @@ Route::middleware('auth')->group(function () {
         Route::get('jenis-pelanggaran/export', [Admin\JenisPelanggaranController::class, 'export'])->name('jenis-pelanggaran.export');
         Route::post('jenis-pelanggaran/import', [Admin\JenisPelanggaranController::class, 'import'])->name('jenis-pelanggaran.import');
         Route::resource('jenis-pelanggaran', Admin\JenisPelanggaranController::class)->except('show');
+        Route::resource('jenis-rekomendasi', Admin\JenisRekomendasiController::class)->except('show');
         Route::get('/poin', [Admin\SiswaController::class, 'poinIndex'])->name('poin.index');
 
         // Pelanggaran Siswa
@@ -883,6 +884,7 @@ Route::middleware('auth')->group(function () {
         Route::get('bk-jenis-pelanggaran/export', [Admin\JenisPelanggaranController::class, 'export'])->name('jenis-pelanggaran.export');
         Route::post('bk-jenis-pelanggaran/import', [Admin\JenisPelanggaranController::class, 'import'])->name('jenis-pelanggaran.import');
         Route::resource('bk-jenis-pelanggaran', Admin\JenisPelanggaranController::class, ['names' => 'jenis-pelanggaran'])->except('show');
+        Route::resource('jenis-rekomendasi', Admin\JenisRekomendasiController::class)->except('show');
     });
 
     // ==========================================
@@ -898,6 +900,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/progres', [Kaprog\ProgresController::class, 'index'])->name('progres.index');
         Route::get('/progres/{pelanggaran}', [Kaprog\ProgresController::class, 'show'])->name('progres.show');
         Route::post('/progres/{pelanggaran}/approve', [Kaprog\ProgresController::class, 'approve'])->name('progres.approve');
+        Route::post('/progres/{pelanggaran}/laporan', [Kaprog\ProgresController::class, 'isiLaporan'])->name('progres.laporan');
         // Matriks Jadwal Jurusan (Full)
         Route::get('/jadwal-matrix', [\App\Http\Controllers\Admin\JadwalMatrixController::class, 'kaprogMatrix'])->name('jadwal.matrix');
         Route::get('/jadwal-matrix/print', [\App\Http\Controllers\Admin\JadwalMatrixController::class, 'kaprogPrintMatrix'])->name('jadwal.matrix.print');
@@ -990,6 +993,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/ekstrakurikuler/{ekstrakurikuler}/absen-mandiri', [SiswaEkstrakurikulerController::class, 'presensiMandiri'])->name('ekstrakurikuler.absen-mandiri');
         Route::get('/ekstrakurikuler/{ekstrakurikuler}/ketua-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiIndex'])->name('ekstrakurikuler.ketua-absensi');
         Route::post('/ekstrakurikuler/{ekstrakurikuler}/ketua-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiStore'])->name('ekstrakurikuler.ketua-absensi.store');
+        Route::post('/ekstrakurikuler/{ekstrakurikuler}/ketua-simpan-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiStore'])->name('ekstrakurikuler.ketua-simpan-absensi');
     });
 
     // ==========================================

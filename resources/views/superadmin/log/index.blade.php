@@ -1221,38 +1221,46 @@ function initMap() {
         scrollWheelZoom: true
     });
 
-    // 1. Layer Utama: CartoDB Voyager (Sangat Cepat, Jernih, Kontras Tinggi di Indonesia, Bebas API Key)
-    const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abcd',
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    // 1. Layer Utama: Google Maps (Paling Detail di Indonesia & Dunia, Bebas API Key & Tanpa Watermark)
+    const googleRoadLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google Maps'
     }).addTo(loginMap);
 
-    // 2. Layer Alternatif: OpenStreetMap Resmi dengan Multi Subdomain
+    // 2. Layer Alternatif: Google Satelit + Jalan (Hybrid - Foto Udara dengan Label Kota/Negara)
+    const googleHybridLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google Maps Satelit'
+    });
+
+    // 3. Layer Alternatif: Esri Peta Jalan (World Street Map - Jernih & Stabil)
+    const esriStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri Street Map',
+        maxZoom: 18
+    });
+
+    // 4. Layer Alternatif: OpenStreetMap Resmi
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         subdomains: ['a', 'b', 'c'],
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> kontributor'
     });
 
-    // 3. Layer Alternatif: Esri Satelit (Citra Satelit Resolusi Tinggi Bebas API Key)
+    // 5. Layer Alternatif: Esri Satelit (Citra Satelit Resolusi Tinggi Bebas API Key)
     const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: '&copy; Esri World Imagery',
         maxZoom: 18
     });
 
-    // 4. Layer Alternatif: Esri Peta Jalan
-    const esriStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '&copy; Esri Street Map',
-        maxZoom: 18
-    });
-
     // Kontrol pemilih tampilan peta
     L.control.layers({
-        "🗺️ Peta Jernih (Cepat)": cartoVoyager,
+        "🗺️ Google Maps": googleRoadLayer,
+        "🛰️ Google Satelit": googleHybridLayer,
+        "🛣️ Esri Peta Jalan": esriStreetLayer,
         "📍 OpenStreetMap": osmLayer,
-        "🛣️ Peta Jalan Esri": esriStreetLayer,
-        "🛰️ Citra Satelit": satLayer
+        "🌍 Citra Satelit Esri": satLayer
     }, null, { position: 'topright' }).addTo(loginMap);
 
     // Staggered InvalidateSize untuk mencegah petak abu-abu

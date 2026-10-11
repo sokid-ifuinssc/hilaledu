@@ -338,36 +338,4 @@
         </div>
     </div>
 </div>
-
-{{-- Integrated Apps Grid --}}
-<div class="section-card mb-4">
-    <div class="section-header">
-        <h6><i class="bi bi-grid-3x3-gap-fill me-2" style="color:var(--accent-gold);"></i>Status Modul Ekosistem HilalEdu</h6>
-        <a href="{{ route('superadmin.apps.index') }}" style="font-size:0.78rem;color:var(--primary-lighter);text-decoration:none;">Kelola Modul →</a>
-    </div>
-    <div class="p-4">
-        <div class="row g-3">
-            @foreach($apps as $app)
-                <div class="col-md-6 col-lg-4">
-                    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;height:100%;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-                        <div class="d-flex align-items-start gap-3 mb-3">
-                            <div style="width:46px;height:46px;border-radius:12px;background:{{ $app->color }}15;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
-                                <i class="{{ $app->icon }}" style="color:{{ $app->color }};"></i>
-                            </div>
-                            <div style="overflow:hidden;">
-                                <div style="font-weight:700;font-size:0.95rem;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $app->name }}</div>
-                                <div style="font-size:0.75rem;color:#64748b;">{{ Str::limit($app->description, 60) }}</div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between pt-2" style="border-top:1px solid #f1f5f9;">
-                            <span class="badge-role badge-{{ $app->statusBadgeClass() }}">{{ $app->statusLabel() }}</span>
-                            <span style="font-size:0.75rem;color:#64748b;"><i class="bi bi-people me-1"></i>{{ $app->coordinators_count }} Koordinator</span>
-                            <a href="{{ route('superadmin.apps.show', $app) }}" style="font-size:0.78rem;color:#059669;font-weight:600;text-decoration:none;">Kelola <i class="bi bi-arrow-right"></i></a>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-</div>
 @endsection

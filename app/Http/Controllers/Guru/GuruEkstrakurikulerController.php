@@ -17,12 +17,12 @@ use Illuminate\Support\Facades\Storage;
 class GuruEkstrakurikulerController extends Controller
 {
     /**
-     * Pastikan user adalah pembina dari eskul terkait atau superadmin
+     * Pastikan user adalah pembina dari eskul terkait, waka kesiswaan, pembina osis, atau superadmin
      */
     protected function authorizePembina(Ekstrakurikuler $ekstrakurikuler): void
     {
         $user = auth()->user();
-        if ($user->isSuperAdmin()) {
+        if ($user->isSuperAdmin() || $user->isWakaKesiswaan() || $user->isPembinaOsis() || $user->hasAdminRole('kesiswaan')) {
             return;
         }
 
@@ -32,14 +32,15 @@ class GuruEkstrakurikulerController extends Controller
     }
 
     /**
-     * Dashboard / daftar eskul yang dibina oleh guru yang sedang login
+     * Dashboard / daftar eskul yang dibina atau dikoordinasikan
      */
     public function index()
     {
         $user = auth()->user();
+        $isKoordinator = $user->isSuperAdmin() || $user->isWakaKesiswaan() || $user->isPembinaOsis() || $user->hasAdminRole('kesiswaan');
 
         $eskuls = Ekstrakurikuler::query()
-            ->when(!$user->isSuperAdmin(), fn($q) => $q->where('pembina_guru_id', $user->id))
+            ->when(!$isKoordinator, fn($q) => $q->where('pembina_guru_id', $user->id))
             ->with(['pembina', 'ketua'])
             ->withCount([
                 'anggotas as total_anggota' => fn($q) => $q->where('status', 'aktif'),
@@ -52,7 +53,7 @@ class GuruEkstrakurikulerController extends Controller
         $ta = PengaturanSekolah::getActiveTahunAjaran();
         $sem = PengaturanSekolah::getActiveSemester();
 
-        return view('guru.ekstrakurikuler.index', compact('eskuls', 'ta', 'sem'));
+        return view('guru.ekstrakurikuler.index', compact('eskuls', 'ta', 'sem', 'isKoordinator'));
     }
 
     /**

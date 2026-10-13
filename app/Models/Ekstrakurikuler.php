@@ -90,7 +90,8 @@ class Ekstrakurikuler extends Model
         }
         $rawTugas = array_values(array_unique(array_filter($rawTugas)));
 
-        $jabatan = (empty($guru->jabatan_utama) || $guru->jabatan_utama === 'Guru Pengajar')
+        $defaultJabatan = $guru->role === 'tendik' ? 'Tenaga Kependidikan' : 'Guru Pengajar';
+        $jabatan = (empty($guru->jabatan_utama) || $guru->jabatan_utama === $defaultJabatan || $guru->jabatan_utama === 'Guru Pengajar')
             ? $tugasBaru : $guru->jabatan_utama;
 
         DB::table('users')
@@ -117,10 +118,11 @@ class Ekstrakurikuler extends Model
         }
         $masihAdaEskulLain = $queryOther->exists();
 
+        $defaultJabatan = $guru->role === 'tendik' ? 'Tenaga Kependidikan' : 'Guru Pengajar';
         $jabatan = $guru->jabatan_utama;
         if (!$masihAdaEskulLain) {
             if ($jabatan === $target1) {
-                $jabatan = 'Guru Pengajar';
+                $jabatan = $defaultJabatan;
             }
         }
 

@@ -162,8 +162,14 @@ class PenugasanGuruController extends Controller
         $rekapMonitoring = $monitoringPayload['rekap'];
         $hariPantau      = $monitoringPayload['hariPantau'];
         $jamPantau       = $monitoringPayload['jamPantau'];
-        $isSimulasi      = $monitoringPayload['isSimulasi'];
-        $periodInfo      = $monitoringPayload['periodInfo'];
+        // 4. Data Eskul, Kelas & Siswa untuk modal input peserta eskul (Kesiswaan, Pembina OSIS, Pembina Eskul)
+        $allEskuls = \App\Models\Ekstrakurikuler::where('is_aktif', true)->orderBy('nama')->get();
+        $allKelases = \App\Models\Kelas::where('is_aktif', true)->orderBy('nama_kelas')->get();
+        $allSiswas = \App\Models\User::where('role', 'siswa')
+            ->where('is_active', true)
+            ->with('kelas')
+            ->orderBy('name')
+            ->get();
 
         return view('guru.penugasan.index', compact(
             'penugasanMengajar',
@@ -177,7 +183,10 @@ class PenugasanGuruController extends Controller
             'hariPantau',
             'jamPantau',
             'isSimulasi',
-            'periodInfo'
+            'periodInfo',
+            'allEskuls',
+            'allKelases',
+            'allSiswas'
         ));
     }
 

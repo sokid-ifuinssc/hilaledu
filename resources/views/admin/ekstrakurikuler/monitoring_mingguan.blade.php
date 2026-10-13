@@ -21,6 +21,10 @@
             <p class="text-sm text-slate-500 mt-1">Pantau keterlaksanaan kegiatan, absensi, dan realisasi ekstrakurikuler per rentang tanggal (Waka Kesiswaan, Pembina OSIS & Admin)</p>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{{ route('guru.ekstrakurikuler.index') }}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition">
+                <i class="bi bi-person-plus-fill"></i>
+                Input / Tambah Peserta Eskul
+            </a>
             <a href="{{ route('admin.ekstrakurikuler.rekap-kelas') }}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition">
                 <i class="bi bi-people-fill"></i>
                 Rekap Per Kelas Siswa

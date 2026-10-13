@@ -6,7 +6,12 @@
 <div class="space-y-6" x-data="{ 
     tab: '{{ $tab }}',
     modalProgramKerja: false,
-    selectedTugas: ''
+    selectedTugas: '',
+    modalInputPesertaEskul: false,
+    selectedEskulId: '',
+    kelasFilterPeserta: '',
+    searchSiswaPeserta: '',
+    selectedJabatan: 'Anggota'
 }">
 
     <!-- Header Section -->
@@ -242,10 +247,12 @@
                 @php
                     $bidangParam = 'waka_kurikulum';
                     $tLower = strtolower($tugas);
-                    $isPembinaEskul = str_starts_with($tLower, 'pembina ');
+                    $isOsis = str_contains($tLower, 'osis');
+                    $isKesiswaan = str_contains($tLower, 'kesiswaan');
+                    $isPembinaEskul = str_starts_with($tLower, 'pembina ') && !$isOsis;
                     if (str_contains($tLower, 'hubin') || str_contains($tLower, 'humas') || str_contains($tLower, 'industri')) $bidangParam = 'waka_hubin';
-                    elseif (str_contains($tLower, 'osis')) $bidangParam = 'pembina_osis';
-                    elseif (str_contains($tLower, 'kesiswaan')) $bidangParam = 'waka_kesiswaan';
+                    elseif ($isOsis) $bidangParam = 'pembina_osis';
+                    elseif ($isKesiswaan) $bidangParam = 'waka_kesiswaan';
                     elseif (str_contains($tLower, 'sarpras')) $bidangParam = 'waka_sarpras';
                 @endphp
                 <div class="pt-3 border-t border-slate-100 space-y-2">
@@ -255,6 +262,29 @@
                            class="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm shadow-purple-600/20">
                             <i class="bi-trophy-fill"></i>
                             <span>Kelola Ekstrakurikuler Saya</span>
+                        </a>
+                    @elseif($isOsis || $isKesiswaan)
+                        {{-- Tombol khusus Pembina OSIS & Waka Kesiswaan --}}
+                        <button type="button" 
+                                @click="modalInputPesertaEskul = true; selectedEskulId = ''"
+                                class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm shadow-emerald-600/20">
+                            <i class="bi-person-plus-fill"></i>
+                            <span>Input Siswa Peserta Eskul</span>
+                        </button>
+                        <a href="{{ route('guru.ekstrakurikuler.index') }}" 
+                           class="w-full py-2 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-purple-200">
+                            <i class="bi-trophy-fill"></i>
+                            <span>Buka Portal & Kelola Eskul</span>
+                        </a>
+                        <a href="{{ route('admin.ekstrakurikuler.monitoring') }}" 
+                           class="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-indigo-200">
+                            <i class="bi-calendar2-range"></i>
+                            <span>Monitoring Kegiatan Mingguan</span>
+                        </a>
+                        <a href="{{ route('guru.kegiatan.create', ['bidang' => $bidangParam]) }}" 
+                           class="w-full py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-slate-200">
+                            <i class="bi-calendar-plus-fill"></i>
+                            <span>Input Kegiatan (Sinkron Kalender)</span>
                         </a>
                     @else
                         <a href="{{ route('guru.kegiatan.create', ['bidang' => $bidangParam]) }}" 
@@ -410,6 +440,103 @@
                     </button>
                 </div>
             </form>
+        </div>
+    <!-- MODAL INPUT PESERTA ESKUL (WAKA KESISWAAN & PEMBINA OSIS) -->
+    <div x-show="modalInputPesertaEskul" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="modalInputPesertaEskul = false"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="relative bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                            <i class="bi-person-plus-fill"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800">Input Siswa Peserta Ekstrakurikuler</h3>
+                            <p class="text-xs text-slate-500">Penugasan wewenang Waka Kesiswaan & Pembina OSIS</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="modalInputPesertaEskul = false" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                        <i class="bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <form :action="'{{ url('admin/ekstrakurikuler') }}/' + selectedEskulId + '/anggota'" method="POST" class="mt-4 space-y-4 text-xs" onsubmit="if(!this.querySelector('[name=selected_eskul_id]').value){ alert('Pilih ekstrakurikuler tujuan terlebih dahulu!'); return false; }">
+                    @csrf
+                    <!-- Pilih Eskul Tujuan -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Pilih Ekstrakurikuler Tujuan <span class="text-rose-500">*</span></label>
+                        <select name="selected_eskul_id" x-model="selectedEskulId" required class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-emerald-500">
+                            <option value="">-- Pilih Ekstrakurikuler --</option>
+                            @foreach(($allEskuls ?? []) as $esk)
+                                <option value="{{ $esk->id }}">{{ $esk->nama }} ({{ $esk->hari }} - Pembina: {{ $esk->pembina->name ?? 'Belum ada' }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Filter & Jabatan -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Filter Kelas Siswa</label>
+                            <select x-model="kelasFilterPeserta" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white">
+                                <option value="">Semua Tingkat / Kelas</option>
+                                @foreach(($allKelases ?? []) as $kls)
+                                    <option value="{{ $kls->id }}">{{ $kls->nama_kelas }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Cari Nama / NISN</label>
+                            <input type="text" x-model="searchSiswaPeserta" placeholder="Ketik nama siswa..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Jabatan Awal</label>
+                            <select name="jabatan" x-model="selectedJabatan" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white">
+                                <option value="Anggota">Anggota</option>
+                                <option value="Wakil Ketua">Wakil Ketua</option>
+                                <option value="Sekretaris">Sekretaris</option>
+                                <option value="Bendahara">Bendahara</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Daftar Siswa -->
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <div class="p-2.5 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 flex justify-between items-center">
+                            <span>Daftar Siswa Sekolah (X, XI, XII)</span>
+                            <span class="text-[11px] text-slate-400">Centang kotak untuk menambahkan</span>
+                        </div>
+                        <div class="max-h-64 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
+                            @forelse(($allSiswas ?? []) as $s)
+                                <label x-show="(!kelasFilterPeserta || '{{ $s->kelas_id }}' == kelasFilterPeserta) && (!searchSiswaPeserta || '{{ strtolower($s->name) }}'.includes(searchSiswaPeserta.toLowerCase()) || '{{ $s->nisn }}'.includes(searchSiswaPeserta) || '{{ $s->username }}'.includes(searchSiswaPeserta))" class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition">
+                                    <input type="checkbox" name="siswa_ids[]" value="{{ $s->id }}" class="rounded text-emerald-600 focus:ring-emerald-500">
+                                    <div class="flex-1">
+                                        <span class="text-xs font-bold text-slate-800">{{ $s->name }}</span>
+                                        <span class="text-[11px] text-slate-500 ml-2">({{ $s->kelas->nama_kelas ?? 'Kelas belum diset' }})</span>
+                                        <span class="text-[10px] text-slate-400 ml-1">NISN: {{ $s->nisn ?: $s->username }}</span>
+                                    </div>
+                                </label>
+                            @empty
+                                <p class="text-xs text-slate-400 text-center py-4">Data siswa tidak ditemukan.</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <a :href="selectedEskulId ? '{{ url('guru/ekstrakurikuler') }}/' + selectedEskulId : '{{ route('guru.ekstrakurikuler.index') }}'" class="text-xs text-indigo-600 hover:underline font-semibold flex items-center gap-1">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                            <span>Buka Halaman Penuh Eskul</span>
+                        </a>
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="modalInputPesertaEskul = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Batal</button>
+                            <button type="submit" :disabled="!selectedEskulId" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white rounded-xl shadow-sm transition">
+                                <i class="bi bi-check-lg mr-1"></i>
+                                Tambahkan Siswa Terpilih
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 

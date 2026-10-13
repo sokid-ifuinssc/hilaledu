@@ -61,11 +61,20 @@
 
         <div class="flex flex-col sm:flex-row gap-3 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-xs">
             <div class="border-b sm:border-b-0 sm:border-r border-white/10 pb-2 sm:pb-0 sm:pr-4">
-                <div class="text-[10px] text-blue-200 uppercase font-semibold">Guru Pembina</div>
-                <div class="font-bold text-white text-sm mt-0.5">
-                    {{ $ekstrakurikuler->pembina ? $ekstrakurikuler->pembina->name : '- Belum Ditugaskan -' }}
+                <div class="text-[10px] text-blue-200 uppercase font-semibold">Pembina Eskul</div>
+                <div class="font-bold text-white text-sm mt-0.5 flex items-center gap-1.5 flex-wrap">
+                    <span>{{ $ekstrakurikuler->pembina ? $ekstrakurikuler->pembina->name : '- Belum Ditugaskan -' }}</span>
+                    @if($ekstrakurikuler->pembina)
+                        @if($ekstrakurikuler->pembina->role === 'tendik')
+                            <span class="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-200 text-[9px] font-bold border border-amber-400/30">TENDIK</span>
+                        @elseif(in_array($ekstrakurikuler->pembina->role, ['admin', 'superadmin']))
+                            <span class="px-1.5 py-0.5 rounded bg-purple-400/20 text-purple-200 text-[9px] font-bold border border-purple-400/30">ADMIN</span>
+                        @else
+                            <span class="px-1.5 py-0.5 rounded bg-blue-400/20 text-blue-200 text-[9px] font-bold border border-blue-400/30">GURU</span>
+                        @endif
+                    @endif
                 </div>
-                <div class="text-[10px] text-blue-300">{{ $ekstrakurikuler->pembina?->nip ?: 'Dewan Guru' }}</div>
+                <div class="text-[10px] text-blue-300">{{ $ekstrakurikuler->pembina?->nip ?: ($ekstrakurikuler->pembina?->role === 'tendik' ? 'Tenaga Kependidikan' : 'Dewan Guru') }}</div>
             </div>
             <div class="pt-2 sm:pt-0 sm:pl-2">
                 <div class="text-[10px] text-blue-200 uppercase font-semibold">Ketua Eskul</div>

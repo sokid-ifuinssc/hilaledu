@@ -11,21 +11,46 @@
                 <span class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-indigo-200">
                     <i class="bi bi-award-fill text-lg"></i>
                 </span>
-                Ekstrakurikuler Binaan Saya
+                {{ !empty($isKoordinator) ? 'Portal Ekstrakurikuler (Waka Kesiswaan & Pembina OSIS)' : 'Ekstrakurikuler Binaan Saya' }}
             </h1>
-            <p class="text-sm text-slate-500 mt-1">Kelola anggota, tunjuk ketua eskul, input rencana & laporan kegiatan, absensi, serta penilaian eskul binaan Anda.</p>
+            <p class="text-sm text-slate-500 mt-1">
+                {{ !empty($isKoordinator) ? 'Kelola seluruh ekstrakurikuler sekolah, input & daftarkan siswa (X, XI, XII) menjadi peserta eskul, pantau absensi, serta tinjau kegiatan.' : 'Kelola anggota, daftarkan siswa, tunjuk ketua eskul, input rencana & laporan kegiatan, absensi, serta penilaian eskul binaan Anda.' }}
+            </p>
         </div>
+        @if(!empty($isKoordinator))
+        <div class="flex items-center gap-2">
+            <a href="{{ route('admin.ekstrakurikuler.index') }}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 transition shadow-sm">
+                <i class="bi bi-collection"></i> Data Master Eskul
+            </a>
+            <a href="{{ route('admin.ekstrakurikuler.monitoring') }}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition">
+                <i class="bi bi-calendar2-range"></i> Monitoring Mingguan
+            </a>
+        </div>
+        @endif
     </div>
 
+    @if(!empty($isKoordinator))
+    <!-- Banner Informasi Waka Kesiswaan & Pembina OSIS -->
+    <div class="bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3.5 text-slate-800 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 text-lg shadow-sm shadow-emerald-200">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="text-xs text-slate-700 leading-relaxed">
+            <span class="font-bold text-emerald-950 block text-sm mb-0.5">Wewenang Koordinasi Eskul (Waka Kesiswaan & Pembina OSIS):</span>
+            Sebagai Waka Kesiswaan atau Pembina OSIS, Anda memiliki kewenangan penuh untuk menginput atau menambahkan siswa ke seluruh ekstrakurikuler sekolah (sama seperti yang dapat dilakukan oleh pembina eskul), menunjuk ketua eskul, melihat absensi serta memantau keterlaksanaan kegiatan.
+        </div>
+    </div>
+    @else
     <!-- Alert Informasi Tugas Pembina -->
     <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-4 flex items-start gap-3">
         <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 text-sm shadow-sm">
             <i class="bi bi-info-circle-fill"></i>
         </div>
         <div class="text-xs text-indigo-900 leading-relaxed">
-            <span class="font-bold">Panduan Pembina Eskul:</span> Sebagai pembina eskul, Anda dapat menunjuk salah satu siswa menjadi <b>Ketua Eskul</b> yang memiliki akses untuk mengabsen rekannya. Anda juga dapat menginput <b>Rencana Kegiatan</b>, membuat <b>Laporan Keterlaksanaan</b> (tanggal otomatis terisi dari rencana), mengabsen langsung siswa, serta menginput <b>Nilai Akhir Eskul</b> yang akan menyambung ke rapor & mapel project.
+            <span class="font-bold">Panduan Pembina Eskul:</span> Sebagai pembina eskul, Anda dapat menginput / menambahkan siswa menjadi peserta eskul, menunjuk salah satu siswa menjadi <b>Ketua Eskul</b> yang memiliki akses untuk mengabsen rekannya, membuat <b>Rencana Kegiatan</b>, menyusun <b>Laporan Keterlaksanaan</b>, serta menginput <b>Nilai Akhir Eskul</b> yang tersinkron otomatis ke rapor & mapel project.
         </div>
     </div>
+    @endif
 
     <!-- Grid Card Eskul -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -50,8 +75,12 @@
                         </p>
                     </div>
 
-                    <!-- Info Jadwal & Tempat -->
+                    <!-- Info Pembina, Jadwal & Tempat -->
                     <div class="space-y-1.5 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                        <div class="flex items-center gap-2">
+                            <i class="bi bi-person-workspace text-indigo-500 w-4"></i>
+                            <span>Pembina: <b>{{ $eskul->pembina ? $eskul->pembina->name : '- Belum Ditugaskan -' }}</b></span>
+                        </div>
                         <div class="flex items-center gap-2">
                             <i class="bi bi-calendar-event text-slate-400 w-4"></i>
                             <span>{{ $eskul->hari ?: 'Belum ditentukan' }}, {{ substr($eskul->jam_mulai,0,5) }} - {{ substr($eskul->jam_selesai,0,5) }}</span>
@@ -62,22 +91,22 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <i class="bi bi-person-badge text-amber-500 w-4"></i>
-                            <span>Ketua: <b>{{ $eskul->ketuaSiswa->nama ?? 'Belum ditunjuk' }}</b></span>
+                            <span>Ketua: <b>{{ $eskul->ketuaSiswa->name ?? 'Belum ditunjuk' }}</b></span>
                         </div>
                     </div>
 
                     <!-- Statistik Mini -->
                     <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center">
                         <div class="p-2 rounded-xl bg-slate-50">
-                            <span class="block text-base font-bold text-slate-800">{{ $eskul->anggotas_count }}</span>
+                            <span class="block text-base font-bold text-slate-800">{{ $eskul->total_anggota ?? $eskul->anggotas_count }}</span>
                             <span class="text-[10px] text-slate-400">Anggota</span>
                         </div>
                         <div class="p-2 rounded-xl bg-slate-50">
-                            <span class="block text-base font-bold text-indigo-600">{{ $eskul->rencanas_count }}</span>
+                            <span class="block text-base font-bold text-indigo-600">{{ $eskul->total_rencana ?? $eskul->rencanas_count }}</span>
                             <span class="text-[10px] text-slate-400">Rencana</span>
                         </div>
                         <div class="p-2 rounded-xl bg-slate-50">
-                            <span class="block text-base font-bold text-emerald-600">{{ $eskul->laporans_count }}</span>
+                            <span class="block text-base font-bold text-emerald-600">{{ $eskul->total_laporan ?? $eskul->laporans_count }}</span>
                             <span class="text-[10px] text-slate-400">Laporan</span>
                         </div>
                     </div>
@@ -85,7 +114,8 @@
 
                 <div class="p-4 bg-slate-50 border-t border-slate-100">
                     <a href="{{ route('guru.ekstrakurikuler.show', $eskul->id) }}" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition">
-                        <span>Buka Kelola Eskul</span>
+                        <i class="bi bi-people-fill"></i>
+                        <span>Kelola & Input Peserta Siswa</span>
                         <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
@@ -95,8 +125,8 @@
                 <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-3xl mx-auto mb-3">
                     <i class="bi bi-award"></i>
                 </div>
-                <h3 class="text-base font-bold text-slate-800">Anda Belum Ditugaskan Sebagai Pembina Eskul</h3>
-                <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">Penugasan pembina eskul diatur oleh Administrator atau Waka Kesiswaan melalui menu Master Ekstrakurikuler.</p>
+                <h3 class="text-base font-bold text-slate-800">Belum Ada Ekstrakurikuler Terdaftar</h3>
+                <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">Ekstrakurikuler dapat ditambahkan melalui menu Master Ekstrakurikuler oleh Administrator atau Waka Kesiswaan.</p>
             </div>
         @endforelse
     </div>

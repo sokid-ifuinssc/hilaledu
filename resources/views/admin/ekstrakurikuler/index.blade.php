@@ -65,6 +65,9 @@
         <a href="{{ route('admin.ekstrakurikuler.index') }}" class="active"><i class="bi bi-stars me-1"></i> Ekstrakurikuler</a>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="{{ route('guru.ekstrakurikuler.index') }}" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; text-decoration:none; background:rgba(99,102,241,0.1); color:#818cf8; border:1px solid rgba(99,102,241,0.3); transition:all 0.2s;">
+            <i class="bi bi-person-plus-fill"></i> Input & Kelola Peserta Eskul
+        </a>
         <a href="{{ route('admin.ekstrakurikuler.monitoring') }}" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:600; text-decoration:none; background:rgba(52,152,219,0.1); color:#5dade2; border:1px solid rgba(52,152,219,0.3); transition:all 0.2s;">
             <i class="bi bi-calendar-range"></i> Monitoring Mingguan
         </a>
@@ -115,7 +118,7 @@
                         <th>Kode</th>
                         <th>Nama Ekstrakurikuler</th>
                         <th>Jadwal & Tempat</th>
-                        <th>Guru Pembina</th>
+                        <th>Pembina Eskul</th>
                         <th>Anggota</th>
                         <th>Status</th>
                         <th>Aksi</th>
@@ -149,10 +152,19 @@
                         </td>
                         <td style="font-size:0.82rem;">
                             @if($eskul->pembina)
-                                <span style="font-weight:600;color:var(--text-light);">
-                                    <i class="bi bi-person-workspace me-1" style="color:var(--primary-light);"></i>{{ $eskul->pembina->name }}
-                                </span>
-                                <span style="display:block;font-size:0.72rem;color:var(--accent-gold);">
+                                <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                                    <span style="font-weight:600;color:var(--text-light);">
+                                        <i class="bi bi-person-workspace me-1" style="color:var(--primary-light);"></i>{{ $eskul->pembina->name }}
+                                    </span>
+                                    @if($eskul->pembina->role === 'tendik')
+                                        <span class="badge" style="background:rgba(245,158,11,0.15);color:#d97706;border:1px solid rgba(245,158,11,0.3);font-size:0.68rem;padding:2px 6px;border-radius:4px;">TENDIK</span>
+                                    @elseif(in_array($eskul->pembina->role, ['admin', 'superadmin']))
+                                        <span class="badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3);font-size:0.68rem;padding:2px 6px;border-radius:4px;">ADMIN</span>
+                                    @else
+                                        <span class="badge" style="background:rgba(59,130,246,0.15);color:#2563eb;border:1px solid rgba(59,130,246,0.3);font-size:0.68rem;padding:2px 6px;border-radius:4px;">GURU</span>
+                                    @endif
+                                </div>
+                                <span style="display:block;font-size:0.72rem;color:var(--accent-gold);margin-top:2px;">
                                     <i class="bi bi-arrow-repeat me-1"></i>Tersinkron di tugas tambahan
                                 </span>
                             @else
@@ -246,17 +258,44 @@
             <label class="field-label">Tempat / Lokasi Latihan</label>
             <input type="text" name="tempat" class="form-input" placeholder="Contoh: Lapangan Utama / Aula / Lab Komputer" value="{{ old('tempat') }}">
 
-            <label class="field-label">Guru Pembina</label>
+            <label class="field-label">Pembina Eskul (Guru / Tendik)</label>
             <select name="pembina_guru_id" class="form-input">
-                <option value="">-- Pilih Guru Pembina --</option>
-                @foreach($gurus as $guru)
-                    <option value="{{ $guru->id }}" {{ old('pembina_guru_id') == $guru->id ? 'selected' : '' }}>
-                        {{ $guru->name }} ({{ $guru->nip ?: 'Guru' }})
-                    </option>
-                @endforeach
+                <option value="">-- Pilih Pembina Eskul --</option>
+                @php
+                    $gurusOnly = $gurus->where('role', 'guru');
+                    $tendiksOnly = $gurus->where('role', 'tendik');
+                    $adminsOnly = $gurus->whereIn('role', ['admin', 'superadmin']);
+                @endphp
+                @if($gurusOnly->count() > 0)
+                    <optgroup label="Dewan Guru">
+                        @foreach($gurusOnly as $guru)
+                            <option value="{{ $guru->id }}" {{ old('pembina_guru_id') == $guru->id ? 'selected' : '' }}>
+                                {{ $guru->name }} ({{ $guru->nip ?: 'Guru' }})
+                            </option>
+                        @endforeach
+                    </optgroup>
+                @endif
+                @if($tendiksOnly->count() > 0)
+                    <optgroup label="Tenaga Kependidikan (Tendik)">
+                        @foreach($tendiksOnly as $tendik)
+                            <option value="{{ $tendik->id }}" {{ old('pembina_guru_id') == $tendik->id ? 'selected' : '' }}>
+                                {{ $tendik->name }} ({{ $tendik->nip ?: 'Tendik' }})
+                            </option>
+                        @endforeach
+                    </optgroup>
+                @endif
+                @if($adminsOnly->count() > 0)
+                    <optgroup label="Manajemen / Admin">
+                        @foreach($adminsOnly as $adminUser)
+                            <option value="{{ $adminUser->id }}" {{ old('pembina_guru_id') == $adminUser->id ? 'selected' : '' }}>
+                                {{ $adminUser->name }} ({{ ucfirst($adminUser->role) }})
+                            </option>
+                        @endforeach
+                    </optgroup>
+                @endif
             </select>
             <div class="guru-info-box">
-                <i class="bi bi-arrow-repeat me-1"></i>Penugasan pembina eskul otomatis tersinkron ke SK & Tugas Tambahan Guru.
+                <i class="bi bi-arrow-repeat me-1"></i>Penugasan pembina eskul (Guru / Tendik) otomatis tersinkron ke SK & Tugas Tambahan.
             </div>
 
             <label class="field-label">Deskripsi & Tujuan</label>
@@ -319,12 +358,30 @@
                     <label class="field-label">Tempat / Lokasi</label>
                     <input type="text" name="tempat" id="editTempat" class="form-input">
 
-                    <label class="field-label">Guru Pembina</label>
+                    <label class="field-label">Pembina Eskul (Guru / Tendik)</label>
                     <select name="pembina_guru_id" id="editPembinaGuruId" class="form-input">
-                        <option value="">-- Pilih Guru Pembina --</option>
-                        @foreach($gurus as $guru)
-                            <option value="{{ $guru->id }}">{{ $guru->name }} ({{ $guru->nip ?: 'Guru' }})</option>
-                        @endforeach
+                        <option value="">-- Pilih Pembina Eskul --</option>
+                        @if($gurusOnly->count() > 0)
+                            <optgroup label="Dewan Guru">
+                                @foreach($gurusOnly as $guru)
+                                    <option value="{{ $guru->id }}">{{ $guru->name }} ({{ $guru->nip ?: 'Guru' }})</option>
+                                @endforeach
+                            </optgroup>
+                        @endif
+                        @if($tendiksOnly->count() > 0)
+                            <optgroup label="Tenaga Kependidikan (Tendik)">
+                                @foreach($tendiksOnly as $tendik)
+                                    <option value="{{ $tendik->id }}">{{ $tendik->name }} ({{ $tendik->nip ?: 'Tendik' }})</option>
+                                @endforeach
+                            </optgroup>
+                        @endif
+                        @if($adminsOnly->count() > 0)
+                            <optgroup label="Manajemen / Admin">
+                                @foreach($adminsOnly as $adminUser)
+                                    <option value="{{ $adminUser->id }}">{{ $adminUser->name }} ({{ ucfirst($adminUser->role) }})</option>
+                                @endforeach
+                            </optgroup>
+                        @endif
                     </select>
 
                     <label class="field-label">Deskripsi</label>

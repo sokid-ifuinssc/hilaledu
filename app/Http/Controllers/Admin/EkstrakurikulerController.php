@@ -45,8 +45,9 @@ class EkstrakurikulerController extends Controller
 
         $eskuls = $query->orderBy('nama')->get();
 
-        $gurus = User::whereIn('role', ['guru', 'admin', 'superadmin'])
+        $gurus = User::whereIn('role', ['guru', 'tendik', 'admin', 'superadmin'])
             ->where('is_active', true)
+            ->orderBy('role')
             ->orderBy('name')
             ->get();
 
@@ -149,9 +150,10 @@ class EkstrakurikulerController extends Controller
             ->get()
             ->keyBy('siswa_id');
 
-        // Master Guru & Siswa untuk modal input
-        $gurus = User::whereIn('role', ['guru', 'admin', 'superadmin'])
+        // Master Pembina (Guru & Tendik) & Siswa untuk modal input
+        $gurus = User::whereIn('role', ['guru', 'tendik', 'admin', 'superadmin'])
             ->where('is_active', true)
+            ->orderBy('role')
             ->orderBy('name')
             ->get();
 

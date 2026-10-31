@@ -355,6 +355,19 @@ body {
                     </div>
                 @endif
 
+                @if(session('error'))
+                    <div class="alert-error">
+                        <i class="bi bi-exclamation-triangle-fill text-lg"></i>
+                        <span>{{ session('error') }}</span>
+                    </div>
+                @endif
+
+                @if(session('success'))
+                    <div class="mb-4 p-3 rounded-xl text-sm text-center" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #34d399;">
+                        <i class="bi bi-check-circle-fill me-1"></i> {{ session('success') }}
+                    </div>
+                @endif
+
                 @if($errors->any())
                     <div class="alert-error">
                         <i class="bi bi-exclamation-triangle-fill text-lg"></i>
@@ -382,7 +395,7 @@ body {
 
                     <div class="form-check-custom">
                         <label class="form-check-label">
-                            <input type="checkbox" name="remember" id="remember">
+                            <input type="checkbox" name="remember" id="remember" checked>
                             <span>Ingat sesi saya</span>
                         </label>
                         <a href="#" class="forgot-password">Lupa sandi?</a>

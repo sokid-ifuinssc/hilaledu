@@ -1532,6 +1532,66 @@
                 setTimeout(() => toast.remove(), 400);
             }
         }, 4000);
+
+        // Keep-Alive & Session Activity Monitor (Mencegah Page Expired 419)
+        (function() {
+            let lastPing = Date.now();
+            let isChecking = false;
+
+            function checkAndRefreshSession() {
+                if (isChecking) return;
+                isChecking = true;
+
+                fetch('{{ route('session.keep-alive') }}', {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.status === 419 || response.status === 401) {
+                        window.location.href = "{{ route('login') }}";
+                        return null;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) {
+                        lastPing = Date.now();
+                        if (!data.authenticated) {
+                            window.location.href = "{{ route('login') }}";
+                        } else if (data.csrf_token) {
+                            const metaToken = document.querySelector('meta[name="csrf-token"]');
+                            if (metaToken) metaToken.setAttribute('content', data.csrf_token);
+                            document.querySelectorAll('input[name="_token"]').forEach(el => el.value = data.csrf_token);
+                        }
+                    }
+                })
+                .catch(() => {
+                    // Abaikan jika offline / koneksi terputus sementara
+                })
+                .finally(() => {
+                    isChecking = false;
+                });
+            }
+
+            // Jalankan saat tab kembali dibuka / HP dibuka kunci setelah tidak digunakan
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible' && (Date.now() - lastPing > 60000)) {
+                    checkAndRefreshSession();
+                }
+            });
+
+            window.addEventListener('focus', function() {
+                if (Date.now() - lastPing > 60000) {
+                    checkAndRefreshSession();
+                }
+            });
+
+            // Jalankan berkala setiap 10 menit
+            setInterval(checkAndRefreshSession, 10 * 60 * 1000);
+        })();
     </script>
 
     @yield('scripts')

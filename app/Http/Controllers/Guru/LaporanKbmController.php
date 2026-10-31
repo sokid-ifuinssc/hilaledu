@@ -345,6 +345,42 @@ class LaporanKbmController extends Controller
             'jumlah_siswa_total'       => $hadirCount + $tidakHadirCount,
         ]);
 
+        // Sinkronisasi otomatis ke Presensi Guru Mengajar (AbsensiGuru)
+        try {
+            $existingAbsen = \App\Models\AbsensiGuru::where('jadwal_pelajaran_id', $jadwal->id)
+                ->where('tanggal', $request->tanggal_realisasi)
+                ->where('guru_user_id', $guruId)
+                ->first();
+
+            if (!$existingAbsen) {
+                $now = now();
+                \App\Models\AbsensiGuru::create([
+                    'jadwal_pelajaran_id' => $jadwal->id,
+                    'guru_user_id'        => $guruId,
+                    'tanggal'             => $request->tanggal_realisasi,
+                    'jam_absen'           => $now->format('H:i:s'),
+                    'status'              => 'hadir',
+                    'terlambat_menit'     => 0,
+                    'catatan'             => 'Hadir KBM (Otomatis dari Laporan Realisasi KBM)',
+                ]);
+
+                // Sinkronisasi ke Presensi Masuk Harian jika belum absen pagi
+                $harianService = app(\App\Services\PresensiHarianService::class);
+                $presensiHarian = \App\Models\PresensiHarianGuru::where('guru_user_id', $guruId)
+                    ->where('tanggal', $request->tanggal_realisasi)
+                    ->first();
+
+                if (!$presensiHarian || empty($presensiHarian->jam_masuk)) {
+                    $guruUser = User::find($guruId) ?? $user;
+                    $harianService->recordPresensiMasuk($guruUser, $now, $user, [
+                        'catatan' => "Hadir mengajar mapel {$jadwal->mataPelajaran->nama} (Otomatis dari Laporan KBM)."
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Gagal auto-sync AbsensiGuru dari LaporanKbm: " . $e->getMessage());
+        }
+
         return redirect()->route('guru.laporan-kbm.index')
             ->with('success', "Laporan KBM dan Presensi Siswa berhasil disimpan! (Hadir: {$hadirCount}, Tidak Hadir: {$tidakHadirCount})");
     }

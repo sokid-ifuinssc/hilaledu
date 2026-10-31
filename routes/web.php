@@ -95,6 +95,15 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+// Session Keep-Alive & CSRF Token Refresh (Mencegah Page Expired 419)
+Route::get('/session/keep-alive', function () {
+    return response()->json([
+        'status' => 'ok',
+        'authenticated' => auth()->check(),
+        'csrf_token' => csrf_token(),
+    ]);
+})->name('session.keep-alive');
+
 // SSO Launcher & App Dispatcher
 Route::middleware('auth')->get('/sso/launch/{app}', [\App\Http\Controllers\SSOController::class, 'launch'])->name('sso.launch');
 

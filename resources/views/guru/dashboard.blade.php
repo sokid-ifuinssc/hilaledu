@@ -319,18 +319,28 @@
             @php
                 $isRunning = $j->isRunningNow();
                 $presensi = $j->absensiHariIni;
+                $laporan = $j->laporanKbmHariIni;
                 $tugas = $j->tugasHariIni;
+                $isSudahAbsen = ($presensi !== null) || ($laporan !== null);
             @endphp
-            <div class="bg-white rounded-3xl p-5 border {{ $isRunning ? 'border-2 border-emerald-500 ring-4 ring-emerald-500/10' : 'border-slate-200' }} shadow-xs flex flex-col justify-between space-y-4">
+            <div class="rounded-3xl p-5 border {{ $isSudahAbsen ? 'border-emerald-300 bg-emerald-50/30 ring-1 ring-emerald-500/20' : ($isRunning ? 'border-2 border-emerald-500 ring-4 ring-emerald-500/10 bg-white' : 'border-slate-200 bg-white') }} shadow-xs flex flex-col justify-between space-y-4 transition">
                 <div class="space-y-2">
-                    <!-- Jam Ke-Berapa & Waktu -->
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold">
+                    <!-- Jam Ke-Berapa, Waktu & Indikator Status -->
+                    <div class="flex items-center justify-between text-xs gap-2">
+                        <span class="px-2.5 py-1 rounded-lg {{ $isSudahAbsen ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-50 text-blue-700' }} font-bold">
                             Jam ke-{{ $j->jam_ke_mulai }}{{ $j->jam_ke_selesai > $j->jam_ke_mulai ? ' - ' . $j->jam_ke_selesai : '' }} ({{ substr($j->jam_mulai, 0, 5) }} - {{ substr($j->jam_selesai, 0, 5) }})
                         </span>
-                        @if($isRunning)
-                        <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                        @if($isSudahAbsen)
+                        <span class="px-2.5 py-0.5 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
+                            <i class="bi-check-circle-fill text-emerald-600"></i> Sudah Terabsen
+                        </span>
+                        @elseif($isRunning)
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider animate-pulse shrink-0">
                             Sedang Berlangsung
+                        </span>
+                        @else
+                        <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap shrink-0">
+                            Belum Terabsen
                         </span>
                         @endif
                     </div>
@@ -340,35 +350,76 @@
                         <h3 class="text-base font-extrabold text-slate-900 leading-snug">
                             {{ $j->mataPelajaran->nama ?? 'Mata Pelajaran' }}
                         </h3>
-                        <div class="mt-1">
+                        <div class="mt-1 flex items-center gap-2 flex-wrap">
                             <span class="px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
                                 Kelas {{ $j->kelas }}
                             </span>
+                            @if($j->ruang)
+                            <span class="text-[11px] text-slate-500 font-medium">
+                                <i class="bi-geo-alt"></i> {{ $j->ruang }}
+                            </span>
+                            @endif
                         </div>
                     </div>
+
+                    <!-- Keterangan Tambahan Jika Sudah Terabsen -->
+                    @if($isSudahAbsen)
+                    <div class="text-xs text-slate-600 bg-white/70 p-2.5 rounded-xl border border-emerald-200/70 space-y-1">
+                        @if($presensi)
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span>Waktu Presensi:</span>
+                            <strong class="font-mono text-slate-900">{{ substr($presensi->jam_absen ?? $presensi->waktu_masuk, 0, 5) }} WIB</strong>
+                        </div>
+                        @endif
+                        @if($laporan)
+                        <div class="text-[11px] text-emerald-800 font-semibold flex items-center gap-1.5">
+                            <i class="bi-journal-check text-emerald-600"></i>
+                            <span>Jurnal KBM Terisi (Hadir: {{ $laporan->jumlah_siswa_hadir }}, Tidak Hadir: {{ $laporan->jumlah_siswa_tidak_hadir }})</span>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                 </div>
 
                 <!-- Tombol Aksi: Absen & Tugas -->
-                <div class="pt-3 border-t border-slate-100 space-y-2">
-                    @if(!$presensi)
+                <div class="pt-3 border-t {{ $isSudahAbsen ? 'border-emerald-200' : 'border-slate-100' }} space-y-2">
+                    @if(!$isSudahAbsen)
                     <button type="button" 
                             @click="absenModal = true; selectedJadwal = { id: {{ $j->id }}, mapel: '{{ addslashes($j->mataPelajaran->nama ?? 'Mata Pelajaran') }}', kelas: '{{ $j->kelas }}', jam: '{{ substr($j->jam_mulai, 0, 5) }} - {{ substr($j->jam_selesai, 0, 5) }}' }"
                             class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm">
                         <i class="bi-fingerprint text-sm"></i>
                         <span>Klik Absen Kehadiran</span>
                     </button>
-                    <button type="button" 
-                            @click="tugasModal = true; selectedTugasJadwal = { id: {{ $j->id }}, mapel: '{{ addslashes($j->mataPelajaran->nama ?? 'Mata Pelajaran') }}', kelas: '{{ $j->kelas }}', deskripsi: '{{ addslashes($tugas->deskripsi_tugas ?? '') }}' }"
-                            class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-amber-200">
-                        <i class="bi-journal-text text-sm"></i>
-                        <span>{{ $tugas ? 'Edit Tugas Siswa' : 'Tinggalkan Tugas' }}</span>
-                    </button>
-                    @else
-                    <div class="w-full py-2 px-3 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5">
-                        <i class="bi-check-circle-fill text-emerald-600"></i>
-                        <span>Sudah Presensi ({{ \Carbon\Carbon::parse($presensi->waktu_masuk ?? $presensi->created_at)->format('H:i') }})</span>
+                    <div class="flex gap-2">
+                        <a href="{{ route('guru.laporan-kbm.create', ['jadwal_id' => $j->id]) }}" 
+                           class="flex-1 py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-blue-200">
+                            <i class="bi-journal-plus"></i>
+                            <span>Lapor KBM</span>
+                        </a>
+                        <button type="button" 
+                                @click="tugasModal = true; selectedTugasJadwal = { id: {{ $j->id }}, mapel: '{{ addslashes($j->mataPelajaran->nama ?? 'Mata Pelajaran') }}', kelas: '{{ $j->kelas }}', deskripsi: '{{ addslashes($tugas->deskripsi_tugas ?? '') }}' }"
+                                class="flex-1 py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-amber-200">
+                            <i class="bi-journal-text text-sm"></i>
+                            <span>{{ $tugas ? 'Edit Tugas' : 'Tinggalkan Tugas' }}</span>
+                        </button>
                     </div>
-                    @if($presensi->status !== 'hadir')
+                    @else
+                    <div class="w-full py-2 px-3 bg-emerald-100/70 border border-emerald-300 text-emerald-900 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5">
+                        <i class="bi-check-circle-fill text-emerald-600"></i>
+                        <span>Sudah Presensi Mengajar</span>
+                    </div>
+                    @if($laporan)
+                    <a href="{{ route('guru.laporan-kbm.show', $laporan->id) }}" class="w-full py-2 px-3 bg-white hover:bg-slate-50 text-emerald-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-emerald-200">
+                        <i class="bi-eye-fill"></i>
+                        <span>Lihat Jurnal Realisasi KBM</span>
+                    </a>
+                    @else
+                    <a href="{{ route('guru.laporan-kbm.create', ['jadwal_id' => $j->id]) }}" class="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-blue-200">
+                        <i class="bi-journal-plus"></i>
+                        <span>Isi Jurnal KBM & Presensi Siswa</span>
+                    </a>
+                    @endif
+                    @if($presensi && $presensi->status !== 'hadir')
                     <button type="button" 
                             @click="tugasModal = true; selectedTugasJadwal = { id: {{ $j->id }}, mapel: '{{ addslashes($j->mataPelajaran->nama ?? 'Mata Pelajaran') }}', kelas: '{{ $j->kelas }}', deskripsi: '{{ addslashes($tugas->deskripsi_tugas ?? '') }}' }"
                             class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-amber-200">
@@ -383,25 +434,52 @@
 
             <!-- Inval Mengajar (Jika menggantikan guru cuti) -->
             @foreach($jadwalInval as $j)
-            @php $presensiInval = $j->absensiHariIni; @endphp
-            <div class="bg-amber-50/40 rounded-3xl p-5 border-2 border-amber-300 shadow-xs flex flex-col justify-between space-y-4">
+            @php 
+                $presensiInval = $j->absensiHariIni; 
+                $laporanInval = $j->laporanKbmHariIni;
+                $isSudahInval = ($presensiInval !== null) || ($laporanInval !== null);
+            @endphp
+            <div class="rounded-3xl p-5 border {{ $isSudahInval ? 'border-emerald-300 bg-emerald-50/30 ring-1 ring-emerald-500/20' : 'border-2 border-amber-300 bg-amber-50/40' }} shadow-xs flex flex-col justify-between space-y-4 transition">
                 <div class="space-y-2">
-                    <div class="flex items-center justify-between text-xs">
+                    <div class="flex items-center justify-between text-xs gap-2">
                         <span class="px-2 py-0.5 rounded-lg bg-amber-200 text-amber-900 font-bold text-[10px] uppercase">
                             Tugas Inval (Guru Pengganti)
                         </span>
+                        @if($isSudahInval)
+                        <span class="px-2.5 py-0.5 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
+                            <i class="bi-check-circle-fill text-emerald-600"></i> Sudah Terabsen
+                        </span>
+                        @else
                         <span class="font-semibold text-slate-500 text-xs">
                             Jam ke-{{ $j->jam_ke_mulai }} ({{ substr($j->jam_mulai, 0, 5) }} - {{ substr($j->jam_selesai, 0, 5) }})
                         </span>
+                        @endif
                     </div>
                     <div>
                         <h3 class="text-base font-extrabold text-slate-900">{{ $j->mataPelajaran->nama ?? 'Mata Pelajaran' }}</h3>
                         <p class="text-xs text-slate-600 mt-0.5">Kelas {{ $j->kelas }} &bull; Menggantikan: <strong>{{ $j->guru?->name ?? 'Guru Pengampu' }}</strong></p>
                     </div>
+
+                    @if($isSudahInval)
+                    <div class="text-xs text-slate-600 bg-white/70 p-2.5 rounded-xl border border-emerald-200/70 space-y-1">
+                        @if($presensiInval)
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span>Waktu Presensi Inval:</span>
+                            <strong class="font-mono text-slate-900">{{ substr($presensiInval->jam_absen ?? $presensiInval->waktu_masuk, 0, 5) }} WIB</strong>
+                        </div>
+                        @endif
+                        @if($laporanInval)
+                        <div class="text-[11px] text-emerald-800 font-semibold flex items-center gap-1.5">
+                            <i class="bi-journal-check text-emerald-600"></i>
+                            <span>Jurnal KBM Terisi</span>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                 </div>
 
-                <div class="pt-3 border-t border-amber-200">
-                    @if(!$presensiInval)
+                <div class="pt-3 border-t {{ $isSudahInval ? 'border-emerald-200' : 'border-amber-200' }} space-y-2">
+                    @if(!$isSudahInval)
                     <button type="button" 
                             @click="absenModal = true; selectedJadwal = { id: {{ $j->id }}, mapel: '{{ addslashes($j->mataPelajaran->nama ?? 'Mata Pelajaran') }} (Inval)', kelas: '{{ $j->kelas }}', jam: '{{ substr($j->jam_mulai, 0, 5) }} - {{ substr($j->jam_selesai, 0, 5) }}' }"
                             class="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm">
@@ -409,9 +487,9 @@
                         <span>Klik Absen Kehadiran (Inval)</span>
                     </button>
                     @else
-                    <div class="w-full py-2 px-3 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5">
+                    <div class="w-full py-2 px-3 bg-emerald-100/70 border border-emerald-300 text-emerald-900 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5">
                         <i class="bi-check-circle-fill text-emerald-600"></i>
-                        <span>Sudah Absen Inval</span>
+                        <span>Sudah Presensi Inval</span>
                     </div>
                     @endif
                 </div>

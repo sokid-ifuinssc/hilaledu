@@ -31,9 +31,10 @@ class PresensiHarianController extends Controller
         } elseif ($user->isKaprog()) {
             $jurusanIds = \App\Models\Jurusan::where('kaprog_id', $user->id)->pluck('id');
             $kelasQuery->whereIn('jurusan_id', $jurusanIds);
-        } elseif ($user->isWaliKelas()) {
+        } elseif ($user->isWaliKelas() || Kelas::where('wali_kelas_id', $user->id)->exists()) {
             $kelasQuery->where('wali_kelas_id', $user->id);
             $canSetKetuaKelas = true;
+            $canEdit = true;
         } elseif ($user->isSiswa()) {
             $kelas = Kelas::find($user->kelas_id);
             if ($kelas && $kelas->ketua_kelas_id == $user->id) {
@@ -57,6 +58,11 @@ class PresensiHarianController extends Controller
         $filterKelas = $request->input('kelas_id');
         $filterMapel = $request->input('mapel_id');
         
+        // Otomatis pilih kelas jika user hanya membawahi 1 kelas (Wali Kelas / Ketua Kelas)
+        if (!$filterKelas && $kelasList->count() === 1) {
+            $filterKelas = $kelasList->first()->id;
+        }
+
         // Allowed kelas_id for this user
         $allowedKelasIds = $kelasList->pluck('id');
         if ($filterKelas && $allowedKelasIds->contains($filterKelas)) {
@@ -255,6 +261,8 @@ class PresensiHarianController extends Controller
         // Validation Access
         $canEdit = false;
         if ($user->isSuperAdmin() || $user->isPetugasPiket()) {
+            $canEdit = true;
+        } elseif (($user->isWaliKelas() || $kelas->wali_kelas_id == $user->id) && $kelas->wali_kelas_id == $user->id) {
             $canEdit = true;
         } elseif ($user->isSiswa() && $kelas->ketua_kelas_id == $user->id) {
             $canEdit = true;

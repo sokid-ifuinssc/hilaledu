@@ -96,7 +96,7 @@
                 <h3 class="font-bold text-blue-900 flex items-center gap-2">
                     <i class="bi-person-badge-fill"></i> Pengaturan Ketua Kelas
                 </h3>
-                <p class="text-xs text-blue-700 mt-1">Pilih siswa yang akan menjadi ketua kelas untuk mengelola absensi kelas ini.</p>
+                <p class="text-xs text-blue-700 mt-1">Pilih siswa yang menjadi ketua kelas untuk membantu absensi kelas. Sebagai Wali Kelas, Anda juga dapat menginput langsung absensi siswa pada formulir di bawah.</p>
             </div>
             <form action="{{ route('presensi-harian.set-ketua-kelas') }}" method="POST" class="flex gap-2 w-full sm:w-auto">
                 @csrf
@@ -171,6 +171,7 @@
             @php
                 $isKetua = (auth()->user()->role == 'siswa' && auth()->user()->kelas && auth()->user()->kelas->ketua_kelas_id == auth()->id());
                 $isPiket = (auth()->user()->isPetugasPiket() || (auth()->user()->role == 'guru' && auth()->user()->hasTugas('piket')));
+                $isWali = (auth()->user()->isWaliKelas() || ($selectedKelas && $selectedKelas->wali_kelas_id == auth()->id()));
                 $canInput = ($canEdit && $jenisPresensi == 'harian' && $filterTanggal == date('Y-m-d'));
             @endphp
 
@@ -181,10 +182,16 @@
                 <input type="hidden" name="tanggal" value="{{ $filterTanggal }}">
                 
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-4">
-                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-                        <h3 class="font-bold text-slate-800">Form Absensi Kelas ({{ $selectedKelas->nama ?? 'Kelas' }}) - {{ \Carbon\Carbon::parse($filterTanggal)->translatedFormat('d F Y') }}</h3>
-                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-sm transition">
-                            <i class="bi-save"></i> Simpan Absensi
+                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                                <i class="bi-calendar-check text-emerald-600"></i>
+                                Form Absensi Kelas ({{ $selectedKelas->nama ?? 'Kelas' }}) - {{ \Carbon\Carbon::parse($filterTanggal)->translatedFormat('d F Y') }}
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Dapat diisi oleh Wali Kelas, Ketua Kelas, maupun Petugas Piket.</p>
+                        </div>
+                        <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center gap-2">
+                            <i class="bi-save"></i> Simpan Absensi Kelas
                         </button>
                     </div>
                     

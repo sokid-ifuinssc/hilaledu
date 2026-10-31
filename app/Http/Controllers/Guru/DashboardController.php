@@ -47,6 +47,8 @@ class DashboardController extends Controller
         if ($cutiInval->isNotEmpty()) {
             $jadwalInval = JadwalPelajaran::with(['mataPelajaran', 'guru', 'absensiGuru' => function ($q) use ($todayDate) {
                     $q->where('tanggal', $todayDate);
+                }, 'laporanKbm' => function ($q) use ($todayDate) {
+                    $q->where('tanggal_realisasi', $todayDate);
                 }])
                 ->whereIn('guru_user_id', $cutiInval)
                 ->where('hari', $todayName)

@@ -32,6 +32,11 @@
                 </div>
             </div>
             <div class="flex items-center gap-3 shrink-0 flex-wrap">
+                <a href="{{ route('presensi-harian.index') }}"
+                   class="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 border border-blue-500/30">
+                    <i class="bi bi-person-check-fill text-sm"></i>
+                    <span>Absensi Siswa Kelas</span>
+                </a>
                 <a href="{{ route('domisili.index') }}"
                    class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 border border-emerald-400/30">
                     <i class="bi bi-geo-alt-fill text-sm"></i>

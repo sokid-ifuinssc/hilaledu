@@ -266,6 +266,56 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- CSRF Token Monitor (Mencegah Page Expired 419 di Halaman Login/Guest) -->
+    <script>
+        (function() {
+            let lastPing = Date.now();
+            let isChecking = false;
+
+            function refreshGuestToken() {
+                if (isChecking) return;
+                isChecking = true;
+
+                fetch('{{ route('session.keep-alive') }}', {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data) {
+                        lastPing = Date.now();
+                        if (data.csrf_token) {
+                            const metaToken = document.querySelector('meta[name="csrf-token"]');
+                            if (metaToken) metaToken.setAttribute('content', data.csrf_token);
+                            document.querySelectorAll('input[name="_token"]').forEach(el => el.value = data.csrf_token);
+                        }
+                    }
+                })
+                .catch(() => {})
+                .finally(() => {
+                    isChecking = false;
+                });
+            }
+
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible' && (Date.now() - lastPing > 60000)) {
+                    refreshGuestToken();
+                }
+            });
+
+            window.addEventListener('focus', function() {
+                if (Date.now() - lastPing > 60000) {
+                    refreshGuestToken();
+                }
+            });
+
+            setInterval(refreshGuestToken, 10 * 60 * 1000);
+        })();
+    </script>
     @yield('scripts')
 </body>
 </html>

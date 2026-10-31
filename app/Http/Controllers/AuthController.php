@@ -16,10 +16,11 @@ class AuthController extends Controller
     {
         $login = $request->input('email');
         $password = $request->input('password');
+        $remember = $request->boolean('remember');
 
         $fieldType = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        if (Auth::attempt([$fieldType => $login, 'password' => $password])) {
+        if (Auth::attempt([$fieldType => $login, 'password' => $password], $remember)) {
             $request->session()->regenerate();
             
             $user = Auth::user();

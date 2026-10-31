@@ -116,15 +116,28 @@ class PresensiHarianService
         }
         $presensi->save();
 
-        // SINKRONISASI KBM OTOMATIS:
-        // Kondisi A: Jika ada jam mengajar bertepatan dengan jam ke-1 atau 07.00
-        if ($hasJam1) {
-            $this->syncKbmAttendance($hasJam1, $guru, $todayDate, $nowTimeStr, ($statusMasuk === 'terlambat' ? 'terlambat' : 'hadir'), $terlambatMenit, "Otomatis dihadirkan bersama presensi masuk pukul " . substr($nowTimeStr, 0, 5) . " WIB.");
-        }
+        // SINKRONISASI KBM OTOMATIS KE SELURUH JADWAL GURU HARI INI:
+        $allJadwalsToday = JadwalPelajaran::where('guru_user_id', $guru->id)
+            ->where('hari', $todayName)
+            ->get();
 
-        // Kondisi C: Jika hadir langsung jam ke-3
-        if ($statusMasuk === 'hadir_sesuai_jam' && $firstJadwal) {
-            $this->syncKbmAttendance($firstJadwal, $guru, $todayDate, $nowTimeStr, 'hadir', 0, "Hadir tepat waktu sesuai jadwal mapel jam ke-{$firstJadwal->jam_ke_mulai}.");
+        foreach ($allJadwalsToday as $j) {
+            $existingAbsen = AbsensiGuru::where('jadwal_pelajaran_id', $j->id)
+                ->where('tanggal', $todayDate)
+                ->where('guru_user_id', $guru->id)
+                ->first();
+
+            if (!$existingAbsen) {
+                $jadwalMulai = Carbon::parse($todayDate . ' ' . $j->jam_mulai);
+                $isLate = $now->greaterThan($jadwalMulai->copy()->addMinutes(10));
+                $kbmStatus = $isLate ? 'terlambat' : 'hadir';
+                $kbmTerlambat = $isLate ? intval($now->diffInMinutes($jadwalMulai)) : 0;
+                $kbmCatatan = $isByPiket 
+                    ? "Diabsenkan oleh {$piketName} (" . substr($nowTimeStr, 0, 5) . " WIB)"
+                    : ($isLate ? "Hadir presensi masuk terlambat (" . substr($nowTimeStr, 0, 5) . " WIB)" : "Hadir tepat waktu bersama presensi masuk (" . substr($nowTimeStr, 0, 5) . " WIB)");
+
+                $this->syncKbmAttendance($j, $guru, $todayDate, $nowTimeStr, $kbmStatus, $kbmTerlambat, $kbmCatatan);
+            }
         }
 
         return [

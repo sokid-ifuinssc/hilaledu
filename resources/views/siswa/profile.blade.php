@@ -204,9 +204,9 @@ select.form-input option { background: #1a2e24; color: #fff; }
                 <input type="text" name="nip" class="form-input" value="{{ old('nip', $user->nip) }}" placeholder="Contoh: 0071234567">
             </div>
             <div class="col-md-6">
-                <label class="field-label">Username Akun</label>
-                <input type="text" class="form-input" value="{{ $user->username }}" readonly disabled>
-                <span class="small text-muted" style="font-size:0.75rem;">Username dibuat otomatis dari sistem.</span>
+                <label class="field-label">Username Akun <span class="field-required">*</span></label>
+                <input type="text" name="username" class="form-input font-monospace" value="{{ old('username', $user->username) }}" required placeholder="Username untuk login">
+                <span class="small text-muted" style="font-size:0.75rem;">Username unik untuk login siswa. Otomatis terupdate ke admin.</span>
             </div>
             <div class="col-md-6">
                 <label class="field-label">Alamat Email <span class="field-required">*</span></label>

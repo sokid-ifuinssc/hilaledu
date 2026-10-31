@@ -361,7 +361,8 @@ class LaporanKbmController extends Controller
                     'jam_absen'           => $now->format('H:i:s'),
                     'status'              => 'hadir',
                     'terlambat_menit'     => 0,
-                    'catatan'             => 'Hadir KBM (Otomatis dari Laporan Realisasi KBM)',
+                    'catatan'             => $request->catatan_kegiatan ?: 'Hadir KBM (Otomatis dari Laporan Realisasi KBM)',
+                    'lampiran_bukti'      => $fotoPath,
                 ]);
 
                 // Sinkronisasi ke Presensi Masuk Harian jika belum absen pagi

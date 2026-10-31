@@ -195,9 +195,9 @@ select.form-input option { background: #1e1e1e; color: #fff; }
                 <input type="text" name="nip" class="form-input" value="{{ old('nip', $user->nip) }}" placeholder="Contoh: 1234567890123456">
             </div>
             <div class="col-md-6">
-                <label class="field-label">Username (ID Akun HilalEdu)</label>
-                <input type="text" class="form-input" value="{{ $user->username }}" readonly disabled>
-                <span class="small text-muted" style="font-size:0.75rem;">Username hanya dapat diubah oleh SuperAdmin.</span>
+                <label class="field-label">Username (ID Akun HilalEdu) <span class="field-required">*</span></label>
+                <input type="text" name="username" class="form-input font-monospace" value="{{ old('username', $user->username) }}" required placeholder="Username untuk login">
+                <span class="small text-muted" style="font-size:0.75rem;">Username unik untuk login tendik. Otomatis terupdate ke admin.</span>
             </div>
             <div class="col-md-6">
                 <label class="field-label">Alamat Email <span class="field-required">*</span></label>

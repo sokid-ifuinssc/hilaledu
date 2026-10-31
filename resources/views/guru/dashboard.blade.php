@@ -318,12 +318,61 @@
             @foreach($jadwalHariIni as $j)
             @php
                 $isRunning = $j->isRunningNow();
-                $presensi = $j->absensiHariIni;
+                $presensi = $j->presensiHariIni;
                 $laporan = $j->laporanKbmHariIni;
                 $tugas = $j->tugasHariIni;
-                $isSudahAbsen = ($presensi !== null) || ($laporan !== null);
+
+                // Cek status kehadiran:
+                $isSudahAbsen = false;
+                $statusAbsen = null;
+                $sumberAbsen = null;
+                $waktuAbsen = null;
+                $catatanKegiatan = null;
+                $fotoLampiran = null;
+
+                if ($presensi) {
+                    $isSudahAbsen = true;
+                    $statusAbsen = $presensi->status; // hadir, terlambat, izin, sakit, tugas_luar
+                    $sumberAbsen = str_contains($presensi->catatan ?? '', 'Piket') ? 'piket' : 'mandiri';
+                    $waktuAbsen = substr($presensi->jam_absen, 0, 5);
+                    $catatanKegiatan = $presensi->catatan;
+                    $fotoLampiran = $presensi->lampiran_bukti;
+                } elseif ($laporan) {
+                    $isSudahAbsen = true;
+                    $statusAbsen = 'hadir';
+                    $sumberAbsen = 'jurnal_kbm';
+                    $waktuAbsen = substr($laporan->created_at->format('H:i'), 0, 5);
+                    $catatanKegiatan = $laporan->catatan_kegiatan;
+                    $fotoLampiran = $laporan->foto_dokumentasi;
+                } elseif ($presensiHarianHariIni && $presensiHarianHariIni->jam_masuk) {
+                    // Fallback jika guru sudah hadir di sekolah hari ini (presensi masuk mandiri atau diabsenkan piket)
+                    $isSudahAbsen = true;
+                    $statusAbsen = in_array($presensiHarianHariIni->status_masuk, ['hadir', 'hadir_sesuai_jam']) ? 'hadir' : $presensiHarianHariIni->status_masuk;
+                    $sumberAbsen = $presensiHarianHariIni->metode_masuk === 'piket' ? 'piket' : 'harian';
+                    $waktuAbsen = substr($presensiHarianHariIni->jam_masuk, 0, 5);
+                    $catatanKegiatan = $presensiHarianHariIni->catatan;
+                    $fotoLampiran = $presensiHarianHariIni->lampiran_bukti;
+                }
+
+                $cardBorderClass = match($statusAbsen) {
+                    'hadir'      => 'border-emerald-300 bg-emerald-50/30 ring-1 ring-emerald-500/20',
+                    'terlambat'  => 'border-amber-300 bg-amber-50/30 ring-1 ring-amber-500/20',
+                    'izin'       => 'border-blue-300 bg-blue-50/30 ring-1 ring-blue-500/20',
+                    'sakit'      => 'border-purple-300 bg-purple-50/30 ring-1 ring-purple-500/20',
+                    'tugas_luar' => 'border-indigo-300 bg-indigo-50/30 ring-1 ring-indigo-500/20',
+                    default      => $isRunning ? 'border-2 border-emerald-500 ring-4 ring-emerald-500/10 bg-white' : 'border-slate-200 bg-white'
+                };
+
+                $statusLabelText = match($statusAbsen) {
+                    'hadir'      => 'Hadir',
+                    'terlambat'  => 'Hadir (Terlambat)',
+                    'izin'       => 'Izin',
+                    'sakit'      => 'Sakit',
+                    'tugas_luar' => 'Tugas Luar',
+                    default      => ucfirst($statusAbsen ?? '')
+                };
             @endphp
-            <div class="rounded-3xl p-5 border {{ $isSudahAbsen ? 'border-emerald-300 bg-emerald-50/30 ring-1 ring-emerald-500/20' : ($isRunning ? 'border-2 border-emerald-500 ring-4 ring-emerald-500/10 bg-white' : 'border-slate-200 bg-white') }} shadow-xs flex flex-col justify-between space-y-4 transition">
+            <div class="rounded-3xl p-5 border {{ $cardBorderClass }} shadow-xs flex flex-col justify-between space-y-4 transition">
                 <div class="space-y-2">
                     <!-- Jam Ke-Berapa, Waktu & Indikator Status -->
                     <div class="flex items-center justify-between text-xs gap-2">
@@ -331,17 +380,39 @@
                             Jam ke-{{ $j->jam_ke_mulai }}{{ $j->jam_ke_selesai > $j->jam_ke_mulai ? ' - ' . $j->jam_ke_selesai : '' }} ({{ substr($j->jam_mulai, 0, 5) }} - {{ substr($j->jam_selesai, 0, 5) }})
                         </span>
                         @if($isSudahAbsen)
-                        <span class="px-2.5 py-0.5 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
-                            <i class="bi-check-circle-fill text-emerald-600"></i> Sudah Terabsen
-                        </span>
+                            @if($statusAbsen === 'hadir')
+                                <span class="px-2.5 py-0.5 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
+                                    <i class="bi-check-circle-fill text-emerald-600"></i> Sudah Hadir Terabsen
+                                </span>
+                            @elseif($statusAbsen === 'terlambat')
+                                <span class="px-2.5 py-0.5 rounded-lg bg-amber-100 border border-amber-300 text-amber-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
+                                    <i class="bi-clock-fill text-amber-600"></i> Terabsen Terlambat
+                                </span>
+                            @elseif($statusAbsen === 'izin')
+                                <span class="px-2.5 py-0.5 rounded-lg bg-blue-100 border border-blue-300 text-blue-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
+                                    <i class="bi-info-circle-fill text-blue-600"></i> Sudah Terabsen (Izin)
+                                </span>
+                            @elseif($statusAbsen === 'sakit')
+                                <span class="px-2.5 py-0.5 rounded-lg bg-purple-100 border border-purple-300 text-purple-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
+                                    <i class="bi-hospital-fill text-purple-600"></i> Sudah Terabsen (Sakit)
+                                </span>
+                            @elseif($statusAbsen === 'tugas_luar')
+                                <span class="px-2.5 py-0.5 rounded-lg bg-indigo-100 border border-indigo-300 text-indigo-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
+                                    <i class="bi-briefcase-fill text-indigo-600"></i> Sudah Terabsen (Tugas Luar)
+                                </span>
+                            @else
+                                <span class="px-2.5 py-0.5 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
+                                    <i class="bi-check-circle-fill text-emerald-600"></i> Sudah Terabsen
+                                </span>
+                            @endif
                         @elseif($isRunning)
-                        <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider animate-pulse shrink-0">
-                            Sedang Berlangsung
-                        </span>
+                            <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider animate-pulse shrink-0">
+                                Sedang Berlangsung
+                            </span>
                         @else
-                        <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap shrink-0">
-                            Belum Terabsen
-                        </span>
+                            <span class="text-[11px] text-slate-400 font-medium whitespace-nowrap shrink-0">
+                                Belum Terabsen
+                            </span>
                         @endif
                     </div>
 
@@ -362,19 +433,61 @@
                         </div>
                     </div>
 
-                    <!-- Keterangan Tambahan Jika Sudah Terabsen -->
+                    <!-- Keterangan Detail Jika Sudah Terabsen -->
                     @if($isSudahAbsen)
-                    <div class="text-xs text-slate-600 bg-white/70 p-2.5 rounded-xl border border-emerald-200/70 space-y-1">
-                        @if($presensi)
-                        <div class="flex items-center justify-between text-[11px]">
-                            <span>Waktu Presensi:</span>
-                            <strong class="font-mono text-slate-900">{{ substr($presensi->jam_absen ?? $presensi->waktu_masuk, 0, 5) }} WIB</strong>
+                    <div class="text-xs bg-white/80 p-3 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2">
+                        <div class="flex items-center justify-between text-[11px] pb-1 border-b border-slate-100">
+                            <span class="text-slate-500">Status Presensi:</span>
+                            <div class="flex items-center gap-1">
+                                <span class="font-extrabold {{ match($statusAbsen) { 'hadir' => 'text-emerald-700', 'terlambat' => 'text-amber-700', 'izin' => 'text-blue-700', 'sakit' => 'text-purple-700', 'tugas_luar' => 'text-indigo-700', default => 'text-slate-700' } }}">
+                                    {{ $statusLabelText }}
+                                </span>
+                                @if($waktuAbsen)
+                                    <span class="font-mono text-slate-500">({{ $waktuAbsen }} WIB)</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Sumber Input: Mandiri / Diabsenkan Piket / Jurnal KBM -->
+                        <div class="flex items-center justify-between text-[10.5px]">
+                            <span class="text-slate-500">Metode Presensi:</span>
+                            @if($sumberAbsen === 'piket')
+                                <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold flex items-center gap-1">
+                                    <i class="bi-shield-check"></i> Diabsenkan Guru Piket
+                                </span>
+                            @elseif($sumberAbsen === 'jurnal_kbm')
+                                <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold flex items-center gap-1">
+                                    <i class="bi-journal-check"></i> Input Jurnal KBM
+                                </span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold flex items-center gap-1">
+                                    <i class="bi-fingerprint"></i> Presensi Mandiri Guru
+                                </span>
+                            @endif
+                        </div>
+
+                        <!-- Uraian Kegiatan Pembelajaran jika ada -->
+                        @if(!empty($catatanKegiatan) && !str_starts_with($catatanKegiatan, 'Hadir tepat waktu'))
+                        <div class="pt-1 text-[11px] border-t border-slate-100">
+                            <span class="font-bold text-slate-700 block mb-0.5"><i class="bi-pencil-square text-slate-500 me-1"></i>Kegiatan / Catatan:</span>
+                            <p class="text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100 m-0 leading-relaxed">{{ $catatanKegiatan }}</p>
                         </div>
                         @endif
+
+                        <!-- Foto Dokumentasi jika diunggah -->
+                        @if($fotoLampiran)
+                        <div class="pt-1 text-[11px] border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-slate-500 font-medium"><i class="bi-image text-emerald-600 me-1"></i>Foto Dokumentasi:</span>
+                            <a href="{{ asset('storage/' . $fotoLampiran) }}" target="_blank" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg font-bold transition flex items-center gap-1 border border-emerald-200">
+                                <i class="bi-box-arrow-up-right"></i> Lihat Foto Kegiatan
+                            </a>
+                        </div>
+                        @endif
+
                         @if($laporan)
-                        <div class="text-[11px] text-emerald-800 font-semibold flex items-center gap-1.5">
-                            <i class="bi-journal-check text-emerald-600"></i>
-                            <span>Jurnal KBM Terisi (Hadir: {{ $laporan->jumlah_siswa_hadir }}, Tidak Hadir: {{ $laporan->jumlah_siswa_tidak_hadir }})</span>
+                        <div class="pt-1 text-[11px] text-emerald-800 font-semibold flex items-center gap-1.5 border-t border-slate-100">
+                            <i class="bi-people-fill text-emerald-600"></i>
+                            <span>Presensi Siswa: Hadir {{ $laporan->jumlah_siswa_hadir }}, Tidak Hadir {{ $laporan->jumlah_siswa_tidak_hadir }}</span>
                         </div>
                         @endif
                     </div>
@@ -404,10 +517,11 @@
                         </button>
                     </div>
                     @else
-                    <div class="w-full py-2 px-3 bg-emerald-100/70 border border-emerald-300 text-emerald-900 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5">
-                        <i class="bi-check-circle-fill text-emerald-600"></i>
-                        <span>Sudah Presensi Mengajar</span>
+                    <div class="w-full py-2.5 px-3 {{ match($statusAbsen) { 'hadir' => 'bg-emerald-100/90 border-emerald-300 text-emerald-950', 'terlambat' => 'bg-amber-100/90 border-amber-300 text-amber-950', 'izin' => 'bg-blue-100/90 border-blue-300 text-blue-950', 'sakit' => 'bg-purple-100/90 border-purple-300 text-purple-950', default => 'bg-indigo-100/90 border-indigo-300 text-indigo-950' } }} border font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-2xs">
+                        <i class="bi-check-circle-fill {{ match($statusAbsen) { 'hadir' => 'text-emerald-600', 'terlambat' => 'text-amber-600', 'izin' => 'text-blue-600', 'sakit' => 'text-purple-600', default => 'text-indigo-600' } }}"></i>
+                        <span>✓ Sudah Klik Absen {{ $statusLabelText }}</span>
                     </div>
+
                     @if($laporan)
                     <a href="{{ route('guru.laporan-kbm.show', $laporan->id) }}" class="w-full py-2 px-3 bg-white hover:bg-slate-50 text-emerald-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-emerald-200">
                         <i class="bi-eye-fill"></i>
@@ -416,10 +530,11 @@
                     @else
                     <a href="{{ route('guru.laporan-kbm.create', ['jadwal_id' => $j->id]) }}" class="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-blue-200">
                         <i class="bi-journal-plus"></i>
-                        <span>Isi Jurnal KBM & Presensi Siswa</span>
+                        <span>Lengkapi Jurnal KBM & Presensi Siswa</span>
                     </a>
                     @endif
-                    @if($presensi && $presensi->status !== 'hadir')
+
+                    @if($statusAbsen !== 'hadir' && $statusAbsen !== 'terlambat')
                     <button type="button" 
                             @click="tugasModal = true; selectedTugasJadwal = { id: {{ $j->id }}, mapel: '{{ addslashes($j->mataPelajaran->nama ?? 'Mata Pelajaran') }}', kelas: '{{ $j->kelas }}', deskripsi: '{{ addslashes($tugas->deskripsi_tugas ?? '') }}' }"
                             class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-amber-200">
@@ -435,9 +550,10 @@
             <!-- Inval Mengajar (Jika menggantikan guru cuti) -->
             @foreach($jadwalInval as $j)
             @php 
-                $presensiInval = $j->absensiHariIni; 
+                $presensiInval = $j->presensiHariIni; 
                 $laporanInval = $j->laporanKbmHariIni;
                 $isSudahInval = ($presensiInval !== null) || ($laporanInval !== null);
+                $statusInval = $presensiInval?->status ?? ($laporanInval ? 'hadir' : null);
             @endphp
             <div class="rounded-3xl p-5 border {{ $isSudahInval ? 'border-emerald-300 bg-emerald-50/30 ring-1 ring-emerald-500/20' : 'border-2 border-amber-300 bg-amber-50/40' }} shadow-xs flex flex-col justify-between space-y-4 transition">
                 <div class="space-y-2">
@@ -447,7 +563,7 @@
                         </span>
                         @if($isSudahInval)
                         <span class="px-2.5 py-0.5 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-extrabold flex items-center gap-1 shrink-0">
-                            <i class="bi-check-circle-fill text-emerald-600"></i> Sudah Terabsen
+                            <i class="bi-check-circle-fill text-emerald-600"></i> Sudah Terabsen ({{ ucfirst($statusInval ?? 'Hadir') }})
                         </span>
                         @else
                         <span class="font-semibold text-slate-500 text-xs">
@@ -467,6 +583,11 @@
                             <span>Waktu Presensi Inval:</span>
                             <strong class="font-mono text-slate-900">{{ substr($presensiInval->jam_absen ?? $presensiInval->waktu_masuk, 0, 5) }} WIB</strong>
                         </div>
+                        @if($presensiInval->catatan)
+                        <div class="text-[11px] text-slate-600 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                            <strong>Kegiatan:</strong> {{ $presensiInval->catatan }}
+                        </div>
+                        @endif
                         @endif
                         @if($laporanInval)
                         <div class="text-[11px] text-emerald-800 font-semibold flex items-center gap-1.5">
@@ -489,7 +610,7 @@
                     @else
                     <div class="w-full py-2 px-3 bg-emerald-100/70 border border-emerald-300 text-emerald-900 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5">
                         <i class="bi-check-circle-fill text-emerald-600"></i>
-                        <span>Sudah Presensi Inval</span>
+                        <span>✓ Sudah Klik Absen (Inval)</span>
                     </div>
                     @endif
                 </div>
@@ -663,21 +784,28 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Catatan (Opsional)</label>
-                    <textarea name="catatan" rows="2" placeholder="Catatan izin/sakit/tugas luar..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs"></textarea>
+                    <label class="block font-bold text-slate-700 mb-1">
+                        <i class="bi-pencil-square text-emerald-600 me-1"></i>Uraian Kegiatan Pembelajaran (KBM) / Catatan
+                    </label>
+                    <textarea name="catatan" rows="3" placeholder="Tuliskan ringkasan materi/kegiatan yang diajarkan atau keterangan jika izin/sakit/tugas luar..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">Uraian kegiatan akan otomatis ditampilkan pada kartu jadwal mengajar Anda hari ini.</p>
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Lampiran Bukti (Opsional)</label>
-                    <input type="file" name="lampiran" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-slate-100 file:text-slate-700">
+                    <label class="block font-bold text-slate-700 mb-1">
+                        <i class="bi-camera text-emerald-600 me-1"></i>Foto Kegiatan / Dokumentasi KBM (Opsional)
+                    </label>
+                    <input type="file" name="foto" accept="image/*,application/pdf" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold hover:file:bg-emerald-100 cursor-pointer">
+                    <p class="text-[10px] text-slate-400 mt-1">Format gambar JPG, PNG, WEBP atau PDF (maks. 5MB).</p>
                 </div>
 
                 <div class="pt-2 flex items-center gap-2">
-                    <button type="button" @click="absenModal = false" class="w-1/3 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 rounded-xl transition">
+                    <button type="button" @click="absenModal = false" class="w-1/3 py-2.5 bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 rounded-xl transition">
                         Batal
                     </button>
-                    <button type="submit" class="w-2/3 py-2 bg-emerald-600 hover:bg-emerald-700 font-bold text-white rounded-xl transition shadow-sm">
-                        Simpan Presensi
+                    <button type="submit" class="w-2/3 py-2.5 bg-emerald-600 hover:bg-emerald-700 font-bold text-white rounded-xl transition shadow-sm flex items-center justify-center gap-1.5">
+                        <i class="bi-check2-circle text-sm"></i>
+                        <span>Simpan Presensi Mengajar</span>
                     </button>
                 </div>
             </form>

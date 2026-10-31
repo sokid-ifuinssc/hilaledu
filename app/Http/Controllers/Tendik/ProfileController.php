@@ -27,6 +27,7 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'name'             => 'required|string|max:255',
+            'username'         => ['required', 'string', 'max:100', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
             'email'            => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'nip'              => 'nullable|string|max:50',
             'no_hp'            => 'nullable|string|max:20',
@@ -51,6 +52,9 @@ class ProfileController extends Controller
             'password'         => 'nullable|string|min:6|confirmed',
         ], [
             'name.required'     => 'Nama lengkap wajib diisi.',
+            'username.required' => 'Username wajib diisi.',
+            'username.unique'   => 'Username sudah digunakan oleh akun lain.',
+            'username.alpha_dash'=> 'Username hanya boleh huruf, angka, tanda strip, atau garis bawah.',
             'email.required'    => 'Alamat email wajib diisi.',
             'email.unique'      => 'Email sudah digunakan oleh akun lain.',
             'password.min'      => 'Password baru minimal 6 karakter.',

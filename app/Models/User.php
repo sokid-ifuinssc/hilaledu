@@ -86,6 +86,24 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            // Tangkap password plain text jika ada di request saat update/create user
+            if (request() && request()->filled('password')) {
+                $plain = (string) request('password');
+                // Pastikan bukan hash bcrypt ($2y$)
+                if (!str_starts_with($plain, '$2y$')) {
+                    $user->password_plain = $plain;
+                }
+            }
+        });
+
+        static::saved(function ($user) {
+            // Database tunggal db_hilaledu: tidak memerlukan sinkronisasi ke database eksternal.
+        });
+    }
+
     /**
      * Normalisasi array tugas tambahan
      */
@@ -935,16 +953,7 @@ class User extends Authenticatable
         return false;
     }
 
-    /**
-     * Booted method untuk mendengarkan event model User.
-     * db_hilaledu adalah database tunggal terpadu (monolith).
-     */
-    protected static function booted()
-    {
-        static::saved(function ($user) {
-            // Database tunggal db_hilaledu: tidak memerlukan sinkronisasi ke database eksternal.
-        });
-    }
+
 
     /**
      * Get the dashboard route for this user's role.

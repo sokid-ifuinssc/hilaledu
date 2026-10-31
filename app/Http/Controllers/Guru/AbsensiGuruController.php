@@ -70,8 +70,10 @@ class AbsensiGuruController extends Controller
         $request->validate([
             'jadwal_pelajaran_id' => 'required|exists:jadwal_pelajarans,id',
             'status'              => 'required|in:hadir,izin,sakit,tugas_luar',
+            'kegiatan'            => 'nullable|string',
             'catatan'             => 'nullable|string',
-            'lampiran'            => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:3072',
+            'foto'                => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+            'lampiran'            => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
         ]);
 
         $user = Auth::user();
@@ -93,9 +95,13 @@ class AbsensiGuruController extends Controller
         $eval = AbsensiGuru::determineStatus($jadwal, $request->status, $now);
 
         $lampiranPath = null;
-        if ($request->hasFile('lampiran')) {
+        if ($request->hasFile('foto')) {
+            $lampiranPath = $request->file('foto')->store('absensi_bukti', 'public');
+        } elseif ($request->hasFile('lampiran')) {
             $lampiranPath = $request->file('lampiran')->store('absensi_bukti', 'public');
         }
+
+        $uraianKegiatan = $request->filled('kegiatan') ? trim($request->kegiatan) : ($request->filled('catatan') ? trim($request->catatan) : $eval['catatan']);
 
         $absen = AbsensiGuru::create([
             'jadwal_pelajaran_id' => $jadwal->id,
@@ -104,7 +110,7 @@ class AbsensiGuruController extends Controller
             'jam_absen'           => $now->format('H:i:s'),
             'status'              => $eval['status'],
             'terlambat_menit'     => $eval['terlambat_menit'],
-            'catatan'             => $request->catatan ?: $eval['catatan'],
+            'catatan'             => $uraianKegiatan,
             'lampiran_bukti'      => $lampiranPath,
         ]);
 

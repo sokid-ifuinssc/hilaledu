@@ -267,6 +267,9 @@ class JadwalPelajaran extends Model
      */
     public function getPresensiHariIniAttribute(): ?AbsensiGuru
     {
+        if ($this->relationLoaded('absensiGuru')) {
+            return $this->absensiGuru->first();
+        }
         $today = date('Y-m-d');
         return $this->absensiGuru()->where('tanggal', $today)->first();
     }
@@ -276,6 +279,9 @@ class JadwalPelajaran extends Model
      */
     public function getLaporanKbmHariIniAttribute(): ?LaporanKbm
     {
+        if ($this->relationLoaded('laporanKbm')) {
+            return $this->laporanKbm->first();
+        }
         $today = date('Y-m-d');
         return $this->laporanKbm()->where('tanggal_realisasi', $today)->first();
     }

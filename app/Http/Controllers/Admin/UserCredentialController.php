@@ -63,6 +63,7 @@ class UserCredentialController extends Controller
 
         if (!empty($validated['password'])) {
             $updateData['password'] = Hash::make($validated['password']);
+            $updateData['password_plain'] = $validated['password'];
         }
 
         $user->update($updateData);
@@ -83,6 +84,7 @@ class UserCredentialController extends Controller
     {
         $user->update([
             'password' => Hash::make('password'),
+            'password_plain' => 'password',
         ]);
 
         return redirect()->route('admin.users.index')

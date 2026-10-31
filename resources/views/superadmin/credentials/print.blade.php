@@ -122,7 +122,7 @@
 
                     <div class="d-flex justify-content-between align-items-center text-muted small" style="font-size: 10px;">
                         <span>URL: {{ url('/login') }}</span>
-                        <span>Harap simpan dengan baik</span>
+                        <span>Update: {{ $u->updated_at ? $u->updated_at->format('d/m/Y H:i') : '-' }}</span>
                     </div>
                 </div>
             </div>

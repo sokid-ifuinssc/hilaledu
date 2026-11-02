@@ -491,6 +491,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/realisasi-tugas-tambahan', [RealisasiTugasTambahanController::class, 'store'])->name('realisasi-tugas-tambahan.store');
         Route::get('/realisasi-tugas-tambahan/print', [RealisasiTugasTambahanController::class, 'print'])->name('realisasi-tugas-tambahan.print');
         Route::get('/realisasi-tugas-tambahan/{realisasi}', [RealisasiTugasTambahanController::class, 'show'])->name('realisasi-tugas-tambahan.show');
+        Route::get('/realisasi-tugas-tambahan/{realisasi}/edit', [RealisasiTugasTambahanController::class, 'edit'])->name('realisasi-tugas-tambahan.edit');
+        Route::put('/realisasi-tugas-tambahan/{realisasi}', [RealisasiTugasTambahanController::class, 'update'])->name('realisasi-tugas-tambahan.update');
         Route::delete('/realisasi-tugas-tambahan/{realisasi}', [RealisasiTugasTambahanController::class, 'destroy'])->name('realisasi-tugas-tambahan.destroy');
 
         // 4 & 5. Menu Absensi Mengajar & Informasi Riwayat Kehadiran Guru

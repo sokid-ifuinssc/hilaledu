@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Realisasi Tugas Tambahan - {{ $user->name }}</title>
+    <title>Laporan Realisasi & Kesesuaian Tugas Tambahan - {{ $user->name }}</title>
     <style>
-        body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.4; color: #000; padding: 20px; margin: 0; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 10pt; line-height: 1.35; color: #000; padding: 20px; margin: 0; }
         .kop-surat { text-align: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 15px; position: relative; }
         .kop-logo { position: absolute; left: 10px; top: 0; width: 70px; height: 70px; object-fit: contain; }
         .kop-header { margin-left: 80px; margin-right: 80px; }
-        .kop-header h2 { margin: 0; font-size: 14pt; font-weight: bold; }
-        .kop-header h1 { margin: 2px 0; font-size: 16pt; font-weight: bold; }
-        .kop-header p { margin: 1px 0; font-size: 9pt; }
-        .title { text-align: center; font-weight: bold; font-size: 12pt; text-decoration: underline; margin-bottom: 15px; }
-        table.identitas { width: 100%; margin-bottom: 12px; font-size: 10.5pt; }
+        .kop-header h2 { margin: 0; font-size: 13pt; font-weight: bold; }
+        .kop-header h1 { margin: 2px 0; font-size: 15pt; font-weight: bold; }
+        .kop-header p { margin: 1px 0; font-size: 8.5pt; }
+        .title { text-align: center; font-weight: bold; font-size: 12pt; text-decoration: underline; margin-bottom: 12px; }
+        table.identitas { width: 100%; margin-bottom: 12px; font-size: 10pt; }
         table.identitas td { padding: 2px 0; }
-        table.data { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9.5pt; }
-        table.data th, table.data td { border: 1px solid #000; padding: 5px 6px; }
-        table.data th { background-color: #f2f2f2; text-align: center; font-weight: bold; }
+        table.data { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9pt; }
+        table.data th, table.data td { border: 1px solid #000; padding: 5px 6px; vertical-align: top; }
+        table.data th { background-color: #f2f2f2; text-align: center; font-weight: bold; font-size: 9pt; }
         .text-center { text-align: center; }
-        .ttd-box { width: 100%; margin-top: 30px; font-size: 10.5pt; }
+        .badge-status { font-weight: bold; font-size: 8pt; display: inline-block; padding: 1px 4px; border: 1px solid #000; border-radius: 3px; }
+        .ttd-box { width: 100%; margin-top: 25px; font-size: 10pt; }
         .ttd-box td { vertical-align: top; text-align: center; width: 50%; }
-        .signature-space { height: 65px; }
+        .signature-space { height: 60px; }
         @media print { .no-print { display: none; } body { padding: 0; } }
     </style>
 </head>
@@ -44,7 +45,7 @@
         </div>
     </div>
 
-    <div class="title">LAPORAN REALISASI PELAKSANAAN TUGAS TAMBAHAN</div>
+    <div class="title">LAPORAN EVALUASI DAN KESESUAIAN REALISASI TUGAS TAMBAHAN</div>
 
     <table class="identitas">
         <tr>
@@ -59,44 +60,73 @@
             <td>NUPTK / ID Guru</td>
             <td>:</td>
             <td>{{ $user->nip ?: ($user->nuptk ?: '-') }}</td>
-            <td>Bulan / Periode</td>
+            <td>Tahun Ajaran / Semester</td>
             <td>:</td>
-            <td>{{ $bulan ? \Carbon\Carbon::parse($bulan . '-01')->isoFormat('MMMM Y') : 'Semua Periode' }}</td>
+            <td>{{ \App\Models\PengaturanSekolah::getActiveTahunAjaran() }} ({{ \App\Models\PengaturanSekolah::getActiveSemester() }})</td>
         </tr>
     </table>
 
     <table class="data">
         <thead>
             <tr>
-                <th width="4%">No.</th>
-                <th width="12%">Tanggal</th>
-                <th width="20%">Tugas Tambahan</th>
-                <th width="25%">Kegiatan & Uraian</th>
-                <th width="25%">Hasil / Capaian</th>
-                <th width="14%">Status</th>
+                <th width="3%">No</th>
+                <th width="15%">Tugas Tambahan</th>
+                <th width="22%">Rencana Program & Target</th>
+                <th width="20%">Indikator Capaian Terencana</th>
+                <th width="20%">Realisasi & Keterangan</th>
+                <th width="20%">Evaluasi Kesesuaian</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($realisasis as $idx => $r)
+            @forelse($programKerjas as $idx => $pk)
+            @php $r = $pk->realisasi; @endphp
             <tr>
                 <td class="text-center">{{ $idx + 1 }}</td>
-                <td class="text-center">{{ \Carbon\Carbon::parse($r->tanggal_pelaksanaan)->format('d/m/Y') }}</td>
-                <td><strong>{{ $r->tugas_tambahan }}</strong></td>
                 <td>
-                    <strong>{{ $r->judul_kegiatan }}</strong><br>
-                    <span style="font-size: 8.5pt; color: #333;">{{ $r->uraian_kegiatan }}</span>
+                    <strong>{{ $pk->tugas_tambahan }}</strong>
                 </td>
                 <td>
-                    {{ $r->hasil_capaian }}
-                    @if($r->kendala_solusi)
-                    <br><i style="font-size: 8pt; color: #555;">Catatan: {{ $r->kendala_solusi }}</i>
+                    <strong>{{ $pk->nama_program }}</strong><br>
+                    <span style="font-size: 8pt; color: #444;">
+                        Target: {{ $pk->target_waktu ?: '-' }}<br>
+                        Anggaran: Rp {{ number_format($pk->anggaran, 0, ',', '.') }}
+                    </span>
+                </td>
+                <td>
+                    {{ $pk->indikator_keberhasilan ?: '-' }}
+                </td>
+                <td>
+                    @if($r)
+                        <strong>Tgl:</strong> {{ \Carbon\Carbon::parse($r->tanggal_pelaksanaan)->format('d/m/Y') }}<br>
+                        <span style="font-size: 8.5pt;">{{ $r->uraian_kegiatan }}</span><br>
+                        @if($r->hasil_capaian)
+                        <i style="font-size: 8pt;">Output: {{ $r->hasil_capaian }}</i>
+                        @endif
+                    @else
+                        <i style="color: #666;">Belum terealisasi</i>
                     @endif
                 </td>
-                <td class="text-center">{{ strtoupper($r->status_validasi_label) }}</td>
+                <td class="text-center">
+                    @if($r)
+                        <span class="badge-status">{{ strtoupper($r->status_kesesuaian_label) }}</span>
+                        @if($r->keterangan_kesesuaian)
+                        <div style="font-size: 8pt; text-align: left; margin-top: 4px;">
+                            <i>{{ $r->keterangan_kesesuaian }}</i>
+                        </div>
+                        @endif
+                        @if($r->realisasi_anggaran > 0)
+                        <div style="font-size: 7.5pt; color: #444; margin-top: 2px;">
+                            Realisasi: Rp {{ number_format($r->realisasi_anggaran, 0, ',', '.') }}
+                        </div>
+                        @endif
+                    @else
+                        <span style="color: #888;">-</span>
+                    @endif
+                </td>
             </tr>
             @empty
             <tr>
-                <td colspan="6" class="text-center">Tidak ada catatan realisasi tugas tambahan pada periode ini.</td>
+                <td colspan="6" class="text-center">Tidak ada rencana program kerja tugas tambahan pada periode ini.</td>
             </tr>
             @endforelse
         </tbody>

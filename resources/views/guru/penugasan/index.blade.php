@@ -299,10 +299,10 @@
                         <i class="bi-plus-circle-fill"></i>
                         <span>Buat Rencana & Program Kerja</span>
                     </button>
-                    <a href="{{ route('guru.realisasi-tugas-tambahan.create', ['tugas' => $tugas]) }}" 
-                       class="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
-                        <i class="bi-pencil-square"></i>
-                        <span>Catat Realisasi Kerja</span>
+                    <a href="{{ route('guru.realisasi-tugas-tambahan.index', ['tugas' => $tugas]) }}" 
+                       class="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-indigo-200">
+                        <i class="bi-clipboard2-check-fill"></i>
+                        <span>Realisasi & Evaluasi Kesesuaian</span>
                     </a>
                 </div>
             </div>
@@ -355,13 +355,18 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <form method="POST" action="{{ route('guru.penugasan.program-kerja.destroy', $pk) }}" onsubmit="return confirm('Hapus rencana program kerja ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Hapus">
-                                        <i class="bi-trash"></i>
-                                    </button>
-                                </form>
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <a href="{{ route('guru.realisasi-tugas-tambahan.create', ['program_id' => $pk->id]) }}" class="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition" title="Isi Atribut Kesesuaian Realisasi">
+                                        <i class="bi-clipboard2-check-fill"></i>
+                                    </a>
+                                    <form method="POST" action="{{ route('guru.penugasan.program-kerja.destroy', $pk) }}" onsubmit="return confirm('Hapus rencana program kerja ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Hapus">
+                                            <i class="bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @endforeach

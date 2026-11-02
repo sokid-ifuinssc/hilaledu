@@ -41,6 +41,16 @@ class ProgramKerjaTugasTambahan extends Model
         return $this->hasMany(RealisasiTugasTambahan::class, 'program_kerja_id');
     }
 
+    public function realisasi(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(RealisasiTugasTambahan::class, 'program_kerja_id')->latestOfMany();
+    }
+
+    public function getIsTerealisasiAttribute(): bool
+    {
+        return $this->realisasis->isNotEmpty();
+    }
+
     public function getStatusBadgeAttribute(): string
     {
         return match ($this->status) {

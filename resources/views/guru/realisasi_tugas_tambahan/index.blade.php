@@ -1,25 +1,43 @@
 @extends('layouts.app')
 
-@section('title', 'Realisasi Kerja Tugas Tambahan')
+@section('title', 'Laporan Realisasi Program Kerja Tambahan')
+@section('page-title', 'Laporan Realisasi Program Kerja')
 
 @section('content')
 <div class="space-y-6">
+
+    <!-- Sub-Navigation Banner (Rencana vs Laporan Realisasi) -->
+    <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('guru.program-kerja-tambahan.index') }}"
+               class="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 text-slate-600 hover:bg-slate-100 transition">
+                <i class="bi-journal-plus text-sm text-indigo-600"></i>
+                <span>1. Rencana Program Kerja</span>
+            </a>
+            <a href="{{ route('guru.realisasi-tugas-tambahan.index') }}"
+               class="px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 transition">
+                <i class="bi-clipboard2-check-fill text-sm"></i>
+                <span>2. Laporan Realisasi Program Kerja</span>
+                <span class="px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px]">{{ $totalTerealisasi }}/{{ $totalProgram }}</span>
+            </a>
+        </div>
+    </div>
 
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                 <i class="bi-briefcase-fill text-indigo-600"></i>
-                <span>Realisasi Kerja Tugas Tambahan</span>
+                <span>Laporan Realisasi Program Kerja Tambahan</span>
             </h1>
             <p class="text-xs text-slate-500 mt-1">
                 Evaluasi dan pencatatan kesesuaian pelaksanaan program kerja tugas tambahan terhadap rencana yang telah dibuat.
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
-            <a href="{{ route('guru.penugasan.index', ['tab' => 'tambahan']) }}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-2 transition border border-slate-200 shadow-xs">
-                <i class="bi-journal-plus text-sm text-indigo-600"></i>
-                <span>Kelola Rencana Program</span>
+            <a href="{{ route('guru.program-kerja-tambahan.index', ['create' => 1]) }}" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition shadow-sm shadow-indigo-600/20">
+                <i class="bi-plus-circle-fill text-sm"></i>
+                <span>Buat Rencana Program</span>
             </a>
             <a href="{{ route('guru.realisasi-tugas-tambahan.print', ['tugas' => $tugasFilter]) }}" target="_blank" class="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold rounded-xl text-xs flex items-center gap-2 shadow-xs transition">
                 <i class="bi-printer-fill text-sm text-slate-600"></i>
@@ -263,10 +281,10 @@
                                 </div>
                                 <h3 class="font-black text-slate-800 text-sm">Belum Ada Rencana Program Kerja Tugas Tambahan</h3>
                                 <p class="text-xs text-slate-500 leading-relaxed">
-                                    Silakan buat terlebih dahulu Rencana Program Kerja pada tugas tambahan Anda di menu Informasi Penugasan Guru, kemudian Anda dapat mengisi atribut kesesuaian pelaksanaannya di sini.
+                                    Silakan buat terlebih dahulu Rencana Program Kerja pada sub-menu Rencana Program Kerja, kemudian Anda dapat mengisi laporan realisasi dan kesesuaian pelaksanaannya di sini.
                                 </p>
                                 <div class="pt-2">
-                                    <a href="{{ route('guru.penugasan.index', ['tab' => 'tambahan']) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-indigo-600/20 transition">
+                                    <a href="{{ route('guru.program-kerja-tambahan.index', ['create' => 1]) }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md shadow-indigo-600/20 transition">
                                         <i class="bi-plus-circle-fill"></i>
                                         <span>Buat Rencana Program Kerja Sekarang</span>
                                     </a>

@@ -949,7 +949,8 @@ class User extends Authenticatable
         if ($this->canPostSchoolEvent()) return true;
         $tugas = $this->tugas_tambahan ?? [];
         if (is_array($tugas) && count(array_filter($tugas)) > 0) return true;
-        if ($this->jabatan_utama && !in_array($this->jabatan_utama, ['Guru', 'Guru Pengajar', 'Siswa', 'Tendik'])) return true;
+        if ($this->isPembinaEskul()) return true;
+        if ($this->jabatan_utama && !in_array($this->jabatan_utama, ['Guru', 'Guru Pengajar', 'Siswa', 'Tendik', 'Tenaga Kependidikan'])) return true;
         return false;
     }
 

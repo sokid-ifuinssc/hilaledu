@@ -446,6 +446,8 @@
                 </div>
             </form>
         </div>
+    </div>
+
     <!-- MODAL INPUT PESERTA ESKUL (WAKA KESISWAAN & PEMBINA OSIS) -->
     <div x-show="modalInputPesertaEskul" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="modalInputPesertaEskul = false"></div>

@@ -1209,9 +1209,22 @@
                     <li class="sidebar-nav-item"><a href="{{ route('guru.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.ekstrakurikuler.*') ? 'active' : '' }}"><i class="bi bi-award-fill" style="color:#10b981;"></i><span>Eskul Binaan Saya</span></a></li>
                     @endif
 
-                    @if(auth()->user()->hasAnyTugasTambahan())
-                    <li class="sidebar-nav-item"><a href="{{ route('guru.realisasi-tugas-tambahan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}"><i class="bi bi-card-checklist" style="color:#eab308;"></i><span>Realisasi Tugas Tambahan</span></a></li>
-                    @endif
+                    <li class="sidebar-nav-item">
+                        <button type="button" 
+                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}" 
+                                onclick="toggleSidebarDropdown('menuProkerTambahanAdmin')" 
+                                aria-expanded="{{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'true' : 'false' }}">
+                            <i class="bi bi-card-checklist" style="color:#eab308;"></i>
+                            <span>Program Kerja Tambahan</span>
+                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                        </button>
+                        <div class="sidebar-dropdown-menu {{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'show' : '' }}" id="menuProkerTambahanAdmin">
+                            <ul class="sidebar-submenu">
+                                <li><a href="{{ route('guru.program-kerja-tambahan.index') }}" class="{{ request()->routeIs('guru.program-kerja-tambahan.*') ? 'active' : '' }}"><i class="bi bi-journal-plus me-1" style="color:#818cf8;"></i> Rencana Program Kerja</a></li>
+                                <li><a href="{{ route('guru.realisasi-tugas-tambahan.index') }}" class="{{ request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}"><i class="bi bi-clipboard2-check me-1" style="color:#34d399;"></i> Laporan Realisasi Program</a></li>
+                            </ul>
+                        </div>
+                    </li>
 
                     @if(auth()->user()->isWaliKelas())
                     <li class="sidebar-nav-item"><a href="{{ route('walikelas.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#6366f1;"></i><span>Jadwal Kelas Bimbingan</span></a></li>
@@ -1253,6 +1266,24 @@
                     <li class="sidebar-nav-item"><a href="{{ route('tendik.payroll.index') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.payroll.*') ? 'active' : '' }}"><i class="bi bi-wallet2" style="color:#10b981;"></i><span>Slip Gaji Saya</span></a></li>
                     @if(auth()->user()->isPembinaEskul() || auth()->user()->hasTugasTambahan('pembina'))
                     <li class="sidebar-nav-item"><a href="{{ route('guru.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.ekstrakurikuler.*') ? 'active' : '' }}"><i class="bi bi-award-fill" style="color:#10b981;"></i><span>Eskul Binaan Saya</span></a></li>
+                    @endif
+                    @if(auth()->user()->hasAnyTugasTambahan())
+                    <li class="sidebar-nav-item">
+                        <button type="button" 
+                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}" 
+                                onclick="toggleSidebarDropdown('menuProkerTendikAdmin')" 
+                                aria-expanded="{{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'true' : 'false' }}">
+                            <i class="bi bi-card-checklist" style="color:#eab308;"></i>
+                            <span>Program Kerja Tambahan</span>
+                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                        </button>
+                        <div class="sidebar-dropdown-menu {{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'show' : '' }}" id="menuProkerTendikAdmin">
+                            <ul class="sidebar-submenu">
+                                <li><a href="{{ route('guru.program-kerja-tambahan.index') }}" class="{{ request()->routeIs('guru.program-kerja-tambahan.*') ? 'active' : '' }}"><i class="bi bi-journal-plus me-1" style="color:#818cf8;"></i> Rencana Program Kerja</a></li>
+                                <li><a href="{{ route('guru.realisasi-tugas-tambahan.index') }}" class="{{ request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}"><i class="bi bi-clipboard2-check me-1" style="color:#34d399;"></i> Laporan Realisasi Program</a></li>
+                            </ul>
+                        </div>
+                    </li>
                     @endif
                     @include('layouts._sidebar_rekap', ['mode' => 'nav', 'self' => true])
                 </ul>
@@ -1308,9 +1339,22 @@
                         <li class="sidebar-nav-item"><a href="{{ route('guru.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.ekstrakurikuler.*') ? 'active' : '' }}"><i class="bi bi-award-fill" style="color:#10b981;"></i><span>Eskul Binaan Saya</span></a></li>
                         @endif
 
-                        @if(auth()->user()->hasAnyTugasTambahan())
-                        <li class="sidebar-nav-item"><a href="{{ route('guru.realisasi-tugas-tambahan.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}"><i class="bi bi-card-checklist" style="color:#eab308;"></i><span>Realisasi Tugas Tambahan</span></a></li>
-                        @endif
+                        <li class="sidebar-nav-item">
+                            <button type="button" 
+                                    class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}" 
+                                    onclick="toggleSidebarDropdown('menuProkerTambahanGuru')" 
+                                    aria-expanded="{{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'true' : 'false' }}">
+                                <i class="bi bi-card-checklist" style="color:#eab308;"></i>
+                                <span>Program Kerja Tambahan</span>
+                                <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                            </button>
+                            <div class="sidebar-dropdown-menu {{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'show' : '' }}" id="menuProkerTambahanGuru">
+                                <ul class="sidebar-submenu">
+                                    <li><a href="{{ route('guru.program-kerja-tambahan.index') }}" class="{{ request()->routeIs('guru.program-kerja-tambahan.*') ? 'active' : '' }}"><i class="bi bi-journal-plus me-1" style="color:#818cf8;"></i> Rencana Program Kerja</a></li>
+                                    <li><a href="{{ route('guru.realisasi-tugas-tambahan.index') }}" class="{{ request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}"><i class="bi bi-clipboard2-check me-1" style="color:#34d399;"></i> Laporan Realisasi Program</a></li>
+                                </ul>
+                            </div>
+                        </li>
                         
                         <div class="sidebar-section-title mt-3">Monitoring & Pembimbingan</div>
                         @if(auth()->user()->isWaliKelas())
@@ -1393,6 +1437,24 @@
                         <li class="sidebar-nav-item"><a href="{{ route('tendik.payroll.index') }}" class="sidebar-nav-link {{ request()->routeIs('tendik.payroll.*') ? 'active' : '' }}"><i class="bi bi-wallet2" style="color:#10b981;"></i><span>Slip Gaji Saya</span></a></li>
                         @if(auth()->user()->isPembinaEskul() || auth()->user()->hasTugasTambahan('pembina'))
                         <li class="sidebar-nav-item"><a href="{{ route('guru.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('guru.ekstrakurikuler.*') ? 'active' : '' }}"><i class="bi bi-award-fill" style="color:#10b981;"></i><span>Eskul Binaan Saya</span></a></li>
+                        @endif
+                        @if(auth()->user()->hasAnyTugasTambahan())
+                        <li class="sidebar-nav-item">
+                            <button type="button" 
+                                    class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}" 
+                                    onclick="toggleSidebarDropdown('menuProkerTendik')" 
+                                    aria-expanded="{{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'true' : 'false' }}">
+                                <i class="bi bi-card-checklist" style="color:#eab308;"></i>
+                                <span>Program Kerja Tambahan</span>
+                                <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                            </button>
+                            <div class="sidebar-dropdown-menu {{ request()->routeIs('guru.program-kerja-tambahan.*') || request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'show' : '' }}" id="menuProkerTendik">
+                                <ul class="sidebar-submenu">
+                                    <li><a href="{{ route('guru.program-kerja-tambahan.index') }}" class="{{ request()->routeIs('guru.program-kerja-tambahan.*') ? 'active' : '' }}"><i class="bi bi-journal-plus me-1" style="color:#818cf8;"></i> Rencana Program Kerja</a></li>
+                                    <li><a href="{{ route('guru.realisasi-tugas-tambahan.index') }}" class="{{ request()->routeIs('guru.realisasi-tugas-tambahan.*') ? 'active' : '' }}"><i class="bi bi-clipboard2-check me-1" style="color:#34d399;"></i> Laporan Realisasi Program</a></li>
+                                </ul>
+                            </div>
+                        </li>
                         @endif
                         @include('layouts._sidebar_rekap', ['mode' => 'nav', 'self' => true])
                     @elseif(auth()->user()->role === 'siswa')

@@ -162,6 +162,9 @@ class PenugasanGuruController extends Controller
         $rekapMonitoring = $monitoringPayload['rekap'];
         $hariPantau      = $monitoringPayload['hariPantau'];
         $jamPantau       = $monitoringPayload['jamPantau'];
+        $isSimulasi      = $monitoringPayload['isSimulasi'];
+        $periodInfo      = $monitoringPayload['periodInfo'];
+
         // 4. Data Eskul, Kelas & Siswa untuk modal input peserta eskul (Kesiswaan, Pembina OSIS, Pembina Eskul)
         $allEskuls = \App\Models\Ekstrakurikuler::where('is_aktif', true)->orderBy('nama')->get();
         $allKelases = \App\Models\Kelas::where('is_aktif', true)->orderBy('nama_kelas')->get();
@@ -187,6 +190,76 @@ class PenugasanGuruController extends Controller
             'allEskuls',
             'allKelases',
             'allSiswas'
+        ));
+    }
+
+    /**
+     * Halaman Khusus Rencana Program Kerja Tugas Tambahan
+     */
+    public function rencanaProgramKerja(Request $request)
+    {
+        $user = Auth::user();
+        $tahunAjaran = PengaturanSekolah::get('tahun_pelajaran', '2026/2027');
+        $semesterAktif = PengaturanSekolah::get('semester', 'Ganjil');
+
+        $listTugasTambahan = $user->tugas_tambahan ?? [];
+        if (!empty($user->jabatan_utama) && !in_array($user->jabatan_utama, array_merge(['Guru', 'Guru Pengajar', 'Siswa', 'Tendik', 'Tenaga Kependidikan'], $listTugasTambahan))) {
+            $listTugasTambahan = array_merge([$user->jabatan_utama], $listTugasTambahan);
+        }
+        $listTugasTambahan = array_values(array_unique(array_filter($listTugasTambahan)));
+
+        $tugasFilter = $request->query('tugas');
+        $semesterFilter = $request->query('semester');
+        $statusFilter = $request->query('status');
+
+        $baseQuery = ProgramKerjaTugasTambahan::with(['guru', 'realisasi'])
+            ->withCount('realisasis')
+            ->orderBy('created_at', 'desc');
+
+        if (!$user->isSuperAdmin() && !$user->isKepalaSekolah()) {
+            $baseQuery->where('guru_user_id', $user->id);
+        } elseif ($request->filled('guru_id')) {
+            $baseQuery->where('guru_user_id', $request->guru_id);
+        }
+
+        $allPrograms = (clone $baseQuery)->get();
+        $totalProgram = $allPrograms->count();
+        $totalTerencana = $allPrograms->where('status', 'terencana')->count();
+        $totalBerjalan = $allPrograms->where('status', 'sedang_berjalan')->count();
+        $totalTercapai = $allPrograms->where('status', 'tercapai')->count();
+        $totalTertunda = $allPrograms->where('status', 'tertunda')->count();
+
+        if ($tugasFilter) {
+            $baseQuery->where('tugas_tambahan', $tugasFilter);
+        }
+        if ($semesterFilter) {
+            $baseQuery->where('semester', $semesterFilter);
+        }
+        if ($statusFilter) {
+            $baseQuery->where('status', $statusFilter);
+        }
+
+        $programKerjaList = $baseQuery->get();
+
+        $gurus = ($user->isSuperAdmin() || $user->isKepalaSekolah())
+            ? \App\Models\User::whereIn('role', ['guru', 'tendik', 'kepala_sekolah'])->orderBy('name')->get()
+            : collect();
+
+        return view('guru.program_kerja_tambahan.index', compact(
+            'listTugasTambahan',
+            'programKerjaList',
+            'allPrograms',
+            'tahunAjaran',
+            'semesterAktif',
+            'tugasFilter',
+            'semesterFilter',
+            'statusFilter',
+            'totalProgram',
+            'totalTerencana',
+            'totalBerjalan',
+            'totalTercapai',
+            'totalTertunda',
+            'gurus'
         ));
     }
 
@@ -221,8 +294,51 @@ class PenugasanGuruController extends Controller
             'status'                => 'terencana',
         ]);
 
-        return redirect()->route('guru.penugasan.index', ['tab' => 'tambahan'])
+        if ($request->input('redirect_to') === 'rencana') {
+            return redirect()->route('guru.program-kerja-tambahan.index')
+                ->with('success', 'Rencana Tugas dan Program Kerja untuk "' . $request->tugas_tambahan . '" berhasil disimpan!');
+        }
+
+        return redirect()->back()
             ->with('success', 'Rencana Tugas dan Program Kerja untuk "' . $request->tugas_tambahan . '" berhasil disimpan!');
+    }
+
+    /**
+     * Perbarui Rencana Program Kerja Tugas Tambahan
+     */
+    public function updateProgramKerja(Request $request, ProgramKerjaTugasTambahan $programKerja)
+    {
+        $user = Auth::user();
+        if ($programKerja->guru_user_id !== $user->id && !$user->isSuperAdmin()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'tugas_tambahan'        => 'required|string|max:150',
+            'nama_program'          => 'required|string|max:255',
+            'tahun_ajaran'          => 'required|string|max:50',
+            'semester'              => 'required|string|max:50',
+            'tujuan'                => 'nullable|string',
+            'target_waktu'          => 'nullable|string|max:100',
+            'indikator_keberhasilan'=> 'nullable|string',
+            'anggaran'              => 'nullable|numeric|min:0',
+            'status'                => 'nullable|in:terencana,sedang_berjalan,tercapai,tertunda',
+        ]);
+
+        $programKerja->update([
+            'tugas_tambahan'        => $request->tugas_tambahan,
+            'tahun_ajaran'          => $request->tahun_ajaran,
+            'semester'              => $request->semester,
+            'nama_program'          => $request->nama_program,
+            'tujuan'                => $request->tujuan,
+            'target_waktu'          => $request->target_waktu,
+            'indikator_keberhasilan'=> $request->indikator_keberhasilan,
+            'anggaran'              => $request->anggaran ?: 0,
+            'status'                => $request->status ?: $programKerja->status,
+        ]);
+
+        return redirect()->back()
+            ->with('success', 'Rencana program kerja "' . $programKerja->nama_program . '" berhasil diperbarui.');
     }
 
     /**
@@ -237,7 +353,7 @@ class PenugasanGuruController extends Controller
 
         $programKerja->delete();
 
-        return redirect()->route('guru.penugasan.index', ['tab' => 'tambahan'])
+        return redirect()->back()
             ->with('success', 'Rencana program kerja berhasil dihapus.');
     }
 

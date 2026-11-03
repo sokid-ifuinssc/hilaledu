@@ -828,8 +828,8 @@
                                         ? route('tendik.dashboard')
                                         : (auth()->user()->admin_role === 'payroll'
                                             ? route('superadmin.payroll.dashboard')
-                                            : (auth()->user()->admin_role === 'dokumen'
-                                                ? route('dokumen-sertifikat.index', 'kepesantrenan')
+                                            : (auth()->user()->hasAnyAdminRole(['sertifikat_kepesantrenan', 'sertifikat_kewirausahaan', 'skl_ijazah', 'dokumen'])
+                                                ? route('dokumen-sertifikat.index')
                                                 : (auth()->user()->admin_role && \Illuminate\Support\Facades\Route::has(auth()->user()->admin_role . '.dashboard')
                                                     ? route(auth()->user()->admin_role . '.dashboard')
                                                     : route('superadmin.dashboard'))))));
@@ -945,10 +945,11 @@
                 {{-- ============================================================ --}}
                 {{-- 4. LAYANAN PEMBELAJARAN & AKADEMIK                           --}}
                 {{-- ============================================================ --}}
-                @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || !empty(auth()->user()->admin_role) || auth()->user()->hasAnyAdminRole(['akademik', 'bk', 'prakerin', 'dokumen']))
+                @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyAdminRole(['akademik', 'bk', 'prakerin', 'sertifikat_kepesantrenan', 'sertifikat_kewirausahaan', 'skl_ijazah', 'dokumen']))
                 <div class="sidebar-section-title">Akademik & KBM</div>
                 <ul class="sidebar-nav">
-                    {{-- DOKUMEN DAN SERTIFIKAT SISWA --}}
+                    {{-- DOKUMEN DAN SERTIFIKAT SISWA (TERPISAH PER UNIT ADMIN) --}}
+                    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyAdminRole(['sertifikat_kepesantrenan', 'sertifikat_kewirausahaan', 'skl_ijazah', 'dokumen']))
                     <li class="sidebar-nav-item">
                         <button type="button" 
                                 class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('dokumen-sertifikat.*') ? 'active' : '' }}" 
@@ -960,13 +961,20 @@
                         </button>
                         <div class="sidebar-dropdown-menu {{ request()->routeIs('dokumen-sertifikat.*') ? 'show' : '' }}" id="menuDokumenSertifikatAdmin">
                             <ul class="sidebar-submenu">
+                                @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyAdminRole(['sertifikat_kepesantrenan', 'dokumen']))
                                 <li><a href="{{ route('dokumen-sertifikat.index', 'kepesantrenan') }}" class="{{ request()->route('kategori') === 'kepesantrenan' ? 'active' : '' }}"><i class="bi bi-moon-stars-fill me-1" style="color:#10b981;"></i> Sertifikat Kepesantrenan</a></li>
+                                @endif
+                                @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyAdminRole(['sertifikat_kewirausahaan', 'dokumen']))
                                 <li><a href="{{ route('dokumen-sertifikat.index', 'kewirausahaan') }}" class="{{ request()->route('kategori') === 'kewirausahaan' ? 'active' : '' }}"><i class="bi bi-shop me-1" style="color:#f59e0b;"></i> Sertifikat Kewirausahaan</a></li>
+                                @endif
+                                @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyAdminRole(['skl_ijazah', 'dokumen']))
                                 <li><a href="{{ route('dokumen-sertifikat.index', 'skl') }}" class="{{ request()->route('kategori') === 'skl' ? 'active' : '' }}"><i class="bi bi-file-earmark-check-fill me-1" style="color:#38bdf8;"></i> SKL</a></li>
                                 <li><a href="{{ route('dokumen-sertifikat.index', 'ijazah') }}" class="{{ request()->route('kategori') === 'ijazah' ? 'active' : '' }}"><i class="bi bi-mortarboard-fill me-1" style="color:#818cf8;"></i> Ijazah</a></li>
+                                @endif
                             </ul>
                         </div>
                     </li>
+                    @endif
 
                     @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('akademik'))
                     <li class="sidebar-nav-item">
@@ -1500,6 +1508,7 @@
                     @elseif(auth()->user()->role === 'siswa')
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#10b981;"></i><span>Jadwal Pelajaran Kelas</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.ekstrakurikuler.*') ? 'active' : '' }}"><i class="bi bi-award-fill" style="color:#10b981;"></i><span>Ekstrakurikuler Saya</span></a></li>
+                        @if(!(auth()->user()->akses_dokumen_dibatasi ?? false))
                         <li class="sidebar-nav-item">
                             <button type="button" 
                                     class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('siswa.dokumen-sertifikat.*') ? 'active' : '' }}" 
@@ -1518,6 +1527,7 @@
                                 </ul>
                             </div>
                         </li>
+                        @endif
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#38bdf8;"></i><span>Profil & Biodata</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.tagihan.index') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.tagihan.*') ? 'active' : '' }}"><i class="bi bi-receipt" style="color:#f43f5e;"></i><span>Tagihan Saya</span></a></li>
                     @endif

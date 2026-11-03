@@ -58,6 +58,8 @@ class User extends Authenticatable
         'tahun_lulus_s1',
         'pendidikan_s2',
         'tahun_lulus_s2',
+        'akses_dokumen_dibatasi',
+        'catatan_pembatasan_dokumen',
     ];
 
     /**
@@ -83,6 +85,7 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'is_active'         => 'boolean',
             'tugas_tambahan'    => 'array',
+            'akses_dokumen_dibatasi' => 'boolean',
         ];
     }
 
@@ -333,7 +336,10 @@ class User extends Authenticatable
                 'keuangan' => 'Admin Keuangan & SPP',
                 'tracer'   => 'Admin Tracer Study (BKK)',
                 'payroll'  => 'Admin HilalPay (Penggajian)',
-                'dokumen'  => 'Admin Dokumen & Sertifikat',
+                'sertifikat_kepesantrenan' => 'Admin Sertifikat Kepesantrenan',
+                'sertifikat_kewirausahaan' => 'Admin Sertifikat Kewirausahaan',
+                'skl_ijazah'               => 'Admin SKL & Ijazah',
+                'dokumen'                  => 'Admin Dokumen & Sertifikat',
             ];
             foreach ($this->admin_roles as $ar) {
                 if (isset($roleNames[$ar])) {
@@ -364,7 +370,10 @@ class User extends Authenticatable
                 'keuangan' => 'Admin Keuangan',
                 'tracer'   => 'Admin Tracer',
                 'payroll'  => 'Admin HilalPay',
-                'dokumen'  => 'Admin Dokumen & Sertifikat',
+                'sertifikat_kepesantrenan' => 'Admin Sertifikat Kepesantrenan',
+                'sertifikat_kewirausahaan' => 'Admin Sertifikat Kewirausahaan',
+                'skl_ijazah'               => 'Admin SKL & Ijazah',
+                'dokumen'                  => 'Admin Dokumen & Sertifikat',
             ];
             foreach ($this->admin_roles as $ar) {
                 if (isset($roleNames[$ar])) {
@@ -972,7 +981,7 @@ class User extends Authenticatable
             return 'superadmin.payroll.dashboard';
         }
 
-        if ($this->admin_role === 'dokumen' && $this->role === 'admin') {
+        if (in_array($this->admin_role, ['dokumen', 'sertifikat_kepesantrenan', 'sertifikat_kewirausahaan', 'skl_ijazah'], true) && $this->role === 'admin') {
             return 'dokumen-sertifikat.index';
         }
 

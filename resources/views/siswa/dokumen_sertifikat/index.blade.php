@@ -4,6 +4,36 @@
 @section('page-title', $config['title'] . ' Saya')
 
 @section('content')
+@if($isAksesDibatasi ?? false)
+<div class="max-w-2xl mx-auto py-8">
+    <div class="bg-white rounded-3xl p-8 sm:p-10 text-center border border-rose-200 shadow-xs space-y-4">
+        <div class="w-16 h-16 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-3xl">
+            <i class="bi-shield-lock-fill"></i>
+        </div>
+        <div class="space-y-1">
+            <span class="inline-block px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-black uppercase tracking-wider">
+                Akses Dibatasi Sementara
+            </span>
+            <h2 class="text-xl font-black text-slate-900 pt-1">
+                Halaman Dokumen & Sertifikat Belum Dapat Diakses
+            </h2>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
+            {{ $catatanPembatasan ?? 'Mohon maaf, halaman sertifikat dan dokumen Anda belum dapat ditampilkan karena masih terdapat administrasi sekolah yang belum diselesaikan.' }}
+        </p>
+        <div class="pt-3 flex flex-wrap items-center justify-center gap-3">
+            <a href="{{ route('siswa.tagihan.index') }}" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs inline-flex items-center gap-2 shadow-sm transition">
+                <i class="bi-receipt"></i>
+                <span>Cek Tagihan & Administrasi Saya</span>
+            </a>
+            <a href="{{ route('siswa.dashboard') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs inline-flex items-center gap-2 transition">
+                <i class="bi-arrow-left"></i>
+                <span>Kembali ke Dashboard</span>
+            </a>
+        </div>
+    </div>
+</div>
+@else
 <div class="space-y-6" x-data="{
     modalPreview: false,
     previewUrl: '',
@@ -197,5 +227,6 @@
     </div>
 
 </div>
+@endif
 @endsection
 

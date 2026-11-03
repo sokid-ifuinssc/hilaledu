@@ -61,49 +61,103 @@ class DokumenSertifikatController extends Controller
                     $table->timestamps();
                 });
             }
+
+            if (Schema::hasTable('users')) {
+                if (!Schema::hasColumn('users', 'akses_dokumen_dibatasi')) {
+                    Schema::table('users', function (Blueprint $table) {
+                        $table->boolean('akses_dokumen_dibatasi')->default(false);
+                    });
+                }
+                if (!Schema::hasColumn('users', 'catatan_pembatasan_dokumen')) {
+                    Schema::table('users', function (Blueprint $table) {
+                        $table->string('catatan_pembatasan_dokumen', 500)->nullable();
+                    });
+                }
+            }
         } catch (\Throwable $e) {
             // Abaikan jika sedang koneksi read-only
         }
     }
 
     /**
-     * Cek apakah user memiliki hak kelola dokumen & sertifikat (Superadmin & yang ditunjuk sebagai Admin)
+     * Daftar kategori dokumen & sertifikat yang berhak dikelola oleh user:
+     * - Superadmin: seluruh kategori (kepesantrenan, kewirausahaan, skl, ijazah)
+     * - Admin Sertifikat Kepesantrenan (sertifikat_kepesantrenan): kepesantrenan
+     * - Admin Sertifikat Kewirausahaan (sertifikat_kewirausahaan): kewirausahaan
+     * - Admin SKL & Ijazah (skl_ijazah): skl dan ijazah (digabung bareng)
+     */
+    public static function allowedKategoris(?User $user): array
+    {
+        if (!$user) {
+            return [];
+        }
+
+        if ($user->isSuperAdmin() || $user->hasAdminRole('dokumen')) {
+            return self::VALID_KATEGORIS;
+        }
+
+        $allowed = [];
+        if ($user->hasAdminRole('sertifikat_kepesantrenan')) {
+            $allowed[] = 'kepesantrenan';
+        }
+        if ($user->hasAdminRole('sertifikat_kewirausahaan')) {
+            $allowed[] = 'kewirausahaan';
+        }
+        if ($user->hasAdminRole('skl_ijazah')) {
+            $allowed[] = 'skl';
+            $allowed[] = 'ijazah';
+        }
+
+        return array_values(array_unique($allowed));
+    }
+
+    /**
+     * Cek apakah user memiliki hak kelola dokumen & sertifikat (minimal 1 kategori)
      */
     public static function canManage(?User $user): bool
     {
-        if (!$user) {
-            return false;
-        }
-        return $user->isSuperAdmin()
-            || $user->role === 'admin'
-            || !empty($user->admin_role)
-            || $user->canManageAcademic();
+        return count(self::allowedKategoris($user)) > 0;
     }
 
-    protected function authorizeAdmin(): void
+    /**
+     * Cek apakah user berhak mengelola kategori spesifik
+     */
+    public static function canManageKategori(?User $user, string $kategori): bool
+    {
+        return in_array($kategori, self::allowedKategoris($user), true);
+    }
+
+    protected function authorizeAdmin(?string $kategori = null): void
     {
         $user = Auth::user();
         if (!self::canManage($user)) {
             abort(403, 'Anda tidak memiliki akses untuk mengelola Dokumen & Sertifikat.');
         }
+        if ($kategori !== null && !self::canManageKategori($user, $kategori)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola kategori sertifikat/dokumen ini.');
+        }
     }
 
     /**
-     * Halaman Pengelolaan Dokumen & Sertifikat (Superadmin & Admin)
+     * Halaman Pengelolaan Dokumen & Sertifikat (Superadmin & Admin sesuai unit penugasannya)
      */
-    public function adminIndex(Request $request, string $kategori = 'kepesantrenan')
+    public function adminIndex(Request $request, ?string $kategori = null)
     {
         $this->authorizeAdmin();
         $this->ensureSchema();
 
-        if (!in_array($kategori, self::VALID_KATEGORIS, true)) {
-            $kategori = 'kepesantrenan';
+        $allowedKategoris = self::allowedKategoris(Auth::user());
+
+        // Jika kategori tidak diisi atau admin tidak memiliki akses ke kategori tsb, arahkan ke kategori pertama yang diizinkan
+        if (!$kategori || !in_array($kategori, self::VALID_KATEGORIS, true) || !in_array($kategori, $allowedKategoris, true)) {
+            $kategori = $allowedKategoris[0];
         }
 
         $config = DokumenSertifikatSiswa::getKategoriConfig($kategori);
         $kelasId = $request->query('kelas_id');
         $search = trim((string) $request->query('search', ''));
         $statusFilter = $request->query('status_upload');
+        $aksesFilter = $request->query('status_akses');
         $jenisFilter = $request->query('jenis_id');
 
         $kelases = Kelas::orderBy('nama_kelas')->get();
@@ -150,10 +204,11 @@ class DokumenSertifikatController extends Controller
 
         $dokumensBySiswa = $dokumenQuery->get()->groupBy('siswa_id');
 
-        // Hitung statistik sebelum filter status_upload
+        // Hitung statistik sebelum filter status_upload & status_akses
         $totalSiswa = $allFilteredSiswas->count();
         $siswaSudahUpload = $allFilteredSiswas->filter(fn($s) => $dokumensBySiswa->has($s->id))->count();
         $siswaBelumUpload = $totalSiswa - $siswaSudahUpload;
+        $siswaAksesDibatasi = $allFilteredSiswas->filter(fn($s) => (bool) $s->akses_dokumen_dibatasi)->count();
         $totalFilePdf = $dokumensBySiswa->flatten(1)->count();
 
         // Terapkan filter status_upload jika dipilih
@@ -163,13 +218,22 @@ class DokumenSertifikatController extends Controller
             $allFilteredSiswas = $allFilteredSiswas->filter(fn($s) => !$dokumensBySiswa->has($s->id))->values();
         }
 
+        // Terapkan filter status_akses (administrasi) jika dipilih
+        if ($aksesFilter === 'diizinkan') {
+            $allFilteredSiswas = $allFilteredSiswas->filter(fn($s) => !(bool) $s->akses_dokumen_dibatasi)->values();
+        } elseif ($aksesFilter === 'dibatasi') {
+            $allFilteredSiswas = $allFilteredSiswas->filter(fn($s) => (bool) $s->akses_dokumen_dibatasi)->values();
+        }
+
         return view('admin.dokumen_sertifikat.index', compact(
             'kategori',
+            'allowedKategoris',
             'config',
             'kelases',
             'kelasId',
             'search',
             'statusFilter',
+            'aksesFilter',
             'jenisFilter',
             'jenisSertifikats',
             'allFilteredSiswas',
@@ -177,6 +241,7 @@ class DokumenSertifikatController extends Controller
             'totalSiswa',
             'siswaSudahUpload',
             'siswaBelumUpload',
+            'siswaAksesDibatasi',
             'totalFilePdf'
         ));
     }
@@ -186,7 +251,7 @@ class DokumenSertifikatController extends Controller
      */
     public function storeJenisSertifikat(Request $request, string $kategori)
     {
-        $this->authorizeAdmin();
+        $this->authorizeAdmin($kategori);
         $this->ensureSchema();
 
         if (!in_array($kategori, ['kepesantrenan', 'kewirausahaan'], true)) {
@@ -223,7 +288,7 @@ class DokumenSertifikatController extends Controller
      */
     public function updateJenisSertifikat(Request $request, JenisSertifikat $jenis)
     {
-        $this->authorizeAdmin();
+        $this->authorizeAdmin($jenis->kategori);
         $this->ensureSchema();
 
         $request->validate([
@@ -249,7 +314,7 @@ class DokumenSertifikatController extends Controller
      */
     public function destroyJenisSertifikat(JenisSertifikat $jenis)
     {
-        $this->authorizeAdmin();
+        $this->authorizeAdmin($jenis->kategori);
         $this->ensureSchema();
 
         $nama = $jenis->nama_sertifikat;
@@ -263,7 +328,7 @@ class DokumenSertifikatController extends Controller
      */
     public function storeDokumen(Request $request, string $kategori)
     {
-        $this->authorizeAdmin();
+        $this->authorizeAdmin($kategori);
         $this->ensureSchema();
 
         if (!in_array($kategori, self::VALID_KATEGORIS, true)) {
@@ -355,7 +420,7 @@ class DokumenSertifikatController extends Controller
      */
     public function destroyDokumen(DokumenSertifikatSiswa $dokumen)
     {
-        $this->authorizeAdmin();
+        $this->authorizeAdmin($dokumen->kategori);
         $this->ensureSchema();
 
         $nama = $dokumen->nama_dokumen;
@@ -371,6 +436,76 @@ class DokumenSertifikatController extends Controller
     }
 
     /**
+     * Pengaturan Akses Dokumen & Sertifikat Per Siswa (Pembatasan Administrasi)
+     */
+    public function toggleAksesSiswa(Request $request, User $siswa)
+    {
+        $this->authorizeAdmin();
+        $this->ensureSchema();
+
+        $request->validate([
+            'akses_dokumen_dibatasi'     => 'required|boolean',
+            'catatan_pembatasan_dokumen' => 'nullable|string|max:500',
+        ]);
+
+        $dibatasi = (bool) $request->boolean('akses_dokumen_dibatasi');
+        $catatan = $dibatasi
+            ? (trim((string) $request->input('catatan_pembatasan_dokumen')) ?: 'Administrasi sekolah belum diselesaikan. Silakan hubungi bagian Tata Usaha (TU) / Administrasi.')
+            : null;
+
+        $siswa->update([
+            'akses_dokumen_dibatasi'     => $dibatasi,
+            'catatan_pembatasan_dokumen' => $catatan,
+        ]);
+
+        if ($dibatasi) {
+            return redirect()->back()->with('success', "Akses halaman Dokumen & Sertifikat untuk siswa {$siswa->name} telah DIBATASI (Terkunci karena administrasi).");
+        }
+
+        return redirect()->back()->with('success', "Akses halaman Dokumen & Sertifikat untuk siswa {$siswa->name} telah DIBUKA kembali.");
+    }
+
+    /**
+     * Pengaturan Akses Dokumen & Sertifikat Secara Massal (Per Kelas atau Semua Siswa)
+     */
+    public function bulkAksesSiswa(Request $request)
+    {
+        $this->authorizeAdmin();
+        $this->ensureSchema();
+
+        $request->validate([
+            'action'                     => 'required|in:batasi,buka',
+            'kelas_id'                   => 'nullable|exists:kelas,id',
+            'catatan_pembatasan_dokumen' => 'nullable|string|max:500',
+        ]);
+
+        $dibatasi = $request->input('action') === 'batasi';
+        $catatan = $dibatasi
+            ? (trim((string) $request->input('catatan_pembatasan_dokumen')) ?: 'Administrasi sekolah belum diselesaikan. Silakan hubungi bagian Tata Usaha (TU) / Administrasi.')
+            : null;
+
+        $query = User::where('role', 'siswa')->where('is_active', true);
+        $targetLabel = 'seluruh siswa';
+
+        if ($request->filled('kelas_id')) {
+            $kelas = Kelas::find($request->kelas_id);
+            $query->where('kelas_id', $request->kelas_id);
+            $targetLabel = 'siswa Kelas ' . ($kelas->nama_kelas ?? '');
+        }
+
+        $count = $query->update([
+            'akses_dokumen_dibatasi'     => $dibatasi,
+            'catatan_pembatasan_dokumen' => $catatan,
+        ]);
+
+        if ($dibatasi) {
+            return redirect()->back()->with('success', "Akses halaman Dokumen & Sertifikat berhasil DIBATASI untuk {$count} {$targetLabel}.");
+        }
+
+        return redirect()->back()->with('success', "Akses halaman Dokumen & Sertifikat berhasil DIBUKA kembali untuk {$count} {$targetLabel}.");
+    }
+
+    /**
      * Halaman Siswa: Melihat & Mengunduh Dokumen dan Sertifikat Milik Sendiri
      */
     public function siswaIndex(Request $request, string $kategori = 'kepesantrenan')
@@ -383,6 +518,30 @@ class DokumenSertifikatController extends Controller
         }
 
         $config = DokumenSertifikatSiswa::getKategoriConfig($kategori);
+        $isAksesDibatasi = (bool) ($user->akses_dokumen_dibatasi ?? false);
+        $catatanPembatasan = $user->catatan_pembatasan_dokumen
+            ?: 'Masih terdapat administrasi sekolah yang belum diselesaikan. Silakan hubungi bagian Administrasi / Tata Usaha (TU) sekolah untuk membuka akses sertifikat dan dokumen kelulusan Anda.';
+
+        // Jika akses siswa sedang dibatasi karena masalah administrasi, sembunyikan seluruh dokumen sertifikat
+        if ($isAksesDibatasi) {
+            $countsByKategori = [
+                'kepesantrenan' => 0,
+                'kewirausahaan' => 0,
+                'skl'           => 0,
+                'ijazah'        => 0,
+            ];
+            $dokumens = collect();
+
+            return view('siswa.dokumen_sertifikat.index', compact(
+                'user',
+                'kategori',
+                'config',
+                'dokumens',
+                'countsByKategori',
+                'isAksesDibatasi',
+                'catatanPembatasan'
+            ));
+        }
 
         // Ambil seluruh dokumen milik siswa yang sedang login
         $allMyDocs = DokumenSertifikatSiswa::where('siswa_id', $user->id)
@@ -404,7 +563,9 @@ class DokumenSertifikatController extends Controller
             'kategori',
             'config',
             'dokumens',
-            'countsByKategori'
+            'countsByKategori',
+            'isAksesDibatasi',
+            'catatanPembatasan'
         ));
     }
 
@@ -414,8 +575,13 @@ class DokumenSertifikatController extends Controller
     public function preview(DokumenSertifikatSiswa $dokumen)
     {
         $user = Auth::user();
-        if (!self::canManage($user) && (int) $dokumen->siswa_id !== (int) $user->id) {
-            abort(403, 'Anda hanya dapat melihat dokumen milik Anda sendiri.');
+        if (!self::canManage($user)) {
+            if ((int) $dokumen->siswa_id !== (int) $user->id) {
+                abort(403, 'Anda hanya dapat melihat dokumen milik Anda sendiri.');
+            }
+            if ((bool) ($user->akses_dokumen_dibatasi ?? false)) {
+                abort(403, 'Akses dokumen dan sertifikat Anda sedang dibatasi karena administrasi belum selesai.');
+            }
         }
 
         if (!$dokumen->file_path || !Storage::disk('public')->exists($dokumen->file_path)) {
@@ -437,8 +603,13 @@ class DokumenSertifikatController extends Controller
     public function download(DokumenSertifikatSiswa $dokumen)
     {
         $user = Auth::user();
-        if (!self::canManage($user) && (int) $dokumen->siswa_id !== (int) $user->id) {
-            abort(403, 'Anda hanya dapat mengunduh dokumen milik Anda sendiri.');
+        if (!self::canManage($user)) {
+            if ((int) $dokumen->siswa_id !== (int) $user->id) {
+                abort(403, 'Anda hanya dapat mengunduh dokumen milik Anda sendiri.');
+            }
+            if ((bool) ($user->akses_dokumen_dibatasi ?? false)) {
+                abort(403, 'Akses dokumen dan sertifikat Anda sedang dibatasi karena administrasi belum selesai.');
+            }
         }
 
         if (!$dokumen->file_path || !Storage::disk('public')->exists($dokumen->file_path)) {

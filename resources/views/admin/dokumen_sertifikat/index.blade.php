@@ -8,12 +8,27 @@
     modalUpload: false,
     modalEditJenis: false,
     modalPreview: false,
+    modalAksesSiswa: false,
+    modalBulkAkses: false,
     previewUrl: '',
     previewTitle: '',
     selectedSiswaId: '',
     selectedSiswaName: '',
     selectedSiswaKelas: '',
     selectedSiswaNisn: '',
+    aksesSiswa: {
+        id: '',
+        name: '',
+        kelas: '',
+        nisn: '',
+        dibatasi: true,
+        catatan: 'Administrasi sekolah belum diselesaikan. Silakan hubungi bagian Tata Usaha (TU) / Administrasi.'
+    },
+    bulkAkses: {
+        action: 'batasi',
+        kelas_id: '{{ $kelasId ?? '' }}',
+        catatan: 'Administrasi sekolah belum diselesaikan. Silakan hubungi bagian Tata Usaha (TU) / Administrasi.'
+    },
     selectedJenisId: '{{ $jenisFilter ?: ($jenisSertifikats->first()->id ?? '') }}',
     modeNamaBaru: false,
     namaSertifikatBaru: '',
@@ -38,6 +53,17 @@
         this.keteranganDokumen = '';
         this.modalUpload = true;
     },
+    openAksesModal(siswa) {
+        this.aksesSiswa = {
+            id: siswa.id,
+            name: siswa.name,
+            kelas: siswa.kelas,
+            nisn: siswa.nisn,
+            dibatasi: siswa.dibatasi ? true : true,
+            catatan: siswa.catatan || 'Administrasi sekolah belum diselesaikan. Silakan hubungi bagian Tata Usaha (TU) / Administrasi.'
+        };
+        this.modalAksesSiswa = true;
+    },
     openEditJenisModal(j) {
         this.editJenis = {
             id: j.id,
@@ -53,34 +79,50 @@
     }
 }">
 
-    <!-- Sub-Menu Navigation Bar (4 Kategori Dokumen & Sertifikat) -->
+    <!-- Sub-Menu Navigation Bar (Sesuai Hak Akses Unit Admin) -->
     <div class="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-1.5">
+            @if(in_array('kepesantrenan', $allowedKategoris ?? [], true))
             <a href="{{ route('dokumen-sertifikat.index', ['kategori' => 'kepesantrenan', 'kelas_id' => $kelasId]) }}"
                class="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition {{ $kategori === 'kepesantrenan' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 font-black' : 'text-slate-600 hover:bg-slate-100' }}">
                 <i class="bi-moon-stars-fill text-sm {{ $kategori === 'kepesantrenan' ? 'text-white' : 'text-emerald-600' }}"></i>
                 <span>Sertifikat Kepesantrenan</span>
             </a>
+            @endif
+            @if(in_array('kewirausahaan', $allowedKategoris ?? [], true))
             <a href="{{ route('dokumen-sertifikat.index', ['kategori' => 'kewirausahaan', 'kelas_id' => $kelasId]) }}"
                class="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition {{ $kategori === 'kewirausahaan' ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/20 font-black' : 'text-slate-600 hover:bg-slate-100' }}">
                 <i class="bi-shop-window text-sm {{ $kategori === 'kewirausahaan' ? 'text-white' : 'text-amber-600' }}"></i>
                 <span>Sertifikat Kewirausahaan</span>
             </a>
+            @endif
+            @if(in_array('skl', $allowedKategoris ?? [], true))
             <a href="{{ route('dokumen-sertifikat.index', ['kategori' => 'skl', 'kelas_id' => $kelasId]) }}"
                class="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition {{ $kategori === 'skl' ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20 font-black' : 'text-slate-600 hover:bg-slate-100' }}">
                 <i class="bi-file-earmark-check-fill text-sm {{ $kategori === 'skl' ? 'text-white' : 'text-blue-600' }}"></i>
                 <span>SKL (Surat Keterangan Lulus)</span>
             </a>
+            @endif
+            @if(in_array('ijazah', $allowedKategoris ?? [], true))
             <a href="{{ route('dokumen-sertifikat.index', ['kategori' => 'ijazah', 'kelas_id' => $kelasId]) }}"
                class="px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition {{ $kategori === 'ijazah' ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20 font-black' : 'text-slate-600 hover:bg-slate-100' }}">
                 <i class="bi-mortarboard-fill text-sm {{ $kategori === 'ijazah' ? 'text-white' : 'text-indigo-600' }}"></i>
                 <span>Ijazah</span>
             </a>
+            @endif
         </div>
-        <span class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 mr-1">
-            <i class="bi-file-earmark-pdf-fill text-rose-600"></i>
-            <span>Format Wajib: PDF</span>
-        </span>
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="button"
+                    @click="modalBulkAkses = true"
+                    class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer">
+                <i class="bi-shield-lock-fill text-rose-600"></i>
+                <span>Pengaturan Akses Administrasi Siswa</span>
+            </button>
+            <span class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 mr-1">
+                <i class="bi-file-earmark-pdf-fill text-rose-600"></i>
+                <span>Format Wajib: PDF</span>
+            </span>
+        </div>
     </div>
 
     <!-- Header & Statistik -->
@@ -100,7 +142,7 @@
             </p>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div class="bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-xs">
                 <span class="text-[10px] font-bold uppercase text-slate-400 block">Total Siswa</span>
                 <span class="text-lg font-black text-slate-900">{{ $totalSiswa }}</span>
@@ -112,6 +154,10 @@
             <div class="bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-xs">
                 <span class="text-[10px] font-bold uppercase text-amber-600 block">Belum Ada PDF</span>
                 <span class="text-lg font-black text-amber-600">{{ $siswaBelumUpload }}</span>
+            </div>
+            <div class="bg-white px-4 py-3 rounded-2xl border border-rose-200 bg-rose-50/40 shadow-xs">
+                <span class="text-[10px] font-bold uppercase text-rose-700 block">Akses Dibatasi</span>
+                <span class="text-lg font-black text-rose-700">{{ $siswaAksesDibatasi ?? 0 }}</span>
             </div>
             <div class="bg-white px-4 py-3 rounded-2xl border border-indigo-200 bg-indigo-50/40 shadow-xs">
                 <span class="text-[10px] font-bold uppercase text-indigo-700 block">Total File PDF</span>
@@ -211,10 +257,10 @@
     @endif
 
     <!-- ========================================================================= -->
-    <!-- FILTER KELAS, PENCARIAN SISWA & STATUS UPLOAD -->
+    <!-- FILTER KELAS, PENCARIAN SISWA, STATUS UPLOAD & STATUS AKSES ADMINISTRASI -->
     <!-- ========================================================================= -->
     <div class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs">
-        <form method="GET" action="{{ route('dokumen-sertifikat.index', $kategori) }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end text-xs">
+        <form method="GET" action="{{ route('dokumen-sertifikat.index', $kategori) }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end text-xs">
             @if($jenisFilter)
             <input type="hidden" name="jenis_id" value="{{ $jenisFilter }}">
             @endif
@@ -261,6 +307,18 @@
                 </select>
             </div>
 
+            <!-- Filter Status Akses Administrasi Siswa -->
+            <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+                    <i class="bi-shield-lock text-rose-500"></i> Akses Siswa (Adm)
+                </label>
+                <select name="status_akses" onchange="this.form.submit()" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800">
+                    <option value="">Semua Status Akses</option>
+                    <option value="diizinkan" {{ ($aksesFilter ?? '') === 'diizinkan' ? 'selected' : '' }}>Akses Diizinkan (Terbuka)</option>
+                    <option value="dibatasi" {{ ($aksesFilter ?? '') === 'dibatasi' ? 'selected' : '' }}>Akses Dibatasi (Belum Lunas Adm)</option>
+                </select>
+            </div>
+
             <!-- Pencarian Nama / NISN -->
             <div class="{{ $config['is_multiple'] ? 'lg:col-span-1' : 'lg:col-span-2' }}">
                 <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Cari Nama / NISN Siswa</label>
@@ -281,7 +339,7 @@
                 <button type="submit" class="flex-1 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition cursor-pointer">
                     Terapkan Filter
                 </button>
-                @if($kelasId || $search || $statusFilter || $jenisFilter)
+                @if($kelasId || $search || $statusFilter || ($aksesFilter ?? '') || $jenisFilter)
                 <a href="{{ route('dokumen-sertifikat.index', $kategori) }}" class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
                     Reset
                 </a>
@@ -312,13 +370,14 @@
             <table class="w-full text-xs text-left">
                 <thead class="bg-slate-50 border-b font-bold uppercase text-[10px] text-slate-400">
                     <tr>
-                        <th class="px-4 py-3.5 text-center" width="5%">No</th>
-                        <th class="px-4 py-3.5" width="24%">Nama Siswa & NISN</th>
-                        <th class="px-4 py-3.5 text-center" width="12%">Kelas</th>
-                        <th class="px-4 py-3.5" width="44%">
+                        <th class="px-4 py-3.5 text-center" width="4%">No</th>
+                        <th class="px-4 py-3.5" width="20%">Nama Siswa & NISN</th>
+                        <th class="px-4 py-3.5 text-center" width="10%">Kelas</th>
+                        <th class="px-4 py-3.5" width="34%">
                             {{ $config['is_multiple'] ? 'Daftar Sertifikat PDF yang Diupload (Bisa Lebih dari 1 File)' : 'File Dokumen PDF (' . $config['short'] . ' - 1 File Saja)' }}
                         </th>
-                        <th class="px-4 py-3.5 text-center" width="15%">Aksi Upload</th>
+                        <th class="px-4 py-3.5" width="19%">Akses Siswa (Administrasi)</th>
+                        <th class="px-4 py-3.5 text-center" width="13%">Aksi Upload</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y font-medium text-slate-700">
@@ -327,14 +386,17 @@
                         $docs = $dokumensBySiswa->get($s->id, collect());
                         $namaKelas = $s->kelas->nama_kelas ?? ($s->kelas->nama ?? 'Belum Masuk Kelas');
                         $nisnLabel = $s->nisn ?: $s->username;
+                        $isDibatasi = (bool) ($s->akses_dokumen_dibatasi ?? false);
                         $siswaJs = [
-                            'id'    => $s->id,
-                            'name'  => $s->name,
-                            'kelas' => $namaKelas,
-                            'nisn'  => $nisnLabel,
+                            'id'       => $s->id,
+                            'name'     => $s->name,
+                            'kelas'    => $namaKelas,
+                            'nisn'     => $nisnLabel,
+                            'dibatasi' => $isDibatasi,
+                            'catatan'  => $s->catatan_pembatasan_dokumen ?? '',
                         ];
                     @endphp
-                    <tr class="hover:bg-slate-50/70 transition align-top">
+                    <tr class="hover:bg-slate-50/70 transition align-top {{ $isDibatasi ? 'bg-rose-50/20' : '' }}">
                         <td class="px-4 py-3.5 text-center font-bold text-slate-400">
                             {{ $idx + 1 }}
                         </td>
@@ -410,6 +472,54 @@
                             </div>
                             @endif
                         </td>
+                        <td class="px-4 py-3.5">
+                            @if($isDibatasi)
+                                <div class="space-y-1.5">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 border border-rose-200 font-black text-[11px]">
+                                        <i class="bi-lock-fill text-rose-600"></i>
+                                        <span>Akses Dibatasi (Terkunci)</span>
+                                    </span>
+                                    @if($s->catatan_pembatasan_dokumen)
+                                    <div class="text-[10px] text-rose-700 leading-snug bg-rose-50/80 p-1.5 rounded-lg border border-rose-100">
+                                        <strong>Alasan:</strong> {{ $s->catatan_pembatasan_dokumen }}
+                                    </div>
+                                    @endif
+                                    <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                        <form method="POST" action="{{ route('dokumen-sertifikat.akses.toggle', $s) }}" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="akses_dokumen_dibatasi" value="0">
+                                            <button type="submit"
+                                                    class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] inline-flex items-center gap-1 transition cursor-pointer">
+                                                <i class="bi-unlock-fill"></i>
+                                                <span>Buka Akses</span>
+                                            </button>
+                                        </form>
+                                        <button type="button"
+                                                @click="openAksesModal({{ Js::from($siswaJs) }})"
+                                                class="px-2 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg font-bold text-[10px] inline-flex items-center gap-1 transition cursor-pointer">
+                                            <i class="bi-pencil-square"></i>
+                                            <span>Ubah Alasan</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="space-y-1.5">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[11px]">
+                                        <i class="bi-unlock-fill text-emerald-600"></i>
+                                        <span>Akses Diizinkan</span>
+                                    </span>
+                                    <div>
+                                        <button type="button"
+                                                @click="openAksesModal({{ Js::from($siswaJs) }})"
+                                                class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold text-[10px] inline-flex items-center gap-1 transition cursor-pointer"
+                                                title="Batasi siswa ini agar tidak dapat melihat sertifikat karena masalah administrasi">
+                                            <i class="bi-lock-fill"></i>
+                                            <span>Batasi Akses (Adm)</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            @endif
+                        </td>
                         <td class="px-4 py-3.5 text-center whitespace-nowrap">
                             @if($config['is_multiple'])
                                 <button type="button"
@@ -439,7 +549,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-12 text-center text-slate-400">
+                        <td colspan="6" class="px-4 py-12 text-center text-slate-400">
                             <div class="max-w-sm mx-auto space-y-2">
                                 <i class="bi-people text-3xl text-slate-300 block"></i>
                                 <div class="font-bold text-slate-700 text-sm">Data Siswa Tidak Ditemukan</div>
@@ -633,6 +743,145 @@
                     <iframe :src="previewUrl" class="w-full h-full border-0"></iframe>
                 </template>
             </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL POPUP: BATASI / ATUR AKSES SISWA INDIVIDU (MASALAH ADMINISTRASI) -->
+    <!-- ========================================================================= -->
+    <div x-show="modalAksesSiswa"
+         x-cloak
+         x-transition.opacity.duration.200ms
+         class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+         style="display: none;">
+        <div @click.away="modalAksesSiswa = false"
+             class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2.5 bg-rose-100 text-rose-600 rounded-xl">
+                        <i class="bi-shield-lock-fill text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-slate-900 text-base">Pembatasan Akses Sertifikat Siswa</h3>
+                        <p class="text-xs text-slate-500" x-text="aksesSiswa.name + ' (' + aksesSiswa.kelas + ')'"></p>
+                    </div>
+                </div>
+                <button type="button" @click="modalAksesSiswa = false" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+                    <i class="bi-x-lg"></i>
+                </button>
+            </div>
+
+            <form method="POST" :action="'{{ url('dokumen-sertifikat/akses-siswa') }}/' + aksesSiswa.id" class="space-y-4 text-xs">
+                @csrf
+                <input type="hidden" name="akses_dokumen_dibatasi" value="1">
+
+                <div class="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 leading-relaxed">
+                    <strong><i class="bi-exclamation-triangle-fill text-rose-600"></i> Dampak Pembatasan:</strong><br>
+                    Jika dibatasi, siswa ini <strong>tidak dapat melihat maupun mengunduh</strong> seluruh sertifikat & dokumen (Kepesantrenan, Kewirausahaan, SKL, dan Ijazah) pada halaman siswanya sampai akses dibuka kembali.
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Alasan / Catatan Administrasi untuk Siswa</label>
+                    <textarea name="catatan_pembatasan_dokumen"
+                              x-model="aksesSiswa.catatan"
+                              rows="3"
+                              placeholder="Contoh: Administrasi sekolah / SPP belum diselesaikan. Silakan hubungi bagian TU."
+                              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-rose-500"></textarea>
+                    <span class="text-[10px] text-slate-400 mt-1 block">Pesan ini akan ditampilkan kepada siswa saat membuka halaman Dokumen & Sertifikat.</span>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="modalAksesSiswa = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        <i class="bi-lock-fill"></i>
+                        <span>Simpan & Batasi Akses Siswa</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL POPUP: PENGATURAN AKSES MASSAL (PER KELAS / SEMUA SISWA) -->
+    <!-- ========================================================================= -->
+    <div x-show="modalBulkAkses"
+         x-cloak
+         x-transition.opacity.duration.200ms
+         class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+         style="display: none;">
+        <div @click.away="modalBulkAkses = false"
+             class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl">
+                        <i class="bi-shield-shaded text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-slate-900 text-base">Pengaturan Akses Sertifikat Massal</h3>
+                        <p class="text-xs text-slate-500">Batasi atau buka akses halaman sertifikat siswa per kelas / keseluruhan</p>
+                    </div>
+                </div>
+                <button type="button" @click="modalBulkAkses = false" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+                    <i class="bi-x-lg"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('dokumen-sertifikat.akses.bulk') }}" class="space-y-4 text-xs">
+                @csrf
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Pilih Target Kelas</label>
+                    <select name="kelas_id" x-model="bulkAkses.kelas_id" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800">
+                        <option value="">-- Seluruh Siswa Semua Kelas --</option>
+                        @foreach($kelases as $kls)
+                        <option value="{{ $kls->id }}">Kelas {{ $kls->nama_kelas }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Tindakan Pengaturan Akses <span class="text-rose-500">*</span></label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <label class="p-3 rounded-2xl border cursor-pointer flex items-start gap-2.5 transition"
+                               :class="bulkAkses.action === 'batasi' ? 'bg-rose-50 border-rose-500 text-rose-900' : 'bg-white border-slate-200 text-slate-700'">
+                            <input type="radio" name="action" value="batasi" x-model="bulkAkses.action" class="mt-0.5">
+                            <div>
+                                <div class="font-black flex items-center gap-1"><i class="bi-lock-fill text-rose-600"></i> Batasi Akses Siswa</div>
+                                <div class="text-[10px] text-slate-500">Sembunyikan halaman sertifikat karena administrasi</div>
+                            </div>
+                        </label>
+                        <label class="p-3 rounded-2xl border cursor-pointer flex items-start gap-2.5 transition"
+                               :class="bulkAkses.action === 'buka' ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-white border-slate-200 text-slate-700'">
+                            <input type="radio" name="action" value="buka" x-model="bulkAkses.action" class="mt-0.5">
+                            <div>
+                                <div class="font-black flex items-center gap-1"><i class="bi-unlock-fill text-emerald-600"></i> Buka Akses Siswa</div>
+                                <div class="text-[10px] text-slate-500">Izinkan siswa melihat & mengunduh sertifikat</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div x-show="bulkAkses.action === 'batasi'">
+                    <label class="block font-bold text-slate-700 mb-1">Catatan / Pesan Administrasi untuk Siswa</label>
+                    <textarea name="catatan_pembatasan_dokumen"
+                              x-model="bulkAkses.catatan"
+                              rows="2"
+                              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="modalBulkAkses = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="px-5 py-2 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-sm cursor-pointer transition"
+                            :class="bulkAkses.action === 'batasi' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'">
+                        <i class="bi-check2-circle"></i>
+                        <span x-text="bulkAkses.action === 'batasi' ? 'Terapkan Pembatasan Akses' : 'Buka Akses Target'"></span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

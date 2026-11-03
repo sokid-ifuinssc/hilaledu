@@ -35,6 +35,17 @@ return new class extends Migration
                 $table->timestamps();
             });
         }
+
+        if (Schema::hasTable('users')) {
+            Schema::table('users', function (Blueprint $table) {
+                if (!Schema::hasColumn('users', 'akses_dokumen_dibatasi')) {
+                    $table->boolean('akses_dokumen_dibatasi')->default(false)->after('is_active');
+                }
+                if (!Schema::hasColumn('users', 'catatan_pembatasan_dokumen')) {
+                    $table->string('catatan_pembatasan_dokumen', 500)->nullable()->after('akses_dokumen_dibatasi');
+                }
+            });
+        }
     }
 
     public function down(): void

@@ -71,8 +71,8 @@ Route::get('/', function () {
             if ($user->admin_role === 'payroll') {
                 return redirect()->route('superadmin.payroll.dashboard');
             }
-            if ($user->admin_role === 'dokumen') {
-                return redirect()->route('dokumen-sertifikat.index', 'kepesantrenan');
+            if ($user->hasAnyAdminRole(['sertifikat_kepesantrenan', 'sertifikat_kewirausahaan', 'skl_ijazah', 'dokumen'])) {
+                return redirect()->route('dokumen-sertifikat.index');
             }
             if (!empty($user->admin_role) && \Illuminate\Support\Facades\Route::has($user->admin_role . '.dashboard')) {
                 return redirect()->route($user->admin_role . '.dashboard');
@@ -1021,6 +1021,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('dokumen-sertifikat')->name('dokumen-sertifikat.')->group(function () {
         Route::get('/preview/{dokumen}', [\App\Http\Controllers\DokumenSertifikatController::class, 'preview'])->name('preview');
         Route::get('/download/{dokumen}', [\App\Http\Controllers\DokumenSertifikatController::class, 'download'])->name('download');
+        Route::post('/akses-siswa/{siswa}', [\App\Http\Controllers\DokumenSertifikatController::class, 'toggleAksesSiswa'])->name('akses.toggle');
+        Route::post('/akses-massal', [\App\Http\Controllers\DokumenSertifikatController::class, 'bulkAksesSiswa'])->name('akses.bulk');
         Route::post('/{kategori}/jenis', [\App\Http\Controllers\DokumenSertifikatController::class, 'storeJenisSertifikat'])->name('jenis.store');
         Route::put('/jenis/{jenis}', [\App\Http\Controllers\DokumenSertifikatController::class, 'updateJenisSertifikat'])->name('jenis.update');
         Route::delete('/jenis/{jenis}', [\App\Http\Controllers\DokumenSertifikatController::class, 'destroyJenisSertifikat'])->name('jenis.destroy');

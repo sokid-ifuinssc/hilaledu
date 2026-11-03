@@ -744,12 +744,11 @@ class DokumenSertifikatController extends Controller
 
         $namaKegiatan = $meta['nama_kegiatan'] ?: $jenisObj->nama_sertifikat;
         $tempatTerbit = $meta['tempat_terbit'] ?: 'Cirebon';
-        $tanggalTerbit = $meta['tanggal_terbit'] ?: date('d F Y');
+        $tanggalTerbit = $meta['tanggal_terbit'] ?: now()->translatedFormat('d F Y');
 
         $pdfBytes = SertifikatPdfGenerator::generatePdfBytes([
             'kategori'           => $kategori,
             'nama_sekolah'       => $namaSekolah,
-            'judul_sertifikat'   => 'SERTIFIKAT ' . strtoupper($kategori),
             'nomor_dokumen'      => $nomorDokumen,
             'nama_siswa'         => $siswa->name,
             'nisn'               => $siswa->nisn ?: $siswa->username,
@@ -847,7 +846,7 @@ class DokumenSertifikatController extends Controller
             'nama_kegiatan'      => $jenisObj->nama_sertifikat,
             'deskripsi_kegiatan' => $request->input('deskripsi_kegiatan'),
             'tempat_terbit'      => $request->input('tempat_terbit', 'Cirebon'),
-            'tanggal_terbit'     => $request->input('tanggal_terbit', date('d F Y')),
+            'tanggal_terbit'     => $request->input('tanggal_terbit', now()->translatedFormat('d F Y')),
             'pejabat_1_jabatan'  => $request->input('pejabat_1_jabatan'),
             'pejabat_1_nama'     => $request->input('pejabat_1_nama'),
             'pejabat_1_nip'      => $request->input('pejabat_1_nip'),
@@ -1002,7 +1001,7 @@ class DokumenSertifikatController extends Controller
             'nama_kegiatan'      => $jenisObj->nama_sertifikat,
             'deskripsi_kegiatan' => $request->input('deskripsi_kegiatan'),
             'tempat_terbit'      => $request->input('tempat_terbit', 'Cirebon'),
-            'tanggal_terbit'     => $request->input('tanggal_terbit', date('d F Y')),
+            'tanggal_terbit'     => $request->input('tanggal_terbit', now()->translatedFormat('d F Y')),
             'pejabat_1_jabatan'  => $request->input('pejabat_1_jabatan'),
             'pejabat_1_nama'     => $request->input('pejabat_1_nama'),
             'pejabat_1_nip'      => $request->input('pejabat_1_nip'),

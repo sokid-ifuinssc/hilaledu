@@ -10,7 +10,6 @@ class SertifikatPdfGenerator
      * @param array $data [
      *   'kategori' => 'kepesantrenan'|'kewirausahaan',
      *   'nama_sekolah' => 'SMK PLUS AL HILAL CIREBON',
-     *   'judul_sertifikat' => 'SERTIFIKAT KEPESANTRENAN',
      *   'nomor_dokumen' => '421.5/001/SERT-AH/2026',
      *   'nama_siswa' => 'AHMAD FAUZI',
      *   'nisn' => '0081234567',

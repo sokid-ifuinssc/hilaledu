@@ -28,7 +28,6 @@
         name: '',
         kelas: '',
         nisn: '',
-        dibatasi: true,
         catatan: 'Administrasi sekolah belum diselesaikan. Silakan hubungi bagian Tata Usaha (TU) / Administrasi.'
     },
     bulkAkses: {
@@ -66,7 +65,6 @@
             name: siswa.name,
             kelas: siswa.kelas,
             nisn: siswa.nisn,
-            dibatasi: siswa.dibatasi ? true : true,
             catatan: siswa.catatan || 'Administrasi sekolah belum diselesaikan. Silakan hubungi bagian Tata Usaha (TU) / Administrasi.'
         };
         this.modalAksesSiswa = true;
@@ -151,7 +149,7 @@
                 </span>
                 @if(!$config['is_multiple'])
                 <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                    <i class="bi-Mortarboard-fill"></i>
+                    <i class="bi-mortarboard-fill"></i>
                     <span>Khusus Menampilkan Siswa Kelas XII</span>
                 </span>
                 @endif

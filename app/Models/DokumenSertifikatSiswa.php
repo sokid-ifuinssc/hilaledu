@@ -20,7 +20,26 @@ class DokumenSertifikatSiswa extends Model
         'file_size',
         'keterangan',
         'uploaded_by',
+        'is_generated',
+        'nama_kegiatan',
+        'deskripsi_kegiatan',
+        'predikat',
+        'tempat_terbit',
+        'tanggal_terbit',
+        'pejabat_1_jabatan',
+        'pejabat_1_nama',
+        'pejabat_1_nip',
+        'pejabat_2_jabatan',
+        'pejabat_2_nama',
+        'pejabat_2_nip',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_generated' => 'boolean',
+        ];
+    }
 
     public function siswa(): BelongsTo
     {

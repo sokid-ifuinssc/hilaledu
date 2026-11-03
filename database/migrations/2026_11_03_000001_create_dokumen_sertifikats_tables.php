@@ -32,6 +32,18 @@ return new class extends Migration
                 $table->unsignedBigInteger('file_size')->nullable();
                 $table->text('keterangan')->nullable();
                 $table->unsignedBigInteger('uploaded_by')->nullable();
+                $table->boolean('is_generated')->default(false);
+                $table->string('nama_kegiatan')->nullable();
+                $table->text('deskripsi_kegiatan')->nullable();
+                $table->string('predikat', 50)->nullable();
+                $table->string('tempat_terbit', 100)->nullable();
+                $table->string('tanggal_terbit', 100)->nullable();
+                $table->string('pejabat_1_jabatan', 150)->nullable();
+                $table->string('pejabat_1_nama', 150)->nullable();
+                $table->string('pejabat_1_nip', 100)->nullable();
+                $table->string('pejabat_2_jabatan', 150)->nullable();
+                $table->string('pejabat_2_nama', 150)->nullable();
+                $table->string('pejabat_2_nip', 100)->nullable();
                 $table->timestamps();
             });
         }

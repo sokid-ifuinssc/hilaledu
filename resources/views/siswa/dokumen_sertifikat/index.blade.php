@@ -143,6 +143,11 @@
                             No: {{ $doc->nomor_dokumen }}
                         </p>
                         @endif
+                        @if($doc->predikat)
+                        <span class="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-[10px]">
+                            Predikat Nilai: {{ $doc->predikat }}
+                        </span>
+                        @endif
                         <p class="text-[11px] text-slate-400 mt-0.5">
                             Format PDF · {{ $doc->file_size_formatted }}
                         </p>
@@ -157,18 +162,28 @@
                 @endif
             </div>
 
-            <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2.5">
-                <button type="button"
-                        @click="openPreview('{{ route('dokumen-sertifikat.preview', $doc) }}', '{{ addslashes($doc->nama_dokumen) }}')"
-                        class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer">
-                    <i class="bi-eye-fill text-indigo-600"></i>
-                    <span>Lihat PDF</span>
-                </button>
-                <a href="{{ route('dokumen-sertifikat.download', $doc) }}"
-                   class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20 transition">
-                    <i class="bi-download"></i>
-                    <span>Unduh PDF</span>
+            <div class="pt-3 border-t border-slate-100 space-y-2">
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button type="button"
+                            @click="openPreview('{{ route('dokumen-sertifikat.preview', $doc) }}', '{{ addslashes($doc->nama_dokumen) }}')"
+                            class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer">
+                        <i class="bi-eye-fill text-indigo-600"></i>
+                        <span>Lihat PDF</span>
+                    </button>
+                    <a href="{{ route('dokumen-sertifikat.download', $doc) }}"
+                       class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20 transition">
+                        <i class="bi-download"></i>
+                        <span>Unduh PDF</span>
+                    </a>
+                </div>
+                @if($doc->is_generated)
+                <a href="{{ route('dokumen-sertifikat.cetak', $doc) }}"
+                   target="_blank"
+                   class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+                    <i class="bi-printer-fill text-amber-600"></i>
+                    <span>Cetak Sertifikat HD (A4 Landscape)</span>
                 </a>
+                @endif
             </div>
         </div>
         @endforeach

@@ -10,6 +10,13 @@
     modalPreview: false,
     modalAksesSiswa: false,
     modalBulkAkses: false,
+    modalGenerateMassal: false,
+    modalImportData: false,
+    genModeNamaBaru: {{ $jenisSertifikats->isEmpty() ? 'true' : 'false' }},
+    impModeNamaBaru: {{ $jenisSertifikats->isEmpty() ? 'true' : 'false' }},
+    setAllPredikat(val) {
+        document.querySelectorAll('.select-predikat-siswa').forEach(el => el.value = val);
+    },
     previewUrl: '',
     previewTitle: '',
     selectedSiswaId: '',
@@ -112,26 +119,42 @@
             @endif
         </div>
         <div class="flex flex-wrap items-center gap-2">
+            @if($config['is_multiple'])
+            <button type="button"
+                    @click="modalGenerateMassal = true"
+                    class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 transition cursor-pointer">
+                <i class="bi-magic"></i>
+                <span>Generate Sertifikat Otomatis</span>
+            </button>
+            <button type="button"
+                    @click="modalImportData = true"
+                    class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-indigo-600/20 transition cursor-pointer">
+                <i class="bi-file-earmark-spreadsheet-fill"></i>
+                <span>Upload 1 Dokumen Data &rarr; Generate</span>
+            </button>
+            @endif
             <button type="button"
                     @click="modalBulkAkses = true"
                     class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer">
                 <i class="bi-shield-lock-fill text-rose-600"></i>
                 <span>Pengaturan Akses Administrasi Siswa</span>
             </button>
-            <span class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 mr-1">
-                <i class="bi-file-earmark-pdf-fill text-rose-600"></i>
-                <span>Format Wajib: PDF</span>
-            </span>
         </div>
     </div>
 
     <!-- Header & Statistik -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2.5">
+            <div class="flex flex-wrap items-center gap-2">
                 <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black uppercase tracking-wider">
-                    {{ $config['is_multiple'] ? 'Multi-Sertifikat PDF Per Siswa' : '1 File PDF Per Siswa' }}
+                    {{ $config['is_multiple'] ? 'Multi-Sertifikat PDF Per Siswa (Bisa Upload Manual atau Generate Otomatis)' : '1 File PDF Per Siswa' }}
                 </span>
+                @if(!$config['is_multiple'])
+                <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                    <i class="bi-Mortarboard-fill"></i>
+                    <span>Khusus Menampilkan Siswa Kelas XII</span>
+                </span>
+                @endif
             </div>
             <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 mt-1">
                 <i class="{{ $config['icon'] }} text-indigo-600"></i>
@@ -435,15 +458,36 @@
                                                 <span>·</span>
                                                 <span class="font-bold text-indigo-700">No: {{ $doc->nomor_dokumen }}</span>
                                                 @endif
+                                                @if($doc->predikat)
+                                                <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-black">
+                                                    Predikat: {{ $doc->predikat }}
+                                                </span>
+                                                @endif
                                             </div>
-                                            @if($doc->keterangan)
+                                            @if($doc->pejabat_1_nama)
+                                            <div class="text-[10px] text-slate-500 mt-0.5">
+                                                TTD: {{ $doc->pejabat_1_jabatan }} ({{ $doc->pejabat_1_nama }})
+                                                @if($doc->pejabat_2_nama)
+                                                    &amp; {{ $doc->pejabat_2_jabatan }} ({{ $doc->pejabat_2_nama }})
+                                                @endif
+                                            </div>
+                                            @elseif($doc->keterangan)
                                             <div class="text-[10px] text-slate-500 italic mt-0.5">{{ $doc->keterangan }}</div>
                                             @endif
                                         </div>
                                     </div>
 
-                                    <!-- Tombol Lihat, Unduh & Hapus File -->
+                                    <!-- Tombol Lihat, Cetak HD, Unduh & Hapus File -->
                                     <div class="flex items-center gap-1 flex-shrink-0">
+                                        @if($doc->is_generated)
+                                        <a href="{{ route('dokumen-sertifikat.cetak', $doc) }}"
+                                           target="_blank"
+                                           class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg font-bold text-[11px] flex items-center gap-1 transition"
+                                           title="Cetak Sertifikat Kualitas Tinggi (A4 Landscape)">
+                                            <i class="bi-printer-fill"></i>
+                                            <span>Cetak HD</span>
+                                        </a>
+                                        @endif
                                         <button type="button"
                                                 @click="openPreviewModal('{{ route('dokumen-sertifikat.preview', $doc) }}', '{{ addslashes($doc->nama_dokumen . ' — ' . $s->name) }}')"
                                                 class="px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg font-bold text-[11px] flex items-center gap-1 transition cursor-pointer"
@@ -884,6 +928,382 @@
             </form>
         </div>
     </div>
+
+    @if($config['is_multiple'])
+    <!-- ========================================================================= -->
+    <!-- MODAL POPUP 1: GENERATE SERTIFIKAT OTOMATIS (INPUT KEGIATAN, PREDIKAT & PEJABAT TTD) -->
+    <!-- ========================================================================= -->
+    <div x-show="modalGenerateMassal"
+         x-cloak
+         x-transition.opacity.duration.200ms
+         class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
+         style="display: none;">
+        <div @click.away="modalGenerateMassal = false"
+             class="bg-white w-full max-w-4xl rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
+                        <i class="bi-magic text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-slate-900 text-base">Generate Otomatis {{ $config['title'] }} untuk Masing-Masing Siswa</h3>
+                        <p class="text-xs text-slate-500">Isi Nama Kegiatan, Pejabat Penandatangan, dan pilih Predikat Nilai (Sangat Baik / Baik / Cukup) per siswa</p>
+                    </div>
+                </div>
+                <button type="button" @click="modalGenerateMassal = false" class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100">
+                    <i class="bi-x-lg"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('dokumen-sertifikat.generate.massal', $kategori) }}" class="space-y-4 text-xs">
+                @csrf
+
+                <!-- Bagian A: Data Kegiatan & Sertifikat -->
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div class="font-black text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                        <i class="bi-award-fill text-indigo-600"></i>
+                        <span>1. Informasi Kegiatan &amp; Nomor Sertifikat</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="font-bold text-slate-700">Nama Kegiatan / Sertifikat <span class="text-rose-500">*</span></label>
+                                @if($jenisSertifikats->isNotEmpty())
+                                <button type="button"
+                                        @click="genModeNamaBaru = !genModeNamaBaru"
+                                        class="text-[11px] font-bold text-indigo-600 hover:underline cursor-pointer"
+                                        x-text="genModeNamaBaru ? 'Pilih dari Master Sertifikat' : '+ Ketik Nama Kegiatan Baru'"></button>
+                                @endif
+                            </div>
+
+                            <template x-if="!genModeNamaBaru">
+                                <select name="jenis_sertifikat_id" required class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-800">
+                                    <option value="">-- Pilih Nama Kegiatan / Sertifikat --</option>
+                                    @foreach($jenisSertifikats as $j)
+                                    <option value="{{ $j->id }}">{{ $j->nama_sertifikat }}</option>
+                                    @endforeach
+                                </select>
+                            </template>
+                            <template x-if="genModeNamaBaru">
+                                <input type="text"
+                                       name="nama_sertifikat_baru"
+                                       required
+                                       placeholder="{{ $config['placeholder'] }}"
+                                       class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                            </template>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Format Nomor Sertifikat (Gunakan {NO} untuk nomor urut otomatis)</label>
+                            <input type="text"
+                                   name="format_nomor"
+                                   value="421.5/{NO}/SERT-AH/{{ date('Y') }}"
+                                   placeholder="Contoh: 421.5/{NO}/SERT-AH/{{ date('Y') }}"
+                                   class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="md:col-span-1">
+                            <label class="block font-bold text-slate-700 mb-1">Tempat Terbit</label>
+                            <input type="text" name="tempat_terbit" value="Cirebon" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                        </div>
+                        <div class="md:col-span-1">
+                            <label class="block font-bold text-slate-700 mb-1">Tanggal Terbit</label>
+                            <input type="text" name="tanggal_terbit" value="{{ now()->translatedFormat('d F Y') }}" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                        </div>
+                        <div class="md:col-span-1">
+                            <label class="block font-bold text-slate-700 mb-1">Narasi / Deskripsi Kegiatan (Opsional)</label>
+                            <input type="text"
+                                   name="deskripsi_kegiatan"
+                                   placeholder="Kosongkan untuk menggunakan narasi resmi bawaan"
+                                   class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bagian B: Pejabat Penandatangan -->
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div class="font-black text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                        <i class="bi-pen-fill text-emerald-600"></i>
+                        <span>2. Pejabat Penandatangan Sertifikat (Misal: Kepala Sekolah, Ketua Lembaga, dll)</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Pejabat 1 (Wajib) -->
+                        <div class="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2.5">
+                            <div class="font-bold text-indigo-700 text-[11px] uppercase">Pejabat Penandatangan 1 (Utama / Kiri) *</div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Jabatan Penandatangan 1 <span class="text-rose-500">*</span></label>
+                                <input type="text"
+                                       name="pejabat_1_jabatan"
+                                       list="listJabatanPejabat1"
+                                       value="Kepala SMK Plus Al Hilal"
+                                       required
+                                       placeholder="Contoh: Kepala SMK Plus Al Hilal / Ketua Lembaga"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
+                                <datalist id="listJabatanPejabat1">
+                                    <option value="Kepala SMK Plus Al Hilal">
+                                    <option value="Ketua Lembaga Kepesantrenan">
+                                    <option value="Pengasuh Pondok Pesantren Al Hilal">
+                                    <option value="Ketua Unit Kewirausahaan">
+                                    <option value="Ketua Program Keahlian">
+                                </datalist>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nama Lengkap &amp; Gelar Pejabat 1 <span class="text-rose-500">*</span></label>
+                                <input type="text"
+                                       name="pejabat_1_nama"
+                                       value="{{ $defaultKepsekNama ?? '' }}"
+                                       required
+                                       placeholder="Ketik nama lengkap pejabat & gelar..."
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">NIP / NIY Pejabat 1 (Opsional)</label>
+                                <input type="text"
+                                       name="pejabat_1_nip"
+                                       value="{{ $defaultKepsekNip ?? '' }}"
+                                       placeholder="Contoh: NIP. 19800101..."
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
+                            </div>
+                        </div>
+
+                        <!-- Pejabat 2 (Opsional) -->
+                        <div class="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2.5">
+                            <div class="font-bold text-emerald-700 text-[11px] uppercase">Pejabat Penandatangan 2 (Kanan - Opsional)</div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Jabatan Penandatangan 2 (Kosongkan jika hanya 1 TTD)</label>
+                                <input type="text"
+                                       name="pejabat_2_jabatan"
+                                       list="listJabatanPejabat2"
+                                       placeholder="Contoh: Ketua Lembaga {{ $config['short'] }}"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
+                                <datalist id="listJabatanPejabat2">
+                                    <option value="Ketua Lembaga Kepesantrenan">
+                                    <option value="Pengasuh Pondok Pesantren">
+                                    <option value="Ketua Lembaga Kewirausahaan">
+                                    <option value="Koordinator Kepesantrenan">
+                                    <option value="Koordinator Kewirausahaan">
+                                </datalist>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nama Lengkap &amp; Gelar Pejabat 2</label>
+                                <input type="text"
+                                       name="pejabat_2_nama"
+                                       placeholder="Ketik nama lengkap pejabat ke-2..."
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">NIP / NIY Pejabat 2 (Opsional)</label>
+                                <input type="text"
+                                       name="pejabat_2_nip"
+                                       placeholder="Opsional"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bagian C: Daftar Siswa & Pilihan Predikat Nilai -->
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="font-black text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                            <i class="bi-people-fill text-indigo-600"></i>
+                            <span>3. Pilih Predikat Nilai Masing-Masing Siswa ({{ $allFilteredSiswas->count() }} Siswa Ditampilkan)</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="text-[10px] font-bold text-slate-500">Set Semua Sekaligus:</span>
+                            <button type="button" @click="setAllPredikat('Sangat Baik')" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[10px] cursor-pointer">
+                                Sangat Baik
+                            </button>
+                            <button type="button" @click="setAllPredikat('Baik')" class="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold text-[10px] cursor-pointer">
+                                Baik
+                            </button>
+                            <button type="button" @click="setAllPredikat('Cukup')" class="px-2.5 py-1 rounded-lg bg-amber-600 text-white font-bold text-[10px] cursor-pointer">
+                                Cukup
+                            </button>
+                            <button type="button" @click="setAllPredikat('')" class="px-2.5 py-1 rounded-lg bg-slate-200 text-slate-700 font-bold text-[10px] cursor-pointer">
+                                Kosongkan
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="max-h-64 overflow-y-auto bg-white rounded-xl border border-slate-200">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-100 sticky top-0 text-[10px] font-bold uppercase text-slate-500">
+                                <tr>
+                                    <th class="px-3 py-2" width="6%">No</th>
+                                    <th class="px-3 py-2" width="44%">Nama Siswa &amp; NISN</th>
+                                    <th class="px-3 py-2" width="20%">Kelas</th>
+                                    <th class="px-3 py-2" width="30%">Predikat Nilai Sertifikat</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach($allFilteredSiswas as $idx => $s)
+                                <tr>
+                                    <td class="px-3 py-2 text-slate-400 font-bold">{{ $idx + 1 }}</td>
+                                    <td class="px-3 py-2">
+                                        <span class="font-bold text-slate-900">{{ $s->name }}</span>
+                                        <span class="text-[10px] text-slate-400 ml-1">({{ $s->nisn ?: $s->username }})</span>
+                                    </td>
+                                    <td class="px-3 py-2 font-bold text-slate-700">
+                                        {{ $s->kelas->nama_kelas ?? ($s->kelas->nama ?? '-') }}
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <select name="predikat_siswa[{{ $s->id }}]" class="select-predikat-siswa w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800">
+                                            <option value="Sangat Baik">Sangat Baik</option>
+                                            <option value="Baik" selected>Baik</option>
+                                            <option value="Cukup">Cukup</option>
+                                            <option value="">-- Tidak Ikut / Lewati --</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="modalGenerateMassal = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer">
+                        <i class="bi-magic"></i>
+                        <span>Generate Sertifikat PDF untuk Siswa Terpilih</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL POPUP 2: UPLOAD 1 DOKUMEN DATA (EXCEL/CSV) -> GENERATE SEMUA SERTIFIKAT -->
+    <!-- ========================================================================= -->
+    <div x-show="modalImportData"
+         x-cloak
+         x-transition.opacity.duration.200ms
+         class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
+         style="display: none;">
+        <div @click.away="modalImportData = false"
+             class="bg-white w-full max-w-2xl rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl">
+                        <i class="bi-file-earmark-spreadsheet-fill text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-slate-900 text-base">Upload 1 Dokumen Data &rarr; Generate Sertifikat Masing-Masing Siswa</h3>
+                        <p class="text-xs text-slate-500">Unggah 1 file Excel/CSV berisi daftar nilai predikat siswa, sistem otomatis membuat sertifikat tiap siswa</p>
+                    </div>
+                </div>
+                <button type="button" @click="modalImportData = false" class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100">
+                    <i class="bi-x-lg"></i>
+                </button>
+            </div>
+
+            <!-- Langkah 1: Unduh Template Data -->
+            <div class="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div class="space-y-0.5">
+                    <div class="font-black text-indigo-950">Langkah 1: Unduh Template Data Siswa</div>
+                    <p class="text-indigo-800 text-[11px]">
+                        Template sudah terisi otomatis daftar nama &amp; NISN siswa. Anda cukup mengisi kolom <strong>PREDIKAT_NILAI</strong> (<em>Sangat Baik / Baik / Cukup</em>).
+                    </p>
+                </div>
+                <a href="{{ route('dokumen-sertifikat.generate.template', ['kategori' => $kategori, 'kelas_id' => $kelasId]) }}"
+                   class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                    <i class="bi-download"></i>
+                    <span>Unduh Template Data (.CSV/Excel)</span>
+                </a>
+            </div>
+
+            <form method="POST" action="{{ route('dokumen-sertifikat.generate.import', $kategori) }}" enctype="multipart/form-data" class="space-y-4 text-xs">
+                @csrf
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="font-bold text-slate-700">Nama Kegiatan / Sertifikat <span class="text-rose-500">*</span></label>
+                            @if($jenisSertifikats->isNotEmpty())
+                            <button type="button"
+                                    @click="impModeNamaBaru = !impModeNamaBaru"
+                                    class="text-[11px] font-bold text-indigo-600 hover:underline cursor-pointer"
+                                    x-text="impModeNamaBaru ? 'Pilih Master' : '+ Nama Baru'"></button>
+                            @endif
+                        </div>
+                        <template x-if="!impModeNamaBaru">
+                            <select name="jenis_sertifikat_id" required class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800">
+                                <option value="">-- Pilih Nama Kegiatan / Sertifikat --</option>
+                                @foreach($jenisSertifikats as $j)
+                                <option value="{{ $j->id }}">{{ $j->nama_sertifikat }}</option>
+                                @endforeach
+                            </select>
+                        </template>
+                        <template x-if="impModeNamaBaru">
+                            <input type="text" name="nama_sertifikat_baru" required placeholder="{{ $config['placeholder'] }}" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
+                        </template>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Upload 1 Dokumen Data (.CSV / .XLSX) <span class="text-rose-500">*</span></label>
+                        <input type="file"
+                               name="file_data"
+                               accept=".csv,.xlsx,.xls,.txt"
+                               required
+                               class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl font-medium file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Jabatan Penandatangan 1 <span class="text-rose-500">*</span></label>
+                        <input type="text" name="pejabat_1_jabatan" value="Kepala SMK Plus Al Hilal" required class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Nama Pejabat Penandatangan 1 <span class="text-rose-500">*</span></label>
+                        <input type="text" name="pejabat_1_nama" value="{{ $defaultKepsekNama ?? '' }}" required placeholder="Nama Pejabat & Gelar" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Jabatan Penandatangan 2 (Opsional)</label>
+                        <input type="text" name="pejabat_2_jabatan" placeholder="Contoh: Ketua Lembaga {{ $config['short'] }}" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Nama Pejabat Penandatangan 2 (Opsional)</label>
+                        <input type="text" name="pejabat_2_nama" placeholder="Kosongkan jika 1 penandatangan" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Tempat Terbit</label>
+                        <input type="text" name="tempat_terbit" value="Cirebon" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Tanggal Terbit</label>
+                        <input type="text" name="tanggal_terbit" value="{{ now()->translatedFormat('d F Y') }}" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="modalImportData = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
+                        <i class="bi-cloud-arrow-up-fill"></i>
+                        <span>Proses Dokumen &amp; Generate Sertifikat</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
 
 </div>
 @endsection

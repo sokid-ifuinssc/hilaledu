@@ -71,6 +71,9 @@ Route::get('/', function () {
             if ($user->admin_role === 'payroll') {
                 return redirect()->route('superadmin.payroll.dashboard');
             }
+            if ($user->admin_role === 'dokumen') {
+                return redirect()->route('dokumen-sertifikat.index', 'kepesantrenan');
+            }
             if (!empty($user->admin_role) && \Illuminate\Support\Facades\Route::has($user->admin_role . '.dashboard')) {
                 return redirect()->route($user->admin_role . '.dashboard');
             }

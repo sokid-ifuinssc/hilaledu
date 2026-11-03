@@ -824,14 +824,18 @@
                                 ? route('superadmin.dashboard')
                                 : (auth()->user()->role === 'guru'
                                     ? route('guru.dashboard')
-                                    : (auth()->user()->admin_role === 'payroll'
-                                        ? route('superadmin.payroll.dashboard')
-                                        : (auth()->user()->admin_role && \Illuminate\Support\Facades\Route::has(auth()->user()->admin_role . '.dashboard')
-                                            ? route(auth()->user()->admin_role . '.dashboard')
-                                            : route('superadmin.dashboard'))));
+                                    : (auth()->user()->role === 'tendik'
+                                        ? route('tendik.dashboard')
+                                        : (auth()->user()->admin_role === 'payroll'
+                                            ? route('superadmin.payroll.dashboard')
+                                            : (auth()->user()->admin_role === 'dokumen'
+                                                ? route('dokumen-sertifikat.index', 'kepesantrenan')
+                                                : (auth()->user()->admin_role && \Illuminate\Support\Facades\Route::has(auth()->user()->admin_role . '.dashboard')
+                                                    ? route(auth()->user()->admin_role . '.dashboard')
+                                                    : route('superadmin.dashboard'))))));
                         @endphp
                         <a href="{{ $dashboardUrl }}"
-                           class="sidebar-nav-link {{ request()->routeIs('superadmin.dashboard') || request()->routeIs('guru.dashboard') || (auth()->user()->admin_role === 'payroll' && request()->routeIs('superadmin.payroll.dashboard')) || (auth()->user()->admin_role && request()->routeIs(auth()->user()->admin_role . '.dashboard')) ? 'active' : '' }}">
+                           class="sidebar-nav-link {{ request()->routeIs('superadmin.dashboard') || request()->routeIs('guru.dashboard') || request()->routeIs('tendik.dashboard') || (auth()->user()->admin_role === 'payroll' && request()->routeIs('superadmin.payroll.dashboard')) || (auth()->user()->admin_role && request()->routeIs(auth()->user()->admin_role . '.dashboard')) ? 'active' : '' }}">
                             <i class="bi bi-speedometer2"></i>
                             <span>Dashboard Utama</span>
                         </a>

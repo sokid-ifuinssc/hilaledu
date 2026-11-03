@@ -430,6 +430,8 @@
 </div>
 
 <script>
+    let preselectedModalRole = '';
+
     function clearRoleCheckboxes() {
         document.querySelectorAll('.role-checkbox').forEach(cb => cb.checked = false);
     }
@@ -444,6 +446,7 @@
     }
 
     function setModalRole(roleKey) {
+        preselectedModalRole = roleKey || '';
         clearRoleCheckboxes();
         const selectUser = document.getElementById('selectUserId');
         const selectedOption = selectUser ? selectUser.options[selectUser.selectedIndex] : null;
@@ -452,12 +455,13 @@
         if (existingRoles) {
             checkRoles(existingRoles);
         }
-        if (roleKey) {
-            checkRoles(roleKey);
+        if (preselectedModalRole) {
+            checkRoles(preselectedModalRole);
         }
     }
 
     function setEditModal(userId, currentRoles) {
+        preselectedModalRole = '';
         const selectUser = document.getElementById('selectUserId');
         if (selectUser) {
             selectUser.value = userId;
@@ -474,6 +478,9 @@
         const existingRoles = selectedOption ? selectedOption.getAttribute('data-roles') : '';
         if (existingRoles) {
             checkRoles(existingRoles);
+        }
+        if (preselectedModalRole) {
+            checkRoles(preselectedModalRole);
         }
     });
 </script>

@@ -186,11 +186,15 @@ class PenugasanAdminController extends Controller
      */
     public function store(Request $request)
     {
+        $roleDefinitions = self::getAdminRoleDefinitions();
+        $validKeys = array_keys($roleDefinitions);
+        $validKeysRule = 'in:' . implode(',', $validKeys);
+
         $request->validate([
             'user_id'       => 'required|exists:users,id',
             'admin_roles'   => 'nullable|array',
-            'admin_roles.*' => 'in:akademik,prakerin,bk,koperasi,keuangan,tracer,payroll',
-            'admin_role'    => 'nullable|in:akademik,prakerin,bk,koperasi,keuangan,tracer,payroll',
+            'admin_roles.*' => $validKeysRule,
+            'admin_role'    => 'nullable|' . $validKeysRule,
             'keterangan'    => 'nullable|string|max:255',
             'action_mode'   => 'nullable|in:set,append',
         ], [
@@ -199,7 +203,6 @@ class PenugasanAdminController extends Controller
         ]);
 
         $user = User::findOrFail($request->user_id);
-        $roleDefinitions = self::getAdminRoleDefinitions();
 
         // Ambil roles dari checkbox array atau radio single fallback
         $selectedRoles = $request->input('admin_roles', []);
@@ -211,7 +214,6 @@ class PenugasanAdminController extends Controller
             return back()->withErrors(['admin_roles' => 'Silakan pilih minimal 1 unit layanan yang ditugaskan.']);
         }
 
-        $validKeys = array_keys($roleDefinitions);
         $selectedRoles = array_values(array_intersect($validKeys, (array)$selectedRoles));
 
         if ($request->input('action_mode') === 'append') {

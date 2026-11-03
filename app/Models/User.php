@@ -333,6 +333,7 @@ class User extends Authenticatable
                 'keuangan' => 'Admin Keuangan & SPP',
                 'tracer'   => 'Admin Tracer Study (BKK)',
                 'payroll'  => 'Admin HilalPay (Penggajian)',
+                'dokumen'  => 'Admin Dokumen & Sertifikat',
             ];
             foreach ($this->admin_roles as $ar) {
                 if (isset($roleNames[$ar])) {
@@ -363,6 +364,7 @@ class User extends Authenticatable
                 'keuangan' => 'Admin Keuangan',
                 'tracer'   => 'Admin Tracer',
                 'payroll'  => 'Admin HilalPay',
+                'dokumen'  => 'Admin Dokumen & Sertifikat',
             ];
             foreach ($this->admin_roles as $ar) {
                 if (isset($roleNames[$ar])) {
@@ -968,6 +970,10 @@ class User extends Authenticatable
 
         if ($this->admin_role === 'payroll' && $this->role === 'admin') {
             return 'superadmin.payroll.dashboard';
+        }
+
+        if ($this->admin_role === 'dokumen' && $this->role === 'admin') {
+            return 'dokumen-sertifikat.index';
         }
 
         return match ($this->role) {

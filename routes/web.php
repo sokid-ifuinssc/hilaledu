@@ -1007,6 +1007,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/ekstrakurikuler/{ekstrakurikuler}/ketua-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiIndex'])->name('ekstrakurikuler.ketua-absensi');
         Route::post('/ekstrakurikuler/{ekstrakurikuler}/ketua-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiStore'])->name('ekstrakurikuler.ketua-absensi.store');
         Route::post('/ekstrakurikuler/{ekstrakurikuler}/ketua-simpan-absensi', [SiswaEkstrakurikulerController::class, 'ketuaAbsensiStore'])->name('ekstrakurikuler.ketua-simpan-absensi');
+
+        // Menu Dokumen & Sertifikat Siswa (Kepesantrenan, Kewirausahaan, SKL, Ijazah)
+        Route::get('/dokumen-sertifikat/{kategori?}', [\App\Http\Controllers\DokumenSertifikatController::class, 'siswaIndex'])->name('dokumen-sertifikat.index');
+    });
+
+    // ==========================================
+    // MODUL DOKUMEN & SERTIFIKAT SISWA (SUPERADMIN & ADMIN DITUNJUK)
+    // ==========================================
+    Route::prefix('dokumen-sertifikat')->name('dokumen-sertifikat.')->group(function () {
+        Route::get('/preview/{dokumen}', [\App\Http\Controllers\DokumenSertifikatController::class, 'preview'])->name('preview');
+        Route::get('/download/{dokumen}', [\App\Http\Controllers\DokumenSertifikatController::class, 'download'])->name('download');
+        Route::post('/{kategori}/jenis', [\App\Http\Controllers\DokumenSertifikatController::class, 'storeJenisSertifikat'])->name('jenis.store');
+        Route::put('/jenis/{jenis}', [\App\Http\Controllers\DokumenSertifikatController::class, 'updateJenisSertifikat'])->name('jenis.update');
+        Route::delete('/jenis/{jenis}', [\App\Http\Controllers\DokumenSertifikatController::class, 'destroyJenisSertifikat'])->name('jenis.destroy');
+        Route::post('/{kategori}/upload', [\App\Http\Controllers\DokumenSertifikatController::class, 'storeDokumen'])->name('store');
+        Route::delete('/item/{dokumen}', [\App\Http\Controllers\DokumenSertifikatController::class, 'destroyDokumen'])->name('destroy');
+        Route::get('/{kategori?}', [\App\Http\Controllers\DokumenSertifikatController::class, 'adminIndex'])->name('index');
     });
 
     // ==========================================

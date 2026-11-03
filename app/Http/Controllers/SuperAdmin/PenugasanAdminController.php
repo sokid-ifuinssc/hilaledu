@@ -94,6 +94,17 @@ class PenugasanAdminController extends Controller
                 'desc'      => 'Mengelola master komponen gaji, penyesuaian gaji & transport guru/tendik, generate & cetak slip gaji digital, dan laporan penggajian.',
                 'app_slug'  => 'payroll',
             ],
+            'dokumen' => [
+                'role'      => 'dokumen',
+                'name'      => 'Admin Dokumen & Sertifikat',
+                'badge'     => 'Dokumen & Sertifikat',
+                'icon'      => 'bi-patch-check-fill',
+                'color'     => '#818cf8',
+                'bg_soft'   => 'rgba(129, 140, 248, 0.12)',
+                'border'    => 'rgba(129, 140, 248, 0.3)',
+                'desc'      => 'Mengelola penerbitan dan unggahan dokumen PDF siswa: Sertifikat Kepesantrenan, Sertifikat Kewirausahaan, SKL, dan Ijazah.',
+                'app_slug'  => 'dokumen-sertifikat',
+            ],
         ];
     }
 

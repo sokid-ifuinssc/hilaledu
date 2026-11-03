@@ -6,7 +6,23 @@
     <meta name="description" content="HilalEdu - Platform digital terpadu SMK Plus Al Hilal yang menghubungkan ruang belajar, pendidik, dan siswa secara cerdas dan modern">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'HilalEdu - Platform Digital SMK Plus Al Hilal')</title>
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="HilalEdu">
     <link rel="icon" href="{{ asset('images/logo_smk.png?v=' . time()) }}" type="image/png">
+    <link rel="apple-touch-icon" href="/images/icon-192x192.png">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function (err) {
+                    console.warn('ServiceWorker registration failed:', err);
+                });
+            });
+        }
+    </script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

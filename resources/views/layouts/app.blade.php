@@ -4,8 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="HilalEdu">
     <title>@yield('title', 'Dashboard') - HilalEdu</title>
     <link rel="icon" href="{{ asset('images/logo_smk.png?v=' . time()) }}" type="image/png">
+    <link rel="apple-touch-icon" href="/images/icon-192x192.png">
+    <link rel="manifest" href="/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function (err) {
+                    console.warn('ServiceWorker registration failed:', err);
+                });
+            });
+        }
+    </script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -925,9 +941,29 @@
                 {{-- ============================================================ --}}
                 {{-- 4. LAYANAN PEMBELAJARAN & AKADEMIK                           --}}
                 {{-- ============================================================ --}}
-                @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAnyAdminRole(['akademik', 'bk', 'prakerin']))
+                @if(auth()->user()->isSuperAdmin() || auth()->user()->role === 'admin' || !empty(auth()->user()->admin_role) || auth()->user()->hasAnyAdminRole(['akademik', 'bk', 'prakerin', 'dokumen']))
                 <div class="sidebar-section-title">Akademik & KBM</div>
                 <ul class="sidebar-nav">
+                    {{-- DOKUMEN DAN SERTIFIKAT SISWA --}}
+                    <li class="sidebar-nav-item">
+                        <button type="button" 
+                                class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('dokumen-sertifikat.*') ? 'active' : '' }}" 
+                                onclick="toggleSidebarDropdown('menuDokumenSertifikatAdmin')" 
+                                aria-expanded="{{ request()->routeIs('dokumen-sertifikat.*') ? 'true' : 'false' }}">
+                            <i class="bi bi-patch-check-fill" style="color:#a855f7;"></i>
+                            <span>Dokumen dan Sertifikat</span>
+                            <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                        </button>
+                        <div class="sidebar-dropdown-menu {{ request()->routeIs('dokumen-sertifikat.*') ? 'show' : '' }}" id="menuDokumenSertifikatAdmin">
+                            <ul class="sidebar-submenu">
+                                <li><a href="{{ route('dokumen-sertifikat.index', 'kepesantrenan') }}" class="{{ request()->route('kategori') === 'kepesantrenan' ? 'active' : '' }}"><i class="bi bi-moon-stars-fill me-1" style="color:#10b981;"></i> Sertifikat Kepesantrenan</a></li>
+                                <li><a href="{{ route('dokumen-sertifikat.index', 'kewirausahaan') }}" class="{{ request()->route('kategori') === 'kewirausahaan' ? 'active' : '' }}"><i class="bi bi-shop me-1" style="color:#f59e0b;"></i> Sertifikat Kewirausahaan</a></li>
+                                <li><a href="{{ route('dokumen-sertifikat.index', 'skl') }}" class="{{ request()->route('kategori') === 'skl' ? 'active' : '' }}"><i class="bi bi-file-earmark-check-fill me-1" style="color:#38bdf8;"></i> SKL</a></li>
+                                <li><a href="{{ route('dokumen-sertifikat.index', 'ijazah') }}" class="{{ request()->route('kategori') === 'ijazah' ? 'active' : '' }}"><i class="bi bi-mortarboard-fill me-1" style="color:#818cf8;"></i> Ijazah</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
                     @if(auth()->user()->isSuperAdmin() || auth()->user()->hasAdminRole('akademik'))
                     <li class="sidebar-nav-item">
                         <button type="button" 
@@ -1460,6 +1496,24 @@
                     @elseif(auth()->user()->role === 'siswa')
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.jadwal') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.jadwal*') ? 'active' : '' }}"><i class="bi bi-calendar3-week-fill" style="color:#10b981;"></i><span>Jadwal Pelajaran Kelas</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.ekstrakurikuler.index') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.ekstrakurikuler.*') ? 'active' : '' }}"><i class="bi bi-award-fill" style="color:#10b981;"></i><span>Ekstrakurikuler Saya</span></a></li>
+                        <li class="sidebar-nav-item">
+                            <button type="button" 
+                                    class="sidebar-nav-link sidebar-dropdown-btn {{ request()->routeIs('siswa.dokumen-sertifikat.*') ? 'active' : '' }}" 
+                                    onclick="toggleSidebarDropdown('menuDokumenSertifikatSiswa')" 
+                                    aria-expanded="{{ request()->routeIs('siswa.dokumen-sertifikat.*') ? 'true' : 'false' }}">
+                                <i class="bi bi-patch-check-fill" style="color:#a855f7;"></i>
+                                <span>Dokumen dan Sertifikat</span>
+                                <i class="bi bi-chevron-down ms-auto arrow-icon"></i>
+                            </button>
+                            <div class="sidebar-dropdown-menu {{ request()->routeIs('siswa.dokumen-sertifikat.*') ? 'show' : '' }}" id="menuDokumenSertifikatSiswa">
+                                <ul class="sidebar-submenu">
+                                    <li><a href="{{ route('siswa.dokumen-sertifikat.index', 'kepesantrenan') }}" class="{{ request()->route('kategori') === 'kepesantrenan' ? 'active' : '' }}"><i class="bi bi-moon-stars-fill me-1" style="color:#10b981;"></i> Sertifikat Kepesantrenan</a></li>
+                                    <li><a href="{{ route('siswa.dokumen-sertifikat.index', 'kewirausahaan') }}" class="{{ request()->route('kategori') === 'kewirausahaan' ? 'active' : '' }}"><i class="bi bi-shop me-1" style="color:#f59e0b;"></i> Sertifikat Kewirausahaan</a></li>
+                                    <li><a href="{{ route('siswa.dokumen-sertifikat.index', 'skl') }}" class="{{ request()->route('kategori') === 'skl' ? 'active' : '' }}"><i class="bi bi-file-earmark-check-fill me-1" style="color:#38bdf8;"></i> SKL</a></li>
+                                    <li><a href="{{ route('siswa.dokumen-sertifikat.index', 'ijazah') }}" class="{{ request()->route('kategori') === 'ijazah' ? 'active' : '' }}"><i class="bi bi-mortarboard-fill me-1" style="color:#818cf8;"></i> Ijazah</a></li>
+                                </ul>
+                            </div>
+                        </li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#38bdf8;"></i><span>Profil & Biodata</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.tagihan.index') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.tagihan.*') ? 'active' : '' }}"><i class="bi bi-receipt" style="color:#f43f5e;"></i><span>Tagihan Saya</span></a></li>
                     @endif

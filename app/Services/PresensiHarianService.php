@@ -117,8 +117,9 @@ class PresensiHarianService
         $presensi->save();
 
         // SINKRONISASI KBM OTOMATIS KE SELURUH JADWAL GURU HARI INI:
+        $piketName = $actor ? $actor->name : 'Petugas Piket';
         $allJadwalsToday = JadwalPelajaran::where('guru_user_id', $guru->id)
-            ->where('hari', $todayName)
+            ->where('hari', $hariName)
             ->get();
 
         foreach ($allJadwalsToday as $j) {

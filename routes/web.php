@@ -1024,6 +1024,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/download/{dokumen}', [\App\Http\Controllers\DokumenSertifikatController::class, 'download'])->name('download');
         Route::post('/akses-siswa/{siswa}', [\App\Http\Controllers\DokumenSertifikatController::class, 'toggleAksesSiswa'])->name('akses.toggle');
         Route::post('/akses-massal', [\App\Http\Controllers\DokumenSertifikatController::class, 'bulkAksesSiswa'])->name('akses.bulk');
+        Route::get('/{kategori}/preview-draft', [\App\Http\Controllers\DokumenSertifikatController::class, 'previewDraft'])->name('generate.preview');
         Route::post('/{kategori}/generate-massal', [\App\Http\Controllers\DokumenSertifikatController::class, 'generateMassal'])->name('generate.massal');
         Route::get('/{kategori}/template-data', [\App\Http\Controllers\DokumenSertifikatController::class, 'downloadTemplateGenerator'])->name('generate.template');
         Route::post('/{kategori}/import-data', [\App\Http\Controllers\DokumenSertifikatController::class, 'importDataGenerator'])->name('generate.import');

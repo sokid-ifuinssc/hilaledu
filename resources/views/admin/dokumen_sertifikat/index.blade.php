@@ -4,6 +4,20 @@
 @section('page-title', 'Dokumen & Sertifikat: ' . $config['short'])
 
 @section('content')
+@php
+    $firstSampleSiswa = $allFilteredSiswas->first();
+    $sampleSiswaNama = $firstSampleSiswa ? $firstSampleSiswa->name : 'AHMAD FAUZI';
+    $sampleSiswaNisn = $firstSampleSiswa ? ($firstSampleSiswa->nisn ?: $firstSampleSiswa->username) : '0081234567';
+    $sampleSiswaKelas = $firstSampleSiswa && $firstSampleSiswa->kelas
+        ? ($firstSampleSiswa->kelas->nama_kelas ?? ($firstSampleSiswa->kelas->nama ?? 'XII TKJ 1'))
+        : 'XII TKJ 1';
+    $initialPejabat1Id = $defaultKepsekId
+        ? (string) $defaultKepsekId
+        : (!empty($daftarPejabat) ? (string) $daftarPejabat[0]['id'] : 'manual');
+    $initialPejabat1Jabatan = $defaultKepsekJabatan ?? 'Kepala SMK Plus Al Hilal';
+    $initialPejabat1Nama = $defaultKepsekNama ?: (!empty($daftarPejabat) ? $daftarPejabat[0]['nama'] : '');
+    $initialPejabat1Nip = $defaultKepsekNip ?: (!empty($daftarPejabat) ? $daftarPejabat[0]['nip'] : '');
+@endphp
 <div class="space-y-6" x-data="{
     modalUpload: false,
     modalEditJenis: false,
@@ -14,8 +28,136 @@
     modalImportData: false,
     genModeNamaBaru: {{ $jenisSertifikats->isEmpty() ? 'true' : 'false' }},
     impModeNamaBaru: {{ $jenisSertifikats->isEmpty() ? 'true' : 'false' }},
+    daftarPejabat: @js($daftarPejabat ?? []),
+    masterJenisMap: @js($jenisSertifikats->pluck('nama_sertifikat', 'id')),
+    showLivePreview: true,
+    certForm: {
+        jenis_sertifikat_id: '{{ $jenisSertifikats->first()->id ?? '' }}',
+        nama_sertifikat_baru: '',
+        format_nomor: '421.5/{NO}/SERT-AH/{{ date('Y') }}',
+        tempat_terbit: 'Cirebon',
+        tanggal_terbit: '{{ now()->translatedFormat('d F Y') }}',
+        deskripsi_kegiatan: '',
+        pejabat1_id: '{{ $initialPejabat1Id }}',
+        pejabat_1_jabatan: @js($initialPejabat1Jabatan),
+        pejabat_1_nama: @js($initialPejabat1Nama),
+        pejabat_1_nip: @js($initialPejabat1Nip),
+        pejabat2_id: 'manual',
+        pejabat_2_jabatan: @js($kategori === 'kepesantrenan' ? 'Ketua Lembaga Kepesantrenan' : 'Ketua Lembaga Kewirausahaan'),
+        pejabat_2_nama: '',
+        pejabat_2_nip: '',
+        sample_siswa_nama: @js($sampleSiswaNama),
+        sample_siswa_nisn: @js($sampleSiswaNisn),
+        sample_siswa_kelas: @js($sampleSiswaKelas),
+        sample_predikat: 'Sangat Baik'
+    },
+    onSelectPejabat1(val) {
+        this.certForm.pejabat1_id = val;
+        if (val === 'manual') {
+            return;
+        }
+        const found = this.daftarPejabat.find(p => String(p.id) === String(val));
+        if (found) {
+            this.certForm.pejabat_1_jabatan = found.jabatan;
+            this.certForm.pejabat_1_nama = found.nama;
+            this.certForm.pejabat_1_nip = found.nip || '';
+        }
+    },
+    onSelectPejabat2(val) {
+        this.certForm.pejabat2_id = val;
+        if (val === 'none') {
+            this.certForm.pejabat_2_jabatan = '';
+            this.certForm.pejabat_2_nama = '';
+            this.certForm.pejabat_2_nip = '';
+            return;
+        }
+        if (val === 'manual') {
+            if (!this.certForm.pejabat_2_jabatan) {
+                this.certForm.pejabat_2_jabatan = '{{ $kategori === 'kepesantrenan' ? 'Ketua Lembaga Kepesantrenan' : 'Ketua Lembaga Kewirausahaan' }}';
+            }
+            return;
+        }
+        const found = this.daftarPejabat.find(p => String(p.id) === String(val));
+        if (found) {
+            this.certForm.pejabat_2_jabatan = found.jabatan;
+            this.certForm.pejabat_2_nama = found.nama;
+            this.certForm.pejabat_2_nip = found.nip || '';
+        }
+    },
+    onNamaPejabatInput(slot, val) {
+        const clean = (val || '').trim().toLowerCase();
+        if (!clean) return;
+        const found = this.daftarPejabat.find(p => p.nama.toLowerCase() === clean);
+        if (found) {
+            if (slot === 1) {
+                this.certForm.pejabat1_id = String(found.id);
+                this.certForm.pejabat_1_nip = found.nip || '';
+                if (!this.certForm.pejabat_1_jabatan) {
+                    this.certForm.pejabat_1_jabatan = found.jabatan;
+                }
+            } else {
+                this.certForm.pejabat2_id = String(found.id);
+                this.certForm.pejabat_2_nip = found.nip || '';
+                if (!this.certForm.pejabat_2_jabatan) {
+                    this.certForm.pejabat_2_jabatan = found.jabatan;
+                }
+            }
+        }
+    },
+    onJabatanPejabatInput(slot, val) {
+        const clean = (val || '').trim().toLowerCase();
+        if (!clean) return;
+        const matches = this.daftarPejabat.filter(p => p.jabatan.toLowerCase() === clean);
+        if (matches.length === 1) {
+            const found = matches[0];
+            if (slot === 1 && (!this.certForm.pejabat_1_nama || this.certForm.pejabat1_id !== 'manual')) {
+                this.certForm.pejabat1_id = String(found.id);
+                this.certForm.pejabat_1_nama = found.nama;
+                this.certForm.pejabat_1_nip = found.nip || '';
+            } else if (slot === 2 && (!this.certForm.pejabat_2_nama || this.certForm.pejabat2_id !== 'manual')) {
+                this.certForm.pejabat2_id = String(found.id);
+                this.certForm.pejabat_2_nama = found.nama;
+                this.certForm.pejabat_2_nip = found.nip || '';
+            }
+        }
+    },
+    getNamaKegiatanPreview(isImport = false) {
+        const isBaru = isImport ? this.impModeNamaBaru : this.genModeNamaBaru;
+        if (isBaru) {
+            return (this.certForm.nama_sertifikat_baru || '').trim() || '{{ $config['placeholder'] }}';
+        }
+        const id = this.certForm.jenis_sertifikat_id;
+        return (id && this.masterJenisMap[id]) ? this.masterJenisMap[id] : '{{ $config['placeholder'] }}';
+    },
+    getNomorPreview() {
+        const fmt = (this.certForm.format_nomor || '').trim();
+        if (!fmt) return '421.5/001/SERT-AH/{{ date('Y') }}';
+        return fmt.includes('{NO}') ? fmt.replace('{NO}', '001') : fmt;
+    },
+    openDraftPdfPreview(isImport = false) {
+        const params = new URLSearchParams({
+            nama_kegiatan: this.getNamaKegiatanPreview(isImport),
+            format_nomor: this.certForm.format_nomor || '',
+            tempat_terbit: this.certForm.tempat_terbit || 'Cirebon',
+            tanggal_terbit: this.certForm.tanggal_terbit || '',
+            deskripsi_kegiatan: this.certForm.deskripsi_kegiatan || '',
+            predikat: this.certForm.sample_predikat || 'Sangat Baik',
+            nama_siswa: this.certForm.sample_siswa_nama || 'CONTOH NAMA SISWA',
+            nisn: this.certForm.sample_siswa_nisn || '0081234567',
+            kelas: this.certForm.sample_siswa_kelas || 'XII TKJ 1',
+            pejabat_1_jabatan: this.certForm.pejabat_1_jabatan || '',
+            pejabat_1_nama: this.certForm.pejabat_1_nama || '',
+            pejabat_1_nip: this.certForm.pejabat_1_nip || '',
+            pejabat_2_jabatan: this.certForm.pejabat_2_jabatan || '',
+            pejabat_2_nama: this.certForm.pejabat_2_nama || '',
+            pejabat_2_nip: this.certForm.pejabat_2_nip || ''
+        });
+        const url = '{{ route('dokumen-sertifikat.generate.preview', $kategori) }}?' + params.toString();
+        this.openPreviewModal(url, 'Preview Hasil Sertifikat PDF — ' + this.getNamaKegiatanPreview(isImport));
+    },
     setAllPredikat(val) {
         document.querySelectorAll('.select-predikat-siswa').forEach(el => el.value = val);
+        if (val) this.certForm.sample_predikat = val;
     },
     previewUrl: '',
     previewTitle: '',
@@ -761,7 +903,7 @@
     <div x-show="modalPreview"
          x-cloak
          x-transition.opacity.duration.200ms
-         class="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+         class="fixed inset-0 z-[70] bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
          style="display: none;">
         <div @click.away="modalPreview = false; previewUrl = ''"
              class="bg-white w-full max-w-5xl h-[88vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden">
@@ -928,6 +1070,35 @@
     </div>
 
     @if($config['is_multiple'])
+    <!-- Datalist Global untuk Jabatan & Nama Pejabat dari Database -->
+    <datalist id="listJabatanPejabat1">
+        <option value="Kepala SMK Plus Al Hilal">
+        <option value="Ketua Lembaga Kepesantrenan">
+        <option value="Pengasuh Pondok Pesantren Al Hilal">
+        <option value="Ketua Lembaga Kewirausahaan">
+        <option value="Ketua Unit Produksi & Kewirausahaan">
+        <option value="Ketua Program Keahlian">
+        @foreach(collect($daftarPejabat ?? [])->pluck('jabatan')->unique()->filter() as $jbt)
+        <option value="{{ $jbt }}">
+        @endforeach
+    </datalist>
+    <datalist id="listJabatanPejabat2">
+        <option value="Ketua Lembaga Kepesantrenan">
+        <option value="Pengasuh Pondok Pesantren Al Hilal">
+        <option value="Ketua Lembaga Kewirausahaan">
+        <option value="Koordinator Kepesantrenan">
+        <option value="Koordinator Kewirausahaan">
+        <option value="Pembina Lembaga {{ $config['short'] }}">
+        @foreach(collect($daftarPejabat ?? [])->pluck('jabatan')->unique()->filter() as $jbt)
+        <option value="{{ $jbt }}">
+        @endforeach
+    </datalist>
+    <datalist id="listNamaPejabatDb">
+        @foreach($daftarPejabat ?? [] as $pjb)
+        <option value="{{ $pjb['nama'] }}">{{ $pjb['jabatan'] }} {{ $pjb['nip'] ? '(' . $pjb['nip'] . ')' : '' }}</option>
+        @endforeach
+    </datalist>
+
     <!-- ========================================================================= -->
     <!-- MODAL POPUP 1: GENERATE SERTIFIKAT OTOMATIS (INPUT KEGIATAN, PREDIKAT & PEJABAT TTD) -->
     <!-- ========================================================================= -->
@@ -936,8 +1107,8 @@
          x-transition.opacity.duration.200ms
          class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
          style="display: none;">
-        <div @click.away="modalGenerateMassal = false"
-             class="bg-white w-full max-w-4xl rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+        <div @click.away="if (!modalPreview) modalGenerateMassal = false"
+             class="bg-white w-full max-w-5xl rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
 
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div class="flex items-center gap-2.5">
@@ -946,10 +1117,10 @@
                     </div>
                     <div>
                         <h3 class="font-black text-slate-900 text-base">Generate Otomatis {{ $config['title'] }} untuk Masing-Masing Siswa</h3>
-                        <p class="text-xs text-slate-500">Isi Nama Kegiatan, Pejabat Penandatangan, dan pilih Predikat Nilai (Sangat Baik / Baik / Cukup) per siswa</p>
+                        <p class="text-xs text-slate-500">Pilih Pejabat Penandatangan otomatis dari database atau input manual, cek Preview Sertifikat, lalu Generate PDF</p>
                     </div>
                 </div>
-                <button type="button" @click="modalGenerateMassal = false" class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100">
+                <button type="button" @click="modalGenerateMassal = false" class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer">
                     <i class="bi-x-lg"></i>
                 </button>
             </div>
@@ -977,7 +1148,10 @@
                             </div>
 
                             <template x-if="!genModeNamaBaru">
-                                <select name="jenis_sertifikat_id" required class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-800">
+                                <select name="jenis_sertifikat_id"
+                                        x-model="certForm.jenis_sertifikat_id"
+                                        required
+                                        class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-800">
                                     <option value="">-- Pilih Nama Kegiatan / Sertifikat --</option>
                                     @foreach($jenisSertifikats as $j)
                                     <option value="{{ $j->id }}">{{ $j->nama_sertifikat }}</option>
@@ -987,6 +1161,7 @@
                             <template x-if="genModeNamaBaru">
                                 <input type="text"
                                        name="nama_sertifikat_baru"
+                                       x-model="certForm.nama_sertifikat_baru"
                                        required
                                        placeholder="{{ $config['placeholder'] }}"
                                        class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
@@ -997,7 +1172,7 @@
                             <label class="block font-bold text-slate-700 mb-1">Format Nomor Sertifikat (Gunakan {NO} untuk nomor urut otomatis)</label>
                             <input type="text"
                                    name="format_nomor"
-                                   value="421.5/{NO}/SERT-AH/{{ date('Y') }}"
+                                   x-model="certForm.format_nomor"
                                    placeholder="Contoh: 421.5/{NO}/SERT-AH/{{ date('Y') }}"
                                    class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
                         </div>
@@ -1006,111 +1181,278 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div class="md:col-span-1">
                             <label class="block font-bold text-slate-700 mb-1">Tempat Terbit</label>
-                            <input type="text" name="tempat_terbit" value="Cirebon" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                            <input type="text"
+                                   name="tempat_terbit"
+                                   x-model="certForm.tempat_terbit"
+                                   class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
                         </div>
                         <div class="md:col-span-1">
                             <label class="block font-bold text-slate-700 mb-1">Tanggal Terbit</label>
-                            <input type="text" name="tanggal_terbit" value="{{ now()->translatedFormat('d F Y') }}" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                            <input type="text"
+                                   name="tanggal_terbit"
+                                   x-model="certForm.tanggal_terbit"
+                                   class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
                         </div>
                         <div class="md:col-span-1">
                             <label class="block font-bold text-slate-700 mb-1">Narasi / Deskripsi Kegiatan (Opsional)</label>
                             <input type="text"
                                    name="deskripsi_kegiatan"
+                                   x-model="certForm.deskripsi_kegiatan"
                                    placeholder="Kosongkan untuk menggunakan narasi resmi bawaan"
                                    class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
                         </div>
                     </div>
                 </div>
 
-                <!-- Bagian B: Pejabat Penandatangan -->
+                <!-- Bagian B: Pejabat Penandatangan (Otomatis dari Database / Input Manual) -->
                 <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                    <div class="font-black text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
-                        <i class="bi-pen-fill text-emerald-600"></i>
-                        <span>2. Pejabat Penandatangan Sertifikat (Misal: Kepala Sekolah, Ketua Lembaga, dll)</span>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="font-black text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                            <i class="bi-pen-fill text-emerald-600"></i>
+                            <span>2. Pejabat Penandatangan Sertifikat (Misal: Kepala Sekolah, Ketua Lembaga, dll)</span>
+                        </div>
+                        <span class="text-[11px] text-slate-500 font-medium">
+                            <i class="bi-database-check text-indigo-600"></i> Pilih pejabat dari database untuk isi otomatis, atau ketik manual jika tidak ada di database
+                        </span>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Pejabat 1 (Wajib) -->
                         <div class="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2.5">
-                            <div class="font-bold text-indigo-700 text-[11px] uppercase">Pejabat Penandatangan 1 (Utama / Kiri) *</div>
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="font-bold text-indigo-700 text-[11px] uppercase">Pejabat Penandatangan 1 (Utama / Kiri) *</div>
+                                <button type="button"
+                                        @click="certForm.pejabat1_id = 'manual'; certForm.pejabat_1_jabatan = ''; certForm.pejabat_1_nama = ''; certForm.pejabat_1_nip = ''"
+                                        class="text-[10px] font-bold text-indigo-600 hover:underline cursor-pointer">
+                                    Reset / Input Manual
+                                </button>
+                            </div>
+
+                            <!-- Dropdown Pilih Otomatis dari Database -->
+                            <div class="p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-100">
+                                <label class="block text-[10px] font-black text-indigo-900 uppercase mb-1">
+                                    <i class="bi-person-check-fill mr-1"></i> Pilih Pejabat 1 dari Database (Otomatis Isi Jabatan, Nama &amp; NIP)
+                                </label>
+                                <select x-model="certForm.pejabat1_id"
+                                        @change="onSelectPejabat1($event.target.value)"
+                                        class="w-full px-3 py-1.5 bg-white border border-indigo-200 rounded-lg font-bold text-slate-800 text-xs">
+                                    <option value="manual">-- Input Manual (Ketik Sendiri di Bawah) --</option>
+                                    @foreach($daftarPejabat ?? [] as $pjb)
+                                    <option value="{{ $pjb['id'] }}">{{ $pjb['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Jabatan Penandatangan 1 <span class="text-rose-500">*</span></label>
                                 <input type="text"
                                        name="pejabat_1_jabatan"
                                        list="listJabatanPejabat1"
-                                       value="Kepala SMK Plus Al Hilal"
+                                       x-model="certForm.pejabat_1_jabatan"
+                                       @input="onJabatanPejabatInput(1, $event.target.value)"
                                        required
                                        placeholder="Contoh: Kepala SMK Plus Al Hilal / Ketua Lembaga"
                                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
-                                <datalist id="listJabatanPejabat1">
-                                    <option value="Kepala SMK Plus Al Hilal">
-                                    <option value="Ketua Lembaga Kepesantrenan">
-                                    <option value="Pengasuh Pondok Pesantren Al Hilal">
-                                    <option value="Ketua Unit Kewirausahaan">
-                                    <option value="Ketua Program Keahlian">
-                                </datalist>
                             </div>
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Nama Lengkap &amp; Gelar Pejabat 1 <span class="text-rose-500">*</span></label>
                                 <input type="text"
                                        name="pejabat_1_nama"
-                                       value="{{ $defaultKepsekNama ?? '' }}"
+                                       list="listNamaPejabatDb"
+                                       x-model="certForm.pejabat_1_nama"
+                                       @input="onNamaPejabatInput(1, $event.target.value)"
                                        required
-                                       placeholder="Ketik nama lengkap pejabat & gelar..."
+                                       placeholder="Pilih dari daftar atau ketik manual nama pejabat & gelar..."
                                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-900">
                             </div>
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">NIP / NIY Pejabat 1 (Opsional)</label>
                                 <input type="text"
                                        name="pejabat_1_nip"
-                                       value="{{ $defaultKepsekNip ?? '' }}"
-                                       placeholder="Contoh: NIP. 19800101..."
+                                       x-model="certForm.pejabat_1_nip"
+                                       placeholder="Otomatis terisi jika ada di database, atau ketik manual"
                                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
                             </div>
                         </div>
 
                         <!-- Pejabat 2 (Opsional) -->
                         <div class="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2.5">
-                            <div class="font-bold text-emerald-700 text-[11px] uppercase">Pejabat Penandatangan 2 (Kanan - Opsional)</div>
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="font-bold text-emerald-700 text-[11px] uppercase">Pejabat Penandatangan 2 (Kanan - Opsional)</div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                            @click="onSelectPejabat2('none')"
+                                            class="text-[10px] font-bold text-slate-500 hover:text-rose-600 hover:underline cursor-pointer">
+                                        Kosongkan (1 TTD)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Dropdown Pilih Otomatis dari Database -->
+                            <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100">
+                                <label class="block text-[10px] font-black text-emerald-900 uppercase mb-1">
+                                    <i class="bi-person-check-fill mr-1"></i> Pilih Pejabat 2 dari Database / Input Manual
+                                </label>
+                                <select x-model="certForm.pejabat2_id"
+                                        @change="onSelectPejabat2($event.target.value)"
+                                        class="w-full px-3 py-1.5 bg-white border border-emerald-200 rounded-lg font-bold text-slate-800 text-xs">
+                                    <option value="manual">-- Input Manual (Ketik Sendiri di Bawah) --</option>
+                                    <option value="none">-- Kosongkan (Hanya 1 Penandatangan) --</option>
+                                    @foreach($daftarPejabat ?? [] as $pjb)
+                                    <option value="{{ $pjb['id'] }}">{{ $pjb['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Jabatan Penandatangan 2 (Kosongkan jika hanya 1 TTD)</label>
                                 <input type="text"
                                        name="pejabat_2_jabatan"
                                        list="listJabatanPejabat2"
+                                       x-model="certForm.pejabat_2_jabatan"
+                                       @input="onJabatanPejabatInput(2, $event.target.value)"
                                        placeholder="Contoh: Ketua Lembaga {{ $config['short'] }}"
                                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
-                                <datalist id="listJabatanPejabat2">
-                                    <option value="Ketua Lembaga Kepesantrenan">
-                                    <option value="Pengasuh Pondok Pesantren">
-                                    <option value="Ketua Lembaga Kewirausahaan">
-                                    <option value="Koordinator Kepesantrenan">
-                                    <option value="Koordinator Kewirausahaan">
-                                </datalist>
                             </div>
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">Nama Lengkap &amp; Gelar Pejabat 2</label>
                                 <input type="text"
                                        name="pejabat_2_nama"
-                                       placeholder="Ketik nama lengkap pejabat ke-2..."
+                                       list="listNamaPejabatDb"
+                                       x-model="certForm.pejabat_2_nama"
+                                       @input="onNamaPejabatInput(2, $event.target.value)"
+                                       placeholder="Pilih dari daftar atau ketik manual nama pejabat ke-2..."
                                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-900">
                             </div>
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-600 mb-1">NIP / NIY Pejabat 2 (Opsional)</label>
                                 <input type="text"
                                        name="pejabat_2_nip"
-                                       placeholder="Opsional"
+                                       x-model="certForm.pejabat_2_nip"
+                                       placeholder="Otomatis terisi jika ada di database, atau ketik manual"
                                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Bagian C: Daftar Siswa & Pilihan Predikat Nilai -->
+                <!-- Bagian C: Pratinjau (Live Preview) Hasil Sertifikat Sebelum Generate -->
+                <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="font-black text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                            <i class="bi-eye-fill text-amber-600"></i>
+                            <span>3. Pratinjau (Preview) Hasil Desain Sertifikat Sebelum Di-Generate</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button"
+                                    @click="openDraftPdfPreview(false)"
+                                    class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-xs cursor-pointer">
+                                <i class="bi-file-earmark-pdf-fill"></i>
+                                <span>Buka Preview PDF Asli (Ukuran Penuh)</span>
+                            </button>
+                            <button type="button"
+                                    @click="showLivePreview = !showLivePreview"
+                                    class="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-[11px] cursor-pointer"
+                                    x-text="showLivePreview ? 'Sembunyikan Pratinjau' : 'Tampilkan Pratinjau Visual'"></button>
+                        </div>
+                    </div>
+
+                    <!-- Kanvas Live Preview A4 Landscape -->
+                    <div x-show="showLivePreview" x-transition class="overflow-x-auto py-1">
+                        <div class="mx-auto w-full max-w-[760px] bg-[#fffdf7] rounded-xl shadow-md p-3 border border-slate-300">
+                            <div class="border-[4px] {{ $kategori === 'kepesantrenan' ? 'border-[#065f46]' : 'border-[#1e3a8a]' }} p-1">
+                                <div class="border-2 border-[#ca8a04] px-6 py-5 text-center relative bg-gradient-to-b from-amber-50/20 via-[#fffdf7] to-amber-50/10 space-y-2.5" style="font-family: Georgia, 'Times New Roman', serif;">
+                                    <!-- Header Lembaga -->
+                                    <div class="space-y-0.5 font-sans">
+                                        <div class="text-xs sm:text-sm font-black tracking-widest uppercase {{ $kategori === 'kepesantrenan' ? 'text-[#065f46]' : 'text-[#1e3a8a]' }}">
+                                            {{ strtoupper($namaSekolahDefault ?? 'SMK PLUS AL HILAL') }}
+                                        </div>
+                                        <div class="text-[9px] sm:text-[10px] font-bold tracking-[2px] uppercase text-amber-700">
+                                            {{ $kategori === 'kepesantrenan' ? 'PONDOK PESANTREN & LEMBAGA KEPESANTRENAN SISWA' : 'UNIT PRODUKSI & LEMBAGA KEWIRAUSAHAAN SISWA' }}
+                                        </div>
+                                    </div>
+
+                                    <div class="w-48 h-[1px] bg-[#ca8a04] mx-auto"></div>
+
+                                    <!-- Judul Sertifikat & Nomor -->
+                                    <div>
+                                        <div class="text-xl sm:text-2xl font-bold tracking-[6px] uppercase {{ $kategori === 'kepesantrenan' ? 'text-[#064e3b]' : 'text-[#1e3a8a]' }}">
+                                            SERTIFIKAT
+                                        </div>
+                                        <div class="text-[10px] font-sans font-semibold text-slate-600 mt-0.5">
+                                            Nomor: <span x-text="getNomorPreview()"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Nama Siswa Contoh -->
+                                    <div class="space-y-1">
+                                        <div class="italic text-[11px] text-slate-600">Diberikan dengan bangga kepada:</div>
+                                        <div class="inline-block border-b-2 border-[#ca8a04] px-6 pb-0.5 text-base sm:text-lg font-bold uppercase tracking-wider text-slate-900"
+                                             x-text="certForm.sample_siswa_nama || 'CONTOH NAMA SISWA'"></div>
+                                        <div class="text-[10px] font-sans font-bold text-slate-600">
+                                            NISN/ID: <span x-text="certForm.sample_siswa_nisn"></span>
+                                            &nbsp;&bull;&nbsp;
+                                            Kelas: <span x-text="certForm.sample_siswa_kelas"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Narasi & Nama Kegiatan -->
+                                    <div class="max-w-xl mx-auto space-y-1">
+                                        <div class="text-[11px] text-slate-700 leading-relaxed"
+                                             x-text="certForm.deskripsi_kegiatan.trim() !== '' ? certForm.deskripsi_kegiatan : '{{ $kategori === 'kepesantrenan' ? 'Telah mengikuti dan menyelesaikan program pembinaan serta evaluasi kompetensi kepesantrenan pada kegiatan:' : 'Telah mengikuti dan menyelesaikan program praktik serta evaluasi kompetensi kewirausahaan pada kegiatan:' }}'"></div>
+                                        <div class="text-sm sm:text-base font-sans font-black uppercase tracking-wide {{ $kategori === 'kepesantrenan' ? 'text-[#065f46]' : 'text-[#1e3a8a]' }}"
+                                             x-text="'&ldquo;' + getNamaKegiatanPreview(false) + '&rdquo;'"></div>
+                                    </div>
+
+                                    <!-- Badge Predikat -->
+                                    <div class="pt-0.5">
+                                        <span class="inline-block px-5 py-1 rounded-full border-2 border-amber-400 text-white font-sans font-black text-[10px] tracking-widest uppercase {{ $kategori === 'kepesantrenan' ? 'bg-[#065f46]' : 'bg-[#1e3a8a]' }}"
+                                              x-text="'PREDIKAT NILAI : ' + (certForm.sample_predikat || 'SANGAT BAIK').toUpperCase()"></span>
+                                    </div>
+
+                                    <!-- Blok Tanda Tangan Pejabat 1 & Pejabat 2 -->
+                                    <div class="pt-4 px-4 sm:px-10 flex items-end font-sans text-slate-900"
+                                         :class="(certForm.pejabat_2_jabatan.trim() !== '' || certForm.pejabat_2_nama.trim() !== '') ? 'justify-between' : 'justify-center'">
+                                        <!-- Jika 2 Pejabat -->
+                                        <template x-if="certForm.pejabat_2_jabatan.trim() !== '' || certForm.pejabat_2_nama.trim() !== ''">
+                                            <div class="w-full flex items-end justify-between gap-4">
+                                                <div class="text-center w-56">
+                                                    <div class="text-[10px] text-slate-600">Mengetahui,</div>
+                                                    <div class="text-[11px] font-bold text-slate-900 mb-9" x-text="certForm.pejabat_1_jabatan || 'Kepala Sekolah'"></div>
+                                                    <div class="text-[11px] font-black underline text-slate-900" x-text="certForm.pejabat_1_nama || '....................................'"></div>
+                                                    <div class="text-[10px] text-slate-600" x-show="certForm.pejabat_1_nip.trim() !== ''" x-text="certForm.pejabat_1_nip"></div>
+                                                </div>
+                                                <div class="text-center w-56">
+                                                    <div class="text-[10px] text-slate-600" x-text="(certForm.tempat_terbit || 'Cirebon') + ', ' + (certForm.tanggal_terbit || '')"></div>
+                                                    <div class="text-[11px] font-bold text-slate-900 mb-9" x-text="certForm.pejabat_2_jabatan || 'Ketua Lembaga'"></div>
+                                                    <div class="text-[11px] font-black underline text-slate-900" x-text="certForm.pejabat_2_nama || '....................................'"></div>
+                                                    <div class="text-[10px] text-slate-600" x-show="certForm.pejabat_2_nip.trim() !== ''" x-text="certForm.pejabat_2_nip"></div>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- Jika 1 Pejabat -->
+                                        <template x-if="certForm.pejabat_2_jabatan.trim() === '' && certForm.pejabat_2_nama.trim() === ''">
+                                            <div class="text-center w-64">
+                                                <div class="text-[10px] text-slate-600" x-text="(certForm.tempat_terbit || 'Cirebon') + ', ' + (certForm.tanggal_terbit || '')"></div>
+                                                <div class="text-[11px] font-bold text-slate-900 mb-9" x-text="certForm.pejabat_1_jabatan || 'Kepala SMK Plus Al Hilal'"></div>
+                                                <div class="text-[11px] font-black underline text-slate-900" x-text="certForm.pejabat_1_nama || '....................................'"></div>
+                                                <div class="text-[10px] text-slate-600" x-show="certForm.pejabat_1_nip.trim() !== ''" x-text="certForm.pejabat_1_nip"></div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bagian D: Daftar Siswa & Pilihan Predikat Nilai -->
                 <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div class="font-black text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
                             <i class="bi-people-fill text-indigo-600"></i>
-                            <span>3. Pilih Predikat Nilai Masing-Masing Siswa ({{ $allFilteredSiswas->count() }} Siswa Ditampilkan)</span>
+                            <span>4. Pilih Predikat Nilai Masing-Masing Siswa ({{ $allFilteredSiswas->count() }} Siswa Ditampilkan)</span>
                         </div>
                         <div class="flex flex-wrap items-center gap-1.5">
                             <span class="text-[10px] font-bold text-slate-500">Set Semua Sekaligus:</span>
@@ -1151,7 +1493,9 @@
                                         {{ $s->kelas->nama_kelas ?? ($s->kelas->nama ?? '-') }}
                                     </td>
                                     <td class="px-3 py-2">
-                                        <select name="predikat_siswa[{{ $s->id }}]" class="select-predikat-siswa w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800">
+                                        <select name="predikat_siswa[{{ $s->id }}]"
+                                                @change="if ($event.target.value) { certForm.sample_predikat = $event.target.value; certForm.sample_siswa_nama = @js($s->name); certForm.sample_siswa_nisn = @js($s->nisn ?: $s->username); certForm.sample_siswa_kelas = @js($s->kelas->nama_kelas ?? ($s->kelas->nama ?? '-')); }"
+                                                class="select-predikat-siswa w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-800">
                                             <option value="Sangat Baik">Sangat Baik</option>
                                             <option value="Baik" selected>Baik</option>
                                             <option value="Cukup">Cukup</option>
@@ -1165,14 +1509,22 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                    <button type="button" @click="modalGenerateMassal = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer">
-                        Batal
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    <button type="button"
+                            @click="openDraftPdfPreview(false)"
+                            class="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold rounded-xl flex items-center gap-1.5 cursor-pointer">
+                        <i class="bi-eye-fill"></i>
+                        <span>Preview Hasil Sertifikat (PDF)</span>
                     </button>
-                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer">
-                        <i class="bi-magic"></i>
-                        <span>Generate Sertifikat PDF untuk Siswa Terpilih</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="modalGenerateMassal = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer">
+                            Batal
+                        </button>
+                        <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer">
+                            <i class="bi-magic"></i>
+                            <span>Generate Sertifikat PDF untuk Siswa Terpilih</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1186,8 +1538,8 @@
          x-transition.opacity.duration.200ms
          class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
          style="display: none;">
-        <div @click.away="modalImportData = false"
-             class="bg-white w-full max-w-2xl rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+        <div @click.away="if (!modalPreview) modalImportData = false"
+             class="bg-white w-full max-w-4xl rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
 
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div class="flex items-center gap-2.5">
@@ -1196,10 +1548,10 @@
                     </div>
                     <div>
                         <h3 class="font-black text-slate-900 text-base">Upload 1 Dokumen Data &rarr; Generate Sertifikat Masing-Masing Siswa</h3>
-                        <p class="text-xs text-slate-500">Unggah 1 file Excel/CSV berisi daftar nilai predikat siswa, sistem otomatis membuat sertifikat tiap siswa</p>
+                        <p class="text-xs text-slate-500">Unggah 1 file Excel/CSV berisi daftar nilai predikat siswa, pilih pejabat penandatangan, dan cek Preview terlebih dahulu</p>
                     </div>
                 </div>
-                <button type="button" @click="modalImportData = false" class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100">
+                <button type="button" @click="modalImportData = false" class="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer">
                     <i class="bi-x-lg"></i>
                 </button>
             </div>
@@ -1222,81 +1574,209 @@
             <form method="POST" action="{{ route('dokumen-sertifikat.generate.import', $kategori) }}" enctype="multipart/form-data" class="space-y-4 text-xs">
                 @csrf
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="font-bold text-slate-700">Nama Kegiatan / Sertifikat <span class="text-rose-500">*</span></label>
-                            @if($jenisSertifikats->isNotEmpty())
-                            <button type="button"
-                                    @click="impModeNamaBaru = !impModeNamaBaru"
-                                    class="text-[11px] font-bold text-indigo-600 hover:underline cursor-pointer"
-                                    x-text="impModeNamaBaru ? 'Pilih Master' : '+ Nama Baru'"></button>
-                            @endif
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div class="font-black text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                        <i class="bi-award-fill text-indigo-600"></i>
+                        <span>1. Kegiatan, File Data &amp; Tanggal Terbit</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="font-bold text-slate-700">Nama Kegiatan / Sertifikat <span class="text-rose-500">*</span></label>
+                                @if($jenisSertifikats->isNotEmpty())
+                                <button type="button"
+                                        @click="impModeNamaBaru = !impModeNamaBaru"
+                                        class="text-[11px] font-bold text-indigo-600 hover:underline cursor-pointer"
+                                        x-text="impModeNamaBaru ? 'Pilih Master' : '+ Nama Baru'"></button>
+                                @endif
+                            </div>
+                            <template x-if="!impModeNamaBaru">
+                                <select name="jenis_sertifikat_id"
+                                        x-model="certForm.jenis_sertifikat_id"
+                                        required
+                                        class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-800">
+                                    <option value="">-- Pilih Nama Kegiatan / Sertifikat --</option>
+                                    @foreach($jenisSertifikats as $j)
+                                    <option value="{{ $j->id }}">{{ $j->nama_sertifikat }}</option>
+                                    @endforeach
+                                </select>
+                            </template>
+                            <template x-if="impModeNamaBaru">
+                                <input type="text"
+                                       name="nama_sertifikat_baru"
+                                       x-model="certForm.nama_sertifikat_baru"
+                                       required
+                                       placeholder="{{ $config['placeholder'] }}"
+                                       class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                            </template>
                         </div>
-                        <template x-if="!impModeNamaBaru">
-                            <select name="jenis_sertifikat_id" required class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800">
-                                <option value="">-- Pilih Nama Kegiatan / Sertifikat --</option>
-                                @foreach($jenisSertifikats as $j)
-                                <option value="{{ $j->id }}">{{ $j->nama_sertifikat }}</option>
-                                @endforeach
-                            </select>
-                        </template>
-                        <template x-if="impModeNamaBaru">
-                            <input type="text" name="nama_sertifikat_baru" required placeholder="{{ $config['placeholder'] }}" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
-                        </template>
+
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Upload 1 Dokumen Data (.CSV / .XLSX) <span class="text-rose-500">*</span></label>
+                            <input type="file"
+                                   name="file_data"
+                                   accept=".csv,.xlsx,.xls,.txt"
+                                   required
+                                   class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl font-medium file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:font-bold">
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Upload 1 Dokumen Data (.CSV / .XLSX) <span class="text-rose-500">*</span></label>
-                        <input type="file"
-                               name="file_data"
-                               accept=".csv,.xlsx,.xls,.txt"
-                               required
-                               class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl font-medium file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:font-bold">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Tempat Terbit</label>
+                            <input type="text" name="tempat_terbit" x-model="certForm.tempat_terbit" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Tanggal Terbit</label>
+                            <input type="text" name="tanggal_terbit" x-model="certForm.tanggal_terbit" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl font-medium">
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Jabatan Penandatangan 1 <span class="text-rose-500">*</span></label>
-                        <input type="text" name="pejabat_1_jabatan" value="Kepala SMK Plus Al Hilal" required class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
+                <!-- Pejabat Penandatangan (Otomatis dari Database / Input Manual) -->
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="font-black text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                            <i class="bi-pen-fill text-emerald-600"></i>
+                            <span>2. Pejabat Penandatangan Sertifikat</span>
+                        </div>
+                        <span class="text-[11px] text-slate-500 font-medium">
+                            <i class="bi-database-check text-indigo-600"></i> Pilih otomatis dari database atau input manual
+                        </span>
                     </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Nama Pejabat Penandatangan 1 <span class="text-rose-500">*</span></label>
-                        <input type="text" name="pejabat_1_nama" value="{{ $defaultKepsekNama ?? '' }}" required placeholder="Nama Pejabat & Gelar" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Pejabat 1 -->
+                        <div class="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="font-bold text-indigo-700 text-[11px] uppercase">Pejabat Penandatangan 1 (Utama / Kiri) *</div>
+                                <button type="button"
+                                        @click="certForm.pejabat1_id = 'manual'; certForm.pejabat_1_jabatan = ''; certForm.pejabat_1_nama = ''; certForm.pejabat_1_nip = ''"
+                                        class="text-[10px] font-bold text-indigo-600 hover:underline cursor-pointer">
+                                    Reset / Input Manual
+                                </button>
+                            </div>
+
+                            <div class="p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-100">
+                                <label class="block text-[10px] font-black text-indigo-900 uppercase mb-1">
+                                    Pilih Pejabat 1 dari Database
+                                </label>
+                                <select x-model="certForm.pejabat1_id"
+                                        @change="onSelectPejabat1($event.target.value)"
+                                        class="w-full px-3 py-1.5 bg-white border border-indigo-200 rounded-lg font-bold text-slate-800 text-xs">
+                                    <option value="manual">-- Input Manual (Ketik Sendiri di Bawah) --</option>
+                                    @foreach($daftarPejabat ?? [] as $pjb)
+                                    <option value="{{ $pjb['id'] }}">{{ $pjb['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Jabatan Penandatangan 1 <span class="text-rose-500">*</span></label>
+                                <input type="text"
+                                       name="pejabat_1_jabatan"
+                                       list="listJabatanPejabat1"
+                                       x-model="certForm.pejabat_1_jabatan"
+                                       @input="onJabatanPejabatInput(1, $event.target.value)"
+                                       required
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nama Lengkap &amp; Gelar Pejabat 1 <span class="text-rose-500">*</span></label>
+                                <input type="text"
+                                       name="pejabat_1_nama"
+                                       list="listNamaPejabatDb"
+                                       x-model="certForm.pejabat_1_nama"
+                                       @input="onNamaPejabatInput(1, $event.target.value)"
+                                       required
+                                       placeholder="Nama Pejabat & Gelar"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">NIP / NIY Pejabat 1 (Opsional)</label>
+                                <input type="text"
+                                       name="pejabat_1_nip"
+                                       x-model="certForm.pejabat_1_nip"
+                                       placeholder="Opsional"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
+                            </div>
+                        </div>
+
+                        <!-- Pejabat 2 -->
+                        <div class="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="font-bold text-emerald-700 text-[11px] uppercase">Pejabat Penandatangan 2 (Kanan - Opsional)</div>
+                                <button type="button"
+                                        @click="onSelectPejabat2('none')"
+                                        class="text-[10px] font-bold text-slate-500 hover:text-rose-600 hover:underline cursor-pointer">
+                                    Kosongkan (1 TTD)
+                                </button>
+                            </div>
+
+                            <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100">
+                                <label class="block text-[10px] font-black text-emerald-900 uppercase mb-1">
+                                    Pilih Pejabat 2 dari Database / Input Manual
+                                </label>
+                                <select x-model="certForm.pejabat2_id"
+                                        @change="onSelectPejabat2($event.target.value)"
+                                        class="w-full px-3 py-1.5 bg-white border border-emerald-200 rounded-lg font-bold text-slate-800 text-xs">
+                                    <option value="manual">-- Input Manual (Ketik Sendiri di Bawah) --</option>
+                                    <option value="none">-- Kosongkan (Hanya 1 Penandatangan) --</option>
+                                    @foreach($daftarPejabat ?? [] as $pjb)
+                                    <option value="{{ $pjb['id'] }}">{{ $pjb['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Jabatan Penandatangan 2 (Kosongkan jika 1 TTD)</label>
+                                <input type="text"
+                                       name="pejabat_2_jabatan"
+                                       list="listJabatanPejabat2"
+                                       x-model="certForm.pejabat_2_jabatan"
+                                       @input="onJabatanPejabatInput(2, $event.target.value)"
+                                       placeholder="Contoh: Ketua Lembaga {{ $config['short'] }}"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nama Lengkap &amp; Gelar Pejabat 2</label>
+                                <input type="text"
+                                       name="pejabat_2_nama"
+                                       list="listNamaPejabatDb"
+                                       x-model="certForm.pejabat_2_nama"
+                                       @input="onNamaPejabatInput(2, $event.target.value)"
+                                       placeholder="Kosongkan jika 1 penandatangan"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">NIP / NIY Pejabat 2 (Opsional)</label>
+                                <input type="text"
+                                       name="pejabat_2_nip"
+                                       x-model="certForm.pejabat_2_nip"
+                                       placeholder="Opsional"
+                                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-medium">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Jabatan Penandatangan 2 (Opsional)</label>
-                        <input type="text" name="pejabat_2_jabatan" placeholder="Contoh: Ketua Lembaga {{ $config['short'] }}" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Nama Pejabat Penandatangan 2 (Opsional)</label>
-                        <input type="text" name="pejabat_2_nama" placeholder="Kosongkan jika 1 penandatangan" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Tempat Terbit</label>
-                        <input type="text" name="tempat_terbit" value="Cirebon" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Tanggal Terbit</label>
-                        <input type="text" name="tanggal_terbit" value="{{ now()->translatedFormat('d F Y') }}" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl font-medium">
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                    <button type="button" @click="modalImportData = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer">
-                        Batal
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    <button type="button"
+                            @click="openDraftPdfPreview(true)"
+                            class="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold rounded-xl flex items-center gap-1.5 cursor-pointer">
+                        <i class="bi-eye-fill"></i>
+                        <span>Preview Hasil Sertifikat (PDF)</span>
                     </button>
-                    <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
-                        <i class="bi-cloud-arrow-up-fill"></i>
-                        <span>Proses Dokumen &amp; Generate Sertifikat</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="modalImportData = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl cursor-pointer">
+                            Batal
+                        </button>
+                        <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer">
+                            <i class="bi-cloud-arrow-up-fill"></i>
+                            <span>Proses Dokumen &amp; Generate Sertifikat</span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

@@ -72,6 +72,7 @@ class DokumenSertifikatController extends Controller
                     $table->string('pejabat_2_jabatan', 150)->nullable();
                     $table->string('pejabat_2_nama', 150)->nullable();
                     $table->string('pejabat_2_nip', 100)->nullable();
+                    $table->text('custom_meta')->nullable();
                     $table->timestamps();
                 });
             } else {
@@ -88,6 +89,7 @@ class DokumenSertifikatController extends Controller
                     'pejabat_2_jabatan'  => fn(Blueprint $t) => $t->string('pejabat_2_jabatan', 150)->nullable(),
                     'pejabat_2_nama'     => fn(Blueprint $t) => $t->string('pejabat_2_nama', 150)->nullable(),
                     'pejabat_2_nip'      => fn(Blueprint $t) => $t->string('pejabat_2_nip', 100)->nullable(),
+                    'custom_meta'        => fn(Blueprint $t) => $t->text('custom_meta')->nullable(),
                 ];
                 foreach ($newCols as $col => $callback) {
                     if (!Schema::hasColumn('dokumen_sertifikat_siswas', $col)) {
@@ -275,18 +277,20 @@ class DokumenSertifikatController extends Controller
             $allFilteredSiswas = $allFilteredSiswas->filter(fn($s) => (bool) $s->akses_dokumen_dibatasi)->values();
         }
 
-        // Ambil default Kepala Sekolah & Daftar Pejabat/Pegawai dari database untuk form Generator Sertifikat
-        $namaSekolahDefault = 'SMK Plus Al Hilal';
+        // Ambil default Kepala Sekolah, Logo Sekolah & Daftar Pejabat/Pegawai dari database untuk form Generator Sertifikat
+        $namaSekolahDefault = 'SMK PLUS AL HILAL';
+        $schoolLogoUrl = asset('images/logo_smk.png');
         $defaultKepsekId = null;
         $defaultKepsekJabatan = 'Kepala SMK Plus Al Hilal';
         $defaultKepsekNama = '';
         $defaultKepsekNip = '';
         try {
-            $settingSekolah = PengaturanSekolah::first();
-            if ($settingSekolah && !empty($settingSekolah->nama_sekolah)) {
+            $settingSekolah = PengaturanSekolah::getSetting();
+            if (!empty($settingSekolah->nama_sekolah)) {
                 $namaSekolahDefault = $settingSekolah->nama_sekolah;
             }
-            if ($settingSekolah && $settingSekolah->kepala_sekolah_id) {
+            $schoolLogoUrl = $settingSekolah->logo_url;
+            if ($settingSekolah->kepala_sekolah_id) {
                 $kepsekUser = User::find($settingSekolah->kepala_sekolah_id);
                 if ($kepsekUser) {
                     $defaultKepsekId = $kepsekUser->id;
@@ -296,6 +300,27 @@ class DokumenSertifikatController extends Controller
                         ? (preg_match('/^(NIP|NIY|NUPTK)/i', $rawNip) ? $rawNip : 'NIP. ' . $rawNip)
                         : '';
                 }
+            }
+        } catch (\Throwable $e) {}
+
+        // Daftar seluruh siswa aktif dari database untuk pemilih siswa di dalam modal Generator & Upload Sertifikat
+        $daftarSiswaModal = [];
+        try {
+            $allSiswaRecords = User::where('role', 'siswa')
+                ->where('is_active', true)
+                ->with('kelas')
+                ->orderBy('kelas_id')
+                ->orderBy('name')
+                ->get();
+
+            foreach ($allSiswaRecords as $sr) {
+                $daftarSiswaModal[] = [
+                    'id'         => (string) $sr->id,
+                    'name'       => $sr->name,
+                    'nisn'       => $sr->nisn ?: $sr->username,
+                    'kelas_id'   => (string) ($sr->kelas_id ?? ''),
+                    'kelas_nama' => $sr->kelas->nama_kelas ?? ($sr->kelas->nama ?? '-'),
+                ];
             }
         } catch (\Throwable $e) {}
 
@@ -383,11 +408,13 @@ class DokumenSertifikatController extends Controller
             'siswaAksesDibatasi',
             'totalFilePdf',
             'namaSekolahDefault',
+            'schoolLogoUrl',
             'defaultKepsekId',
             'defaultKepsekJabatan',
             'defaultKepsekNama',
             'defaultKepsekNip',
-            'daftarPejabat'
+            'daftarPejabat',
+            'daftarSiswaModal'
         ));
     }
 
@@ -825,23 +852,44 @@ class DokumenSertifikatController extends Controller
         $tempatTerbit = $meta['tempat_terbit'] ?: 'Cirebon';
         $tanggalTerbit = $meta['tanggal_terbit'] ?: now()->translatedFormat('d F Y');
 
+        $templateBgFullPath = '';
+        if (!empty($meta['template_bg_rel_path']) && Storage::disk('public')->exists($meta['template_bg_rel_path'])) {
+            $templateBgFullPath = Storage::disk('public')->path($meta['template_bg_rel_path']);
+        }
+
         $pdfBytes = SertifikatPdfGenerator::generatePdfBytes([
-            'kategori'           => $kategori,
-            'nama_sekolah'       => $namaSekolah,
-            'nomor_dokumen'      => $nomorDokumen,
-            'nama_siswa'         => $siswa->name,
-            'nisn'               => $siswa->nisn ?: $siswa->username,
-            'kelas'              => $siswa->kelas->nama_kelas ?? ($siswa->kelas->nama ?? ''),
-            'nama_kegiatan'      => $namaKegiatan,
-            'deskripsi_kegiatan' => $meta['deskripsi_kegiatan'] ?? '',
-            'predikat'           => $predikat,
-            'tempat_tanggal'     => "{$tempatTerbit}, {$tanggalTerbit}",
-            'pejabat_1_jabatan'  => $meta['pejabat_1_jabatan'] ?? 'Kepala SMK Plus Al Hilal',
-            'pejabat_1_nama'     => $meta['pejabat_1_nama'] ?? '',
-            'pejabat_1_nip'      => $meta['pejabat_1_nip'] ?? '',
-            'pejabat_2_jabatan'  => $meta['pejabat_2_jabatan'] ?? '',
-            'pejabat_2_nama'     => $meta['pejabat_2_nama'] ?? '',
-            'pejabat_2_nip'      => $meta['pejabat_2_nip'] ?? '',
+            'kategori'              => $kategori,
+            'nama_sekolah'          => $namaSekolah,
+            'header_instansi'       => $meta['header_instansi'] ?? $namaSekolah,
+            'sub_header'            => $meta['sub_header'] ?? '',
+            'judul_sertifikat'      => $meta['judul_sertifikat'] ?? 'SERTIFIKAT PENGHARGAAN',
+            'nomor_dokumen'         => $nomorDokumen,
+            'kata_pengantar'        => $meta['kata_pengantar'] ?? 'Diberikan dengan bangga kepada:',
+            'nama_siswa'            => $siswa->name,
+            'nisn'                  => $siswa->nisn ?: $siswa->username,
+            'kelas'                 => $siswa->kelas->nama_kelas ?? ($siswa->kelas->nama ?? ''),
+            'nama_kegiatan'         => $namaKegiatan,
+            'deskripsi_kegiatan'    => $meta['deskripsi_kegiatan'] ?? '',
+            'kalimat_penutup'       => $meta['kalimat_penutup'] ?? '',
+            'label_predikat'        => $meta['label_predikat'] ?? 'DENGAN PREDIKAT NILAI',
+            'predikat'              => $predikat,
+            'tempat_tanggal'        => "{$tempatTerbit}, {$tanggalTerbit}",
+            'pejabat_1_jabatan'     => $meta['pejabat_1_jabatan'] ?? 'Kepala SMK Plus Al Hilal',
+            'pejabat_1_nama'        => $meta['pejabat_1_nama'] ?? '',
+            'pejabat_1_nip'         => $meta['pejabat_1_nip'] ?? '',
+            'pejabat_2_jabatan'     => $meta['pejabat_2_jabatan'] ?? '',
+            'pejabat_2_nama'        => $meta['pejabat_2_nama'] ?? '',
+            'pejabat_2_nip'         => $meta['pejabat_2_nip'] ?? '',
+            'show_logo'             => ($meta['show_logo'] ?? true) !== false,
+            'template_bg_path'      => $templateBgFullPath,
+            'template_mode'         => $meta['template_mode'] ?? 'full',
+            'show_nomor_overlay'    => !empty($meta['show_nomor_overlay']),
+            'show_nisn_overlay'     => !empty($meta['show_nisn_overlay']),
+            'show_kegiatan_overlay' => !empty($meta['show_kegiatan_overlay']),
+            'show_predikat_overlay' => !empty($meta['show_predikat_overlay']),
+            'show_ttd_overlay'      => !empty($meta['show_ttd_overlay']),
+            'nama_y_percent'        => (float) ($meta['nama_y_percent'] ?? 52),
+            'text_color_hex'        => $meta['text_color_hex'] ?? '#0f172a',
         ]);
 
         $safeSlug = Str::slug($jenisObj->nama_sertifikat) ?: $kategori;
@@ -860,12 +908,12 @@ class DokumenSertifikatController extends Controller
             'file_path'           => $storedPath,
             'file_name'           => $filename,
             'file_size'           => strlen($pdfBytes),
-            'keterangan'          => "Predikat: {$predikat}",
+            'keterangan'          => $predikat !== '' && $predikat !== '-' ? "Predikat: {$predikat}" : 'Sertifikat Resmi',
             'uploaded_by'         => Auth::id(),
             'is_generated'        => true,
             'nama_kegiatan'       => $namaKegiatan,
             'deskripsi_kegiatan'  => $meta['deskripsi_kegiatan'] ?? null,
-            'predikat'            => $predikat,
+            'predikat'            => $predikat ?: null,
             'tempat_terbit'       => $tempatTerbit,
             'tanggal_terbit'      => $tanggalTerbit,
             'pejabat_1_jabatan'   => $meta['pejabat_1_jabatan'] ?? 'Kepala SMK Plus Al Hilal',
@@ -874,11 +922,12 @@ class DokumenSertifikatController extends Controller
             'pejabat_2_jabatan'   => $meta['pejabat_2_jabatan'] ?? null,
             'pejabat_2_nama'      => $meta['pejabat_2_nama'] ?? null,
             'pejabat_2_nip'       => $meta['pejabat_2_nip'] ?? null,
+            'custom_meta'         => $meta,
         ]);
     }
 
     /**
-     * Generate Sertifikat Otomatis Secara Massal (dari Form Checklist Siswa & Predikat Nilai)
+     * Generate Sertifikat Otomatis Secara Massal (Admin memasukkan kata-kata/bagian sertifikat & memilih siswa yang dapat)
      * Khusus Kepesantrenan & Kewirausahaan
      */
     public function generateMassal(Request $request, string $kategori)
@@ -893,7 +942,13 @@ class DokumenSertifikatController extends Controller
         $request->validate([
             'jenis_sertifikat_id'  => 'nullable|exists:jenis_sertifikats,id',
             'nama_sertifikat_baru' => 'nullable|string|max:200',
-            'deskripsi_kegiatan'   => 'nullable|string|max:500',
+            'header_instansi'      => 'nullable|string|max:200',
+            'sub_header'           => 'nullable|string|max:200',
+            'judul_sertifikat'     => 'nullable|string|max:150',
+            'kata_pengantar'       => 'nullable|string|max:200',
+            'deskripsi_kegiatan'   => 'nullable|string|max:600',
+            'kalimat_penutup'      => 'nullable|string|max:300',
+            'label_predikat'       => 'nullable|string|max:100',
             'format_nomor'         => 'nullable|string|max:120',
             'tempat_terbit'        => 'nullable|string|max:100',
             'tanggal_terbit'       => 'nullable|string|max:100',
@@ -903,7 +958,11 @@ class DokumenSertifikatController extends Controller
             'pejabat_2_jabatan'    => 'nullable|string|max:150',
             'pejabat_2_nama'       => 'nullable|string|max:150',
             'pejabat_2_nip'        => 'nullable|string|max:100',
-            'predikat_siswa'       => 'required|array',
+            'siswa_terpilih'       => 'required|array|min:1',
+            'predikat_siswa'       => 'nullable|array',
+        ], [
+            'siswa_terpilih.required' => 'Silakan centang/pilih minimal 1 siswa yang berhak mendapatkan sertifikat ini.',
+            'siswa_terpilih.min'      => 'Silakan centang/pilih minimal 1 siswa yang berhak mendapatkan sertifikat ini.',
         ]);
 
         if ($request->filled('nama_sertifikat_baru')) {
@@ -918,12 +977,18 @@ class DokumenSertifikatController extends Controller
             return redirect()->back()->with('error', 'Silakan pilih Nama Kegiatan / Sertifikat atau ketik nama kegiatan baru.');
         }
 
+        $siswaTerpilih = array_values(array_unique(array_map('intval', (array) $request->input('siswa_terpilih', []))));
         $predikatMap = (array) $request->input('predikat_siswa', []);
-        $validPredikats = ['Sangat Baik', 'Baik', 'Cukup'];
 
         $meta = [
+            'header_instansi'    => $request->input('header_instansi'),
+            'sub_header'         => $request->input('sub_header'),
+            'judul_sertifikat'   => $request->input('judul_sertifikat', 'SERTIFIKAT PENGHARGAAN'),
+            'kata_pengantar'     => $request->input('kata_pengantar', 'Diberikan dengan bangga kepada:'),
             'nama_kegiatan'      => $jenisObj->nama_sertifikat,
             'deskripsi_kegiatan' => $request->input('deskripsi_kegiatan'),
+            'kalimat_penutup'    => $request->input('kalimat_penutup'),
+            'label_predikat'     => $request->input('label_predikat', 'DENGAN PREDIKAT NILAI'),
             'tempat_terbit'      => $request->input('tempat_terbit', 'Cirebon'),
             'tanggal_terbit'     => $request->input('tanggal_terbit', now()->translatedFormat('d F Y')),
             'pejabat_1_jabatan'  => $request->input('pejabat_1_jabatan'),
@@ -932,21 +997,23 @@ class DokumenSertifikatController extends Controller
             'pejabat_2_jabatan'  => $request->input('pejabat_2_jabatan'),
             'pejabat_2_nama'     => $request->input('pejabat_2_nama'),
             'pejabat_2_nip'      => $request->input('pejabat_2_nip'),
+            'show_logo'          => $request->boolean('show_logo', true),
+            'template_mode'      => 'full',
         ];
 
         $formatNomor = trim((string) $request->input('format_nomor', ''));
         $generatedCount = 0;
         $seq = 1;
 
-        foreach ($predikatMap as $siswaId => $predikat) {
-            $predikat = trim((string) $predikat);
-            if (!in_array($predikat, $validPredikats, true)) {
-                continue;
-            }
-
+        foreach ($siswaTerpilih as $siswaId) {
             $siswa = User::with('kelas')->where('role', 'siswa')->find($siswaId);
             if (!$siswa) {
                 continue;
+            }
+
+            $predikat = trim((string) ($predikatMap[$siswaId] ?? 'Baik'));
+            if ($predikat === '') {
+                $predikat = 'Baik';
             }
 
             $nomor = $formatNomor;
@@ -963,14 +1030,14 @@ class DokumenSertifikatController extends Controller
         }
 
         if ($generatedCount === 0) {
-            return redirect()->back()->with('error', 'Tidak ada siswa yang dipilih predikat nilainya (Sangat Baik / Baik / Cukup).');
+            return redirect()->back()->with('error', 'Tidak ada siswa yang dipilih untuk dibuatkan sertifikat.');
         }
 
-        return redirect()->back()->with('success', "Berhasil men-generate otomatis {$generatedCount} file PDF sertifikat \"{$jenisObj->nama_sertifikat}\" untuk masing-masing siswa!");
+        return redirect()->back()->with('success', "Berhasil men-generate otomatis {$generatedCount} sertifikat PDF \"{$jenisObj->nama_sertifikat}\" untuk siswa yang dipilih!");
     }
 
     /**
-     * Unduh Template Dokumen Data Siswa (CSV / Excel) untuk Generate Sertifikat dari 1 Dokumen
+     * Unduh Template Dokumen Data Siswa (CSV / Excel)
      */
     public function downloadTemplateGenerator(Request $request, string $kategori)
     {
@@ -997,7 +1064,6 @@ class DokumenSertifikatController extends Controller
 
         $callback = function () use ($siswas) {
             $out = fopen('php://output', 'w');
-            // UTF-8 BOM for Microsoft Excel compatibility
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, ['ID_SISWA', 'NISN', 'NAMA_SISWA', 'KELAS', 'PREDIKAT_NILAI', 'NOMOR_SERTIFIKAT']);
             foreach ($siswas as $idx => $s) {
@@ -1007,7 +1073,7 @@ class DokumenSertifikatController extends Controller
                     $s->nisn ?: $s->username,
                     $s->name,
                     $s->kelas->nama_kelas ?? ($s->kelas->nama ?? '-'),
-                    'Sangat Baik', // Contoh isian: Sangat Baik / Baik / Cukup
+                    'Sangat Baik',
                     "421.5/{$noStr}/SERT-AH/" . date('Y'),
                 ]);
             }
@@ -1018,7 +1084,8 @@ class DokumenSertifikatController extends Controller
     }
 
     /**
-     * Upload 1 Dokumen Data (Excel .xlsx / .xls / .csv) -> Sistem Generate Sertifikat untuk Masing-Masing Siswa
+     * Upload 1 File Sertifikat (Gambar Desain .PNG/.JPG/.JPEG/.WEBP atau .PDF)
+     * -> Masukkan Nama-Nama Siswa dari Database untuk Masing-Masing Siswa Terpilih
      */
     public function importDataGenerator(Request $request, string $kategori)
     {
@@ -1030,18 +1097,29 @@ class DokumenSertifikatController extends Controller
         }
 
         $request->validate([
-            'file_data'            => 'required|file|max:5120',
+            'file_sertifikat'      => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:15360',
             'jenis_sertifikat_id'  => 'nullable|exists:jenis_sertifikats,id',
             'nama_sertifikat_baru' => 'nullable|string|max:200',
-            'deskripsi_kegiatan'   => 'nullable|string|max:500',
+            'template_mode'        => 'nullable|in:overlay_nama,full',
+            'format_nomor'         => 'nullable|string|max:120',
+            'deskripsi_kegiatan'   => 'nullable|string|max:600',
             'tempat_terbit'        => 'nullable|string|max:100',
             'tanggal_terbit'       => 'nullable|string|max:100',
-            'pejabat_1_jabatan'    => 'required|string|max:150',
-            'pejabat_1_nama'       => 'required|string|max:150',
+            'pejabat_1_jabatan'    => 'nullable|string|max:150',
+            'pejabat_1_nama'       => 'nullable|string|max:150',
             'pejabat_1_nip'        => 'nullable|string|max:100',
             'pejabat_2_jabatan'    => 'nullable|string|max:150',
             'pejabat_2_nama'       => 'nullable|string|max:150',
             'pejabat_2_nip'        => 'nullable|string|max:100',
+            'nama_y_percent'       => 'nullable|numeric|min:15|max:85',
+            'text_color_hex'       => 'nullable|string|max:20',
+            'siswa_terpilih'       => 'required|array|min:1',
+            'predikat_siswa'       => 'nullable|array',
+        ], [
+            'file_sertifikat.required' => 'Silakan pilih file sertifikat (.PNG, .JPG, .JPEG, atau .PDF) yang akan diupload.',
+            'file_sertifikat.mimes'    => 'File sertifikat harus berformat gambar (.PNG, .JPG, .JPEG, .WEBP) atau .PDF.',
+            'siswa_terpilih.required'  => 'Silakan centang/pilih minimal 1 nama siswa dari database yang menerima sertifikat ini.',
+            'siswa_terpilih.min'       => 'Silakan centang/pilih minimal 1 nama siswa dari database yang menerima sertifikat ini.',
         ]);
 
         if ($request->filled('nama_sertifikat_baru')) {
@@ -1056,95 +1134,127 @@ class DokumenSertifikatController extends Controller
             return redirect()->back()->with('error', 'Silakan pilih Nama Kegiatan / Sertifikat atau ketik nama kegiatan baru.');
         }
 
-        $file = $request->file('file_data');
+        $file = $request->file('file_sertifikat');
         $ext = strtolower($file->getClientOriginalExtension());
-        $rows = [];
+        $siswaTerpilih = array_values(array_unique(array_map('intval', (array) $request->input('siswa_terpilih', []))));
+        $predikatMap = (array) $request->input('predikat_siswa', []);
+        $formatNomor = trim((string) $request->input('format_nomor', ''));
 
-        if (in_array($ext, ['xlsx', 'xls'], true) && class_exists(\PhpOffice\PhpSpreadsheet\IOFactory::class)) {
-            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getRealPath());
-            $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
-        } else {
-            $content = file_get_contents($file->getRealPath());
-            $content = preg_replace('/^\xEF\xBB\xBF/', '', $content);
-            $lines = preg_split('/\r\n|\r|\n/', trim($content));
-            foreach ($lines as $line) {
-                if (trim($line) === '') {
-                    continue;
-                }
-                $delimiter = str_contains($line, ';') && !str_contains($line, ',') ? ';' : ',';
-                $rows[] = str_getcsv($line, $delimiter);
-            }
-        }
+        // Simpan file template sertifikat yang diupload
+        $templateFilename = 'template_' . Str::slug($jenisObj->nama_sertifikat) . '_' . time() . '.' . $ext;
+        $templateRelPath = "dokumen_sertifikat/templates/{$kategori}/{$templateFilename}";
+        Storage::disk('public')->putFileAs("dokumen_sertifikat/templates/{$kategori}", $file, $templateFilename);
+
+        $isImageTemplate = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true);
 
         $meta = [
-            'nama_kegiatan'      => $jenisObj->nama_sertifikat,
-            'deskripsi_kegiatan' => $request->input('deskripsi_kegiatan'),
-            'tempat_terbit'      => $request->input('tempat_terbit', 'Cirebon'),
-            'tanggal_terbit'     => $request->input('tanggal_terbit', now()->translatedFormat('d F Y')),
-            'pejabat_1_jabatan'  => $request->input('pejabat_1_jabatan'),
-            'pejabat_1_nama'     => $request->input('pejabat_1_nama'),
-            'pejabat_1_nip'      => $request->input('pejabat_1_nip'),
-            'pejabat_2_jabatan'  => $request->input('pejabat_2_jabatan'),
-            'pejabat_2_nama'     => $request->input('pejabat_2_nama'),
-            'pejabat_2_nip'      => $request->input('pejabat_2_nip'),
+            'header_instansi'       => $request->input('header_instansi'),
+            'sub_header'            => $request->input('sub_header'),
+            'judul_sertifikat'      => $request->input('judul_sertifikat', 'SERTIFIKAT PENGHARGAAN'),
+            'kata_pengantar'        => $request->input('kata_pengantar', 'Diberikan dengan bangga kepada:'),
+            'nama_kegiatan'         => $jenisObj->nama_sertifikat,
+            'deskripsi_kegiatan'    => $request->input('deskripsi_kegiatan'),
+            'label_predikat'        => $request->input('label_predikat', 'PREDIKAT NILAI'),
+            'tempat_terbit'         => $request->input('tempat_terbit', 'Cirebon'),
+            'tanggal_terbit'        => $request->input('tanggal_terbit', now()->translatedFormat('d F Y')),
+            'pejabat_1_jabatan'     => $request->input('pejabat_1_jabatan', 'Kepala SMK Plus Al Hilal'),
+            'pejabat_1_nama'        => $request->input('pejabat_1_nama'),
+            'pejabat_1_nip'         => $request->input('pejabat_1_nip'),
+            'pejabat_2_jabatan'     => $request->input('pejabat_2_jabatan'),
+            'pejabat_2_nama'        => $request->input('pejabat_2_nama'),
+            'pejabat_2_nip'         => $request->input('pejabat_2_nip'),
+            'template_bg_rel_path'  => $isImageTemplate ? $templateRelPath : null,
+            'template_mode'         => $request->input('template_mode', 'overlay_nama'),
+            'show_nomor_overlay'    => $request->boolean('show_nomor_overlay', false),
+            'show_nisn_overlay'     => $request->boolean('show_nisn_overlay', true),
+            'show_kegiatan_overlay' => $request->boolean('show_kegiatan_overlay', false),
+            'show_predikat_overlay' => $request->boolean('show_predikat_overlay', true),
+            'show_ttd_overlay'      => $request->boolean('show_ttd_overlay', false),
+            'nama_y_percent'        => (float) $request->input('nama_y_percent', 52),
+            'text_color_hex'        => $request->input('text_color_hex', '#0f172a'),
+            'show_logo'             => $request->boolean('show_logo', false),
         ];
 
         $generatedCount = 0;
+        $seq = 1;
 
-        foreach ($rows as $index => $row) {
-            if ($index === 0 && isset($row[0]) && !is_numeric(trim((string) $row[0]))) {
-                // Skip header row
-                continue;
-            }
-
-            $idSiswa   = trim((string) ($row[0] ?? ''));
-            $nisn      = trim((string) ($row[1] ?? ''));
-            $namaSiswa = trim((string) ($row[2] ?? ''));
-            $predikat  = trim((string) ($row[4] ?? 'Baik'));
-            $nomorDoc  = trim((string) ($row[5] ?? ''));
-
-            if ($predikat === '' || strtolower($predikat) === '-') {
-                continue;
-            }
-
-            // Normalisasi penulisan predikat
-            $lowerPred = strtolower($predikat);
-            if (str_contains($lowerPred, 'sangat')) {
-                $predikat = 'Sangat Baik';
-            } elseif (str_contains($lowerPred, 'cukup')) {
-                $predikat = 'Cukup';
-            } else {
-                $predikat = 'Baik';
-            }
-
-            $siswa = null;
-            if (is_numeric($idSiswa)) {
-                $siswa = User::with('kelas')->where('role', 'siswa')->find((int) $idSiswa);
-            }
-            if (!$siswa && $nisn !== '') {
-                $siswa = User::with('kelas')->where('role', 'siswa')
-                    ->where(fn($q) => $q->where('nisn', $nisn)->orWhere('username', $nisn))
-                    ->first();
-            }
-            if (!$siswa && $namaSiswa !== '') {
-                $siswa = User::with('kelas')->where('role', 'siswa')
-                    ->where('name', 'like', $namaSiswa)
-                    ->first();
-            }
-
+        foreach ($siswaTerpilih as $siswaId) {
+            $siswa = User::with('kelas')->where('role', 'siswa')->find($siswaId);
             if (!$siswa) {
                 continue;
             }
 
-            $this->createGeneratedCertificateForStudent($siswa, $kategori, $jenisObj, $predikat, $meta, $nomorDoc);
+            $predikat = trim((string) ($predikatMap[$siswaId] ?? 'Baik'));
+            if ($predikat === '') {
+                $predikat = 'Baik';
+            }
+
+            $nomor = $formatNomor;
+            if ($nomor !== '') {
+                $noStr = str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+                if (str_contains($nomor, '{NO}')) {
+                    $nomor = str_replace('{NO}', $noStr, $nomor);
+                }
+            }
+
+            if ($isImageTemplate) {
+                // Gambar desain sertifikat diupload -> sistem menempelkan nama siswa dari database & menyimpan PDF per siswa
+                $this->createGeneratedCertificateForStudent($siswa, $kategori, $jenisObj, $predikat, $meta, $nomor);
+            } else {
+                // Jika yang diupload berupa PDF jadi, salin ke masing-masing siswa terpilih dan simpan metadata namanya
+                $existing = DokumenSertifikatSiswa::where('siswa_id', $siswa->id)
+                    ->where('kategori', $kategori)
+                    ->where('jenis_sertifikat_id', $jenisObj->id)
+                    ->get();
+                foreach ($existing as $oldDoc) {
+                    if ($oldDoc->file_path && Storage::disk('public')->exists($oldDoc->file_path)) {
+                        Storage::disk('public')->delete($oldDoc->file_path);
+                    }
+                    $oldDoc->delete();
+                }
+
+                $safeSlug = Str::slug($jenisObj->nama_sertifikat) ?: $kategori;
+                $safeSiswa = Str::slug($siswa->name) ?: 'siswa';
+                $filename = "{$safeSlug}_{$safeSiswa}_{$siswa->id}_" . time() . '.pdf';
+                $storedPath = "dokumen_sertifikat/{$kategori}/{$filename}";
+                Storage::disk('public')->copy($templateRelPath, $storedPath);
+
+                DokumenSertifikatSiswa::create([
+                    'siswa_id'            => $siswa->id,
+                    'kategori'            => $kategori,
+                    'jenis_sertifikat_id' => $jenisObj->id,
+                    'nama_dokumen'        => $jenisObj->nama_sertifikat,
+                    'nomor_dokumen'       => $nomor ?: null,
+                    'file_path'           => $storedPath,
+                    'file_name'           => $filename,
+                    'file_size'           => $file->getSize(),
+                    'keterangan'          => $predikat !== '-' ? "Predikat: {$predikat}" : 'File Sertifikat',
+                    'uploaded_by'         => Auth::id(),
+                    'is_generated'        => true,
+                    'nama_kegiatan'       => $jenisObj->nama_sertifikat,
+                    'deskripsi_kegiatan'  => $meta['deskripsi_kegiatan'],
+                    'predikat'            => $predikat !== '-' ? $predikat : null,
+                    'tempat_terbit'       => $meta['tempat_terbit'],
+                    'tanggal_terbit'      => $meta['tanggal_terbit'],
+                    'pejabat_1_jabatan'   => $meta['pejabat_1_jabatan'],
+                    'pejabat_1_nama'      => $meta['pejabat_1_nama'],
+                    'pejabat_1_nip'       => $meta['pejabat_1_nip'],
+                    'pejabat_2_jabatan'   => $meta['pejabat_2_jabatan'],
+                    'pejabat_2_nama'      => $meta['pejabat_2_nama'],
+                    'pejabat_2_nip'       => $meta['pejabat_2_nip'],
+                    'custom_meta'         => $meta,
+                ]);
+            }
+
             $generatedCount++;
+            $seq++;
         }
 
         if ($generatedCount === 0) {
-            return redirect()->back()->with('error', 'Tidak ada data siswa yang cocok dari dokumen yang diunggah. Pastikan menggunakan format Template Data Sertifikat.');
+            return redirect()->back()->with('error', 'Tidak ada siswa yang dipilih.');
         }
 
-        return redirect()->back()->with('success', "Berhasil membaca 1 dokumen data dan men-generate otomatis {$generatedCount} sertifikat PDF \"{$jenisObj->nama_sertifikat}\" untuk masing-masing siswa!");
+        return redirect()->back()->with('success', "Berhasil mengupload file sertifikat dan men-generate sertifikat \"{$jenisObj->nama_sertifikat}\" untuk {$generatedCount} siswa terpilih dari database!");
     }
 
     /**
@@ -1180,7 +1290,7 @@ class DokumenSertifikatController extends Controller
 
         $tempatTerbit  = trim((string) $request->query('tempat_terbit', 'Cirebon')) ?: 'Cirebon';
         $tanggalTerbit = trim((string) $request->query('tanggal_terbit', now()->translatedFormat('d F Y'))) ?: now()->translatedFormat('d F Y');
-        $predikat      = trim((string) $request->query('predikat', 'Sangat Baik')) ?: 'Sangat Baik';
+        $predikat      = trim((string) $request->query('predikat', 'Sangat Baik'));
         $namaSiswa     = trim((string) $request->query('nama_siswa', 'CONTOH NAMA SISWA')) ?: 'CONTOH NAMA SISWA';
         $nisn          = trim((string) $request->query('nisn', '0081234567')) ?: '0081234567';
         $kelas         = trim((string) $request->query('kelas', 'XII TKJ 1')) ?: 'XII TKJ 1';
@@ -1188,12 +1298,18 @@ class DokumenSertifikatController extends Controller
         $pdfBytes = SertifikatPdfGenerator::generatePdfBytes([
             'kategori'           => $kategori,
             'nama_sekolah'       => $namaSekolah,
+            'header_instansi'    => trim((string) $request->query('header_instansi', $namaSekolah)) ?: $namaSekolah,
+            'sub_header'         => trim((string) $request->query('sub_header', '')),
+            'judul_sertifikat'   => trim((string) $request->query('judul_sertifikat', 'SERTIFIKAT PENGHARGAAN')) ?: 'SERTIFIKAT PENGHARGAAN',
             'nomor_dokumen'      => $nomorContoh,
+            'kata_pengantar'     => trim((string) $request->query('kata_pengantar', 'Diberikan dengan bangga kepada:')) ?: 'Diberikan dengan bangga kepada:',
             'nama_siswa'         => $namaSiswa,
             'nisn'               => $nisn,
             'kelas'              => $kelas,
             'nama_kegiatan'      => $namaKegiatan,
             'deskripsi_kegiatan' => trim((string) $request->query('deskripsi_kegiatan', '')),
+            'kalimat_penutup'    => trim((string) $request->query('kalimat_penutup', '')),
+            'label_predikat'     => trim((string) $request->query('label_predikat', 'DENGAN PREDIKAT NILAI')),
             'predikat'           => $predikat,
             'tempat_tanggal'     => "{$tempatTerbit}, {$tanggalTerbit}",
             'pejabat_1_jabatan'  => trim((string) $request->query('pejabat_1_jabatan', 'Kepala SMK Plus Al Hilal')) ?: 'Kepala SMK Plus Al Hilal',
@@ -1202,6 +1318,7 @@ class DokumenSertifikatController extends Controller
             'pejabat_2_jabatan'  => trim((string) $request->query('pejabat_2_jabatan', '')),
             'pejabat_2_nama'     => trim((string) $request->query('pejabat_2_nama', '')),
             'pejabat_2_nip'      => trim((string) $request->query('pejabat_2_nip', '')),
+            'show_logo'          => $request->query('show_logo', '1') !== '0',
         ]);
 
         return response($pdfBytes, 200, [

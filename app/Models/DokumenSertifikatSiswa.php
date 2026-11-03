@@ -32,12 +32,14 @@ class DokumenSertifikatSiswa extends Model
         'pejabat_2_jabatan',
         'pejabat_2_nama',
         'pejabat_2_nip',
+        'custom_meta',
     ];
 
     protected function casts(): array
     {
         return [
             'is_generated' => 'boolean',
+            'custom_meta'  => 'array',
         ];
     }
 

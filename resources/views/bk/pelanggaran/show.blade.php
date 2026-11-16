@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Detail Pelanggaran')
+@section('page-title', 'Detail Pelanggaran & Penetapan Progres')
 @section('subtitle', $pelanggaran->siswa->nama_lengkap)
 
 @section('content')
@@ -32,18 +33,45 @@
 
     {{-- Progres Pelanggaran --}}
     @php $progres = $pelanggaran->progresPelanggaran; @endphp
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div id="mulai-progres" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 Progres Penanganan</h3>
         @if($progres)
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div><p class="text-xs text-gray-500">Jenis Tindakan</p><span class="badge text-sm {{ $progres->jenis_tindakan_badge }}">{{ $progres->jenis_tindakan_label }}</span></div>
                 <div><p class="text-xs text-gray-500">Status Progres</p><span class="badge text-sm {{ $progres->status_badge }}">{{ $progres->status_label }}</span></div>
                 <div><p class="text-xs text-gray-500">Tanggal Dibuat</p><p class="text-sm font-medium">{{ $progres->created_at->format('d M Y H:i') }}</p></div>
-                <div><p class="text-xs text-gray-500">Dibuat Oleh</p><p class="text-sm font-medium">{{ $progres->createdBy->nama_lengkap ?? '-' }}</p></div>
+                <div><p class="text-xs text-gray-500">Dibuat Oleh</p><p class="text-sm font-medium">{{ $progres->createdBy->nama_lengkap ?: ($progres->createdBy->name ?? '-') }}</p></div>
             </div>
-            <a href="{{ route('bk.progres.show', $pelanggaran) }}" class="btn-primary text-sm">📋 Lihat Detail Progres →</a>
+            <a href="{{ route('bk.progres.show', $pelanggaran) }}" class="btn-primary text-sm">📋 Buka Timeline Progres →</a>
         @else
-            <p class="text-gray-500 text-center py-4">Belum ada progres untuk pelanggaran ini</p>
+            <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 mb-4">
+                <p class="text-sm font-semibold text-amber-900">⚠️ Pelanggaran ini belum memiliki tindak lanjut progres.</p>
+                <p class="text-xs text-amber-700 mt-0.5">Pilih jenis tindakan di bawah untuk memulai alur progres penanganan dan mengirim notifikasi ke pihak terkait.</p>
+            </div>
+            <form method="POST" action="{{ route('bk.pelanggaran.mulai-progres', $pelanggaran) }}" class="space-y-4">
+                @csrf
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    @foreach(\App\Models\ProgresPelanggaran::jenisTindakanOptions() as $value => $label)
+                    <label class="flex items-start gap-2.5 p-3 bg-slate-50 hover:bg-indigo-50/50 rounded-xl border border-slate-200 cursor-pointer transition">
+                        <input type="radio" name="jenis_tindakan" value="{{ $value }}" class="mt-0.5 text-indigo-600 focus:ring-indigo-500" required>
+                        <div class="text-xs">
+                            <span class="font-bold text-slate-800 block">{{ $label }}</span>
+                            <span class="text-slate-500">
+                                @if($value === 'peringatan_lisan') Langsung selesai
+                                @elseif($value === 'teguran_lisan') Laporan Wali Kelas
+                                @elseif($value === 'home_visit') Laporan Home Visit Wali Kelas
+                                @elseif($value === 'pemanggilan_ortu') BK cetak surat → Laporan Wali Kelas
+                                @elseif($value === 'sp1') Approve Wali Kelas & Kaprog → Cetak Surat → Laporan
+                                @elseif($value === 'sp2') Approve Wali Kelas, Kaprog & Waka Kesiswaan → Surat → Laporan
+                                @elseif($value === 'sp3') Approve Semua + Kepsek → Surat → Kesimpulan & Laporan
+                                @endif
+                            </span>
+                        </div>
+                    </label>
+                    @endforeach
+                </div>
+                <button type="submit" class="btn-primary text-sm">🚀 Mulai Progres Tindakan</button>
+            </form>
         @endif
     </div>
 

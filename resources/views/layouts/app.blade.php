@@ -840,6 +840,12 @@
                             <span>Dashboard Utama</span>
                         </a>
                     </li>
+                    <li class="sidebar-nav-item">
+                        <a href="{{ route('alur-kerja.index') }}" class="sidebar-nav-link {{ request()->routeIs('alur-kerja.index') ? 'active' : '' }}">
+                            <i class="bi bi-diagram-3-fill" style="color:#10b981;"></i>
+                            <span>Peta Alur Sistem HilalEdu</span>
+                        </a>
+                    </li>
                 </ul>
 
                 {{-- ============================================================ --}}
@@ -1354,6 +1360,12 @@
                             <span>Dashboard Utama</span>
                         </a>
                     </li>
+                    <li class="sidebar-nav-item">
+                        <a href="{{ route('alur-kerja.index') }}" class="sidebar-nav-link {{ request()->routeIs('alur-kerja.index') ? 'active' : '' }}">
+                            <i class="bi bi-diagram-3-fill" style="color:#10b981;"></i>
+                            <span>Peta Alur Sistem HilalEdu</span>
+                        </a>
+                    </li>
 
                     @if(auth()->user()->role === 'guru')
                         @php
@@ -1598,6 +1610,12 @@
             <span class="topbar-title">@yield('page-title', 'Dashboard')</span>
         </div>
         <div class="topbar-right">
+            <button type="button" onclick="openWorkflowModal('current')" class="btn btn-sm d-inline-flex align-items-center gap-1.5"
+                    style="color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:6px 12px;font-size:0.82rem;font-weight:700;"
+                    title="Lihat Alur Kerja Menu Ini & Peta Sistem HilalEdu">
+                <i class="bi bi-diagram-3-fill" style="color:#059669;"></i>
+                <span class="d-none d-md-inline">Alur Kerja</span>
+            </button>
             @if(auth()->user()->isSuperAdmin() || session()->has('impersonator_id'))
                 <button type="button" onclick="openImpersonateModal()" class="btn btn-sm d-inline-flex align-items-center gap-1.5"
                         style="color:#0f172a;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:6px 12px;font-size:0.82rem;font-weight:600;"
@@ -1690,6 +1708,8 @@
                     </div>
                 </div>
             @endif
+
+            @include('components.workflow-guide', ['showInline' => !request()->routeIs('alur-kerja.index')])
 
             @yield('content')
         </div>

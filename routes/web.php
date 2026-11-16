@@ -834,6 +834,11 @@ Route::middleware('auth')->group(function () {
 
 // Authenticated routes
 Route::middleware('auth')->group(function () {
+    // Peta Alur Kerja Sistem HilalEdu (Semua Menu & Gambaran Keseluruhan)
+    Route::get('/alur-kerja-sistem', function () {
+        return view('alur_kerja.index');
+    })->name('alur-kerja.index');
+
     // Superadmin Impersonation ("Lihat Sebagai User")
     Route::get('/impersonate/users', [SuperAdminUserController::class, 'impersonateUsers'])->name('impersonate.users');
     Route::post('/impersonate/stop', [SuperAdminUserController::class, 'impersonateStop'])->name('impersonate.stop');
@@ -880,6 +885,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/poin', [Admin\SiswaController::class, 'poinIndex'])->name('poin.index');
 
         // Pelanggaran Siswa
+        Route::post('pelanggaran/{pelanggaran}/mulai-progres', [BK\PelanggaranController::class, 'mulaiProgres'])->name('pelanggaran.mulai-progres');
         Route::resource('pelanggaran', BK\PelanggaranController::class)->except('destroy');
         Route::get('/pelanggaran-histori-siswa', [BK\PelanggaranController::class, 'getHistoriSiswa'])->name('pelanggaran.histori-siswa');
 

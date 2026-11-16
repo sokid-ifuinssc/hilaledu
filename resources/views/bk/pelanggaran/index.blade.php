@@ -1,5 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Data Pelanggaran')
+@section('title', 'Catatan Pelanggaran')
+@section('page-title', 'Catatan Pelanggaran Siswa')
 @section('subtitle', 'Kelola pelanggaran siswa')
 
 @section('content')
@@ -48,14 +49,18 @@
                         @if($p->progresPelanggaran)
                         <span class="badge text-xs {{ $p->progresPelanggaran->jenis_tindakan_badge }}">{{ $p->progresPelanggaran->jenis_tindakan_label }}</span>
                         @else
-                        <span class="text-gray-400">-</span>
+                        <span class="badge text-xs bg-amber-100 text-amber-800">Belum Ditentukan</span>
                         @endif
                     </td>
                     <td><span class="badge {{ $p->status_badge }}">{{ $p->status_label }}</span></td>
-                    <td class="flex gap-2">
-                        <a href="{{ route('bk.pelanggaran.show', $p) }}" class="text-indigo-600 hover:underline text-sm">Detail</a>
+                    <td class="flex items-center gap-2 whitespace-nowrap">
+                        <a href="{{ route('bk.pelanggaran.show', $p) }}" class="text-indigo-600 hover:underline text-sm font-medium">Detail</a>
                         @if($p->progresPelanggaran)
-                        <a href="{{ route('bk.progres.show', $p) }}" class="text-emerald-600 hover:underline text-sm">Progres</a>
+                        <a href="{{ route('bk.progres.show', $p) }}" class="text-emerald-600 hover:underline text-sm font-semibold">Progres →</a>
+                        @else
+                        <a href="{{ route('bk.pelanggaran.show', $p) }}#mulai-progres" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 text-xs font-bold">
+                            + Mulai Progres
+                        </a>
                         @endif
                     </td>
                 </tr>

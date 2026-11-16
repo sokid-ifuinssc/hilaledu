@@ -62,7 +62,11 @@ class ProgresController extends Controller
             'selesai' => ProgresPelanggaran::where('status', 'selesai')->count(),
         ];
 
-        return view('bk.progres.index', compact('progresList', 'kelasList', 'tahunAjarans', 'filterTahun', 'stats'));
+        $tanpaProgresCount = Pelanggaran::whereDoesntHave('progresPelanggaran')
+            ->where('status', '!=', 'selesai')
+            ->count();
+
+        return view('bk.progres.index', compact('progresList', 'kelasList', 'tahunAjarans', 'filterTahun', 'stats', 'tanpaProgresCount'));
     }
 
     public function show(Pelanggaran $pelanggaran)

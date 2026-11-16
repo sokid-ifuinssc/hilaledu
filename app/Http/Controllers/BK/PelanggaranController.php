@@ -117,8 +117,43 @@ class PelanggaranController extends Controller
         $siswa = Siswa::findOrFail($validated['siswa_id']);
         $siswa->kurangiPoin($jenisPelanggaran->poin);
 
-        // Tentukan status progres awal
         $jenisTindakan = $validated['jenis_tindakan'];
+        $progres = $this->createProgresAndNotify($pelanggaran, $siswa, $jenisTindakan, true);
+
+        return redirect()->route('bk.progres.show', $pelanggaran)
+            ->with('success', 'Pelanggaran berhasil dicatat dengan tindakan: ' . ProgresPelanggaran::jenisTindakanOptions()[$jenisTindakan]);
+    }
+
+    /**
+     * Tentukan tindakan dan mulai progres untuk pelanggaran lama yang belum memiliki progres
+     */
+    public function mulaiProgres(Request $request, Pelanggaran $pelanggaran)
+    {
+        if ($pelanggaran->progresPelanggaran) {
+            return redirect()->route('bk.progres.show', $pelanggaran)
+                ->with('info', 'Pelanggaran ini sudah memiliki data progres.');
+        }
+
+        $validated = $request->validate([
+            'jenis_tindakan' => 'required|in:peringatan_lisan,teguran_lisan,home_visit,pemanggilan_ortu,sp1,sp2,sp3',
+        ]);
+
+        $jenisTindakan = $validated['jenis_tindakan'];
+        $pelanggaran->update([
+            'status' => $jenisTindakan === 'peringatan_lisan' ? 'selesai' : 'proses',
+        ]);
+
+        $siswa = $pelanggaran->siswa;
+        if ($siswa) {
+            $this->createProgresAndNotify($pelanggaran, $siswa, $jenisTindakan, false);
+        }
+
+        return redirect()->route('bk.progres.show', $pelanggaran)
+            ->with('success', 'Progres tindakan berhasil dimulai: ' . (ProgresPelanggaran::jenisTindakanOptions()[$jenisTindakan] ?? $jenisTindakan));
+    }
+
+    private function createProgresAndNotify(Pelanggaran $pelanggaran, Siswa $siswa, string $jenisTindakan, bool $logPelanggaran): ProgresPelanggaran
+    {
         $statusProgres = match (true) {
             $jenisTindakan === 'peringatan_lisan' => 'selesai',
             in_array($jenisTindakan, ['sp1', 'sp2', 'sp3']) => 'menunggu_approval',
@@ -126,7 +161,6 @@ class PelanggaranController extends Controller
             default => 'menunggu_laporan', // teguran_lisan, home_visit
         };
 
-        // Buat progres pelanggaran
         $progres = ProgresPelanggaran::create([
             'pelanggaran_id' => $pelanggaran->id,
             'jenis_tindakan' => $jenisTindakan,
@@ -134,16 +168,14 @@ class PelanggaranController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        // Audit Trail
-        AuditService::logPelanggaranCreated($pelanggaran, $jenisTindakan);
-        AuditService::log($progres, 'created', null, $statusProgres, "Progres dibuat dengan tindakan: " . ProgresPelanggaran::jenisTindakanOptions()[$jenisTindakan]);
+        if ($logPelanggaran) {
+            AuditService::logPelanggaranCreated($pelanggaran, $jenisTindakan);
+        }
+        AuditService::log($progres, 'created', null, $statusProgres, 'Progres dibuat dengan tindakan: ' . ProgresPelanggaran::jenisTindakanOptions()[$jenisTindakan]);
 
-        // Kirim notifikasi berdasarkan jenis tindakan
-        $kelas = $siswa->kelas;
-        $this->kirimNotifikasi($progres, $pelanggaran, $siswa, $kelas);
+        $this->kirimNotifikasi($progres, $pelanggaran, $siswa, $siswa->kelas);
 
-        return redirect()->route('bk.pelanggaran.index')
-            ->with('success', 'Pelanggaran berhasil dicatat dengan tindakan: ' . ProgresPelanggaran::jenisTindakanOptions()[$jenisTindakan]);
+        return $progres;
     }
 
     /**

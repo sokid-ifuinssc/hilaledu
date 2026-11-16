@@ -1,9 +1,21 @@
 @extends('layouts.app')
 @section('title', 'Progres Data Pelanggaran')
+@section('page-title', 'Progres Kasus & Bimbingan BK')
 @section('subtitle', 'Monitoring progres tindakan pelanggaran')
 
 @section('content')
 <div class="space-y-6">
+    @if(($tanpaProgresCount ?? 0) > 0)
+    <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-wrap items-center justify-between gap-3">
+        <div class="text-sm text-amber-900">
+            <strong>⚠️ Ada {{ $tanpaProgresCount }} pelanggaran yang belum ditentukan tindakannya.</strong>
+            <span class="block text-xs text-amber-700 mt-0.5">Buka Catatan Pelanggaran lalu klik <strong>"+ Mulai Progres"</strong> pada kasus tersebut agar masuk ke daftar progres.</span>
+        </div>
+        <a href="{{ route('bk.pelanggaran.index', ['status' => 'proses']) }}" class="px-3.5 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition">
+            Lihat Kasus Belum Bertindakan →
+        </a>
+    </div>
+    @endif
     {{-- Stats Cards --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">

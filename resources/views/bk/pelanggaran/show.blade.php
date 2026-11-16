@@ -57,8 +57,8 @@
                         <div class="text-xs">
                             <span class="font-bold text-slate-800 block">{{ $label }}</span>
                             <span class="text-slate-500">
-                                @if($value === 'peringatan_lisan') Langsung selesai
-                                @elseif($value === 'teguran_lisan') Laporan Wali Kelas
+                                @if($value === 'peringatan_lisan') Langsung selesai (juga cocok untuk menutup kasus lama yang sudah tuntas dibina)
+                                @elseif($value === 'teguran_lisan') Wali Kelas mengisi laporan teguran
                                 @elseif($value === 'home_visit') Laporan Home Visit Wali Kelas
                                 @elseif($value === 'pemanggilan_ortu') BK cetak surat → Laporan Wali Kelas
                                 @elseif($value === 'sp1') Approve Wali Kelas & Kaprog → Cetak Surat → Laporan

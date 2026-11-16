@@ -21,16 +21,24 @@
 
     {{-- Progres Penanganan --}}
     @php $progres = $pelanggaran->progresPelanggaran; @endphp
-    @if($progres)
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 Progres Penanganan</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div><p class="text-xs text-gray-500">Jenis Tindakan</p><span class="badge text-sm {{ $progres->jenis_tindakan_badge }}">{{ $progres->jenis_tindakan_label }}</span></div>
-            <div><p class="text-xs text-gray-500">Status Progres</p><span class="badge text-sm {{ $progres->status_badge }}">{{ $progres->status_label }}</span></div>
-        </div>
-        <a href="{{ route('walikelas.progres.show', $pelanggaran) }}" class="btn-primary text-sm">📋 Lihat Detail Progres →</a>
+        @if($progres)
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div><p class="text-xs text-gray-500">Jenis Tindakan</p><span class="badge text-sm {{ $progres->jenis_tindakan_badge }}">{{ $progres->jenis_tindakan_label }}</span></div>
+                <div><p class="text-xs text-gray-500">Status Progres</p><span class="badge text-sm {{ $progres->status_badge }}">{{ $progres->status_label }}</span></div>
+            </div>
+            <a href="{{ route('walikelas.progres.show', $pelanggaran) }}" class="btn-primary text-sm">📋 Lihat Detail Progres →</a>
+        @else
+            <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-2">
+                <p class="font-bold">⚠️ Progres tindakan untuk pelanggaran ini belum ditetapkan oleh Guru BK.</p>
+                <p>Yang menentukan progres penanganan awal adalah <strong>Guru BK / Admin BK</strong>. Apabila Anda memiliki akses ke Monitoring BK, klik tombol di bawah untuk memilih jenis tindakan agar kasus ini bisa diproses atau diselesaikan.</p>
+                <a href="{{ route('bk.pelanggaran.show', $pelanggaran) }}#mulai-progres" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold">
+                    Buka &amp; Tetapkan Tindakan di BK →
+                </a>
+            </div>
+        @endif
     </div>
-    @endif
 
     <div class="flex gap-3">
         <a href="{{ route('walikelas.pelanggaran.index') }}" class="btn-secondary">← Kembali</a>

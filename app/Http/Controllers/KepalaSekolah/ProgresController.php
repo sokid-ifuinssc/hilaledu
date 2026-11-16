@@ -15,12 +15,18 @@ class ProgresController extends Controller
      */
     private function getRoleKey(): string
     {
+        if (request()->routeIs('waka.*')) {
+            return 'waka';
+        }
+        if (request()->routeIs('kepsek.*')) {
+            return 'kepsek';
+        }
         return auth()->user()->isWakaKesiswaan() ? 'waka' : 'kepsek';
     }
 
     private function getRoutePrefix(): string
     {
-        return auth()->user()->isWakaKesiswaan() ? 'waka' : 'kepsek';
+        return $this->getRoleKey();
     }
 
     public function index(Request $request)
@@ -29,7 +35,7 @@ class ProgresController extends Controller
 
         $query = ProgresPelanggaran::with([
             'pelanggaran.siswa.kelas.jurusan',
-            'pelanggaran.jenisPelanggaran.kategori',
+            'pelanggaran.jenisPelanggaran',
         ]);
 
         // Filter berdasarkan role
@@ -77,7 +83,7 @@ class ProgresController extends Controller
     {
         $pelanggaran->load([
             'siswa.kelas.jurusan',
-            'jenisPelanggaran.kategori',
+            'jenisPelanggaran',
             'pencatat',
             'progresPelanggaran',
         ]);

@@ -70,7 +70,7 @@
         <p>Sumedang, {{ now()->translatedFormat('d F Y') }}</p>
         <p>Guru BK</p>
         <div class="line"></div>
-        <p>{{ auth()->user()->nama_lengkap ?? '............................' }}</p>
+        <p>{{ auth()->user()->nama_lengkap ?: auth()->user()->name ?: '............................' }}</p>
     </div>
 </div>
 

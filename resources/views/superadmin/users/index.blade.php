@@ -246,6 +246,17 @@ table.users-table tbody tr:hover { background: rgba(255,255,255,0.02); }
                                 </a>
 
                                 @if($user->id !== auth()->id())
+                                    {{-- Impersonate / Lihat Sebagai User --}}
+                                    <form method="POST" action="{{ route('impersonate.start', $user) }}" class="d-inline"
+                                          onsubmit="return confirm('Masuk pratinjau sebagai {{ addslashes($user->name) }}?')">
+                                        @csrf
+                                        <button type="submit" class="action-btn"
+                                                style="background:rgba(14,165,233,0.14);color:#0284c7;border:1px solid rgba(14,165,233,0.28);"
+                                                title="Lihat Aplikasi Sebagai {{ $user->name }}">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </button>
+                                    </form>
+
                                     {{-- Toggle Active --}}
                                     <form method="POST" action="{{ route('superadmin.users.toggle-active', $user) }}" class="d-inline">
                                         @csrf @method('PATCH')

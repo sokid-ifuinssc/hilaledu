@@ -344,7 +344,21 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-slate-600">
-                                {{ $pk->target_waktu ?: '-' }}
+                                @if($pk->tanggal_mulai)
+                                    <div class="font-bold text-slate-800">
+                                        {{ $pk->tanggal_mulai->translatedFormat('d M Y') }}
+                                        @if($pk->tanggal_selesai && !$pk->tanggal_selesai->isSameDay($pk->tanggal_mulai))
+                                            – {{ $pk->tanggal_selesai->translatedFormat('d M Y') }}
+                                        @endif
+                                    </div>
+                                    @if($pk->kalender_akademik_event_id)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 mt-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold">
+                                            <i class="bi-calendar2-check"></i> Sinkron Kalender
+                                        </span>
+                                    @endif
+                                @else
+                                    {{ $pk->target_waktu ?: '-' }}
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-slate-600 max-w-xs truncate">
                                 {{ $pk->indikator_keberhasilan ?: '-' }}
@@ -419,9 +433,30 @@
                     <textarea name="tujuan" rows="2" placeholder="Uraikan tujuan yang ingin dicapai dari rencana program kerja ini..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-indigo-600"></textarea>
                 </div>
 
+                <div class="p-3 bg-sky-50/80 border border-sky-200 rounded-2xl space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-bold text-sky-900 flex items-center gap-1.5">
+                            <i class="bi-calendar-range text-sky-600"></i> Jadwal Kalender Akademik
+                        </span>
+                        <span class="text-[10px] font-semibold text-sky-700 bg-white px-2 py-0.5 rounded-full border border-sky-200">
+                            Otomatis tampil di Kalender Akademik
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Tanggal Mulai Kegiatan</label>
+                            <input type="date" name="tanggal_mulai" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-indigo-600">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Tanggal Selesai (Opsional)</label>
+                            <input type="date" name="tanggal_selesai" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-indigo-600">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Target Waktu Pelaksanaan</label>
+                        <label class="block font-bold text-slate-700 mb-1">Keterangan Target Waktu</label>
                         <input type="text" name="target_waktu" placeholder="Contoh: September 2026 / Pekan ke-3" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-indigo-600">
                     </div>
                     <div>

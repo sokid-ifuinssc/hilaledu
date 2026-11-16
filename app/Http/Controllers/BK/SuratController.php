@@ -17,7 +17,7 @@ class SuratController extends Controller
             return redirect()->route('bk.pelanggaran.index')
                 ->with('error', 'Pilih pelanggaran terlebih dahulu untuk mencetak Surat Teguran. Klik "Detail" pada pelanggaran, lalu pilih tombol "Surat Teguran".');
         }
-        $pelanggaran = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])->findOrFail($pelanggaranId);
+        $pelanggaran = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])->findOrFail($pelanggaranId);
         $settings = PengaturanSekolah::getAllSettings();
 
         return view('bk.surat.teguran', compact('pelanggaran', 'settings'));
@@ -31,7 +31,7 @@ class SuratController extends Controller
                 ->with('error', 'Pilih pelanggaran terlebih dahulu untuk mencetak Surat Peringatan. Klik "Detail" pada pelanggaran, lalu pilih tombol "Surat Peringatan".');
         }
         $tingkat = $request->get('tingkat', 1); // 1, 2, 3
-        $pelanggaran = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'progresPelanggaran'])->findOrFail($pelanggaranId);
+        $pelanggaran = Pelanggaran::with(['siswa.kelas.jurusan', 'jenisPelanggaran', 'progresPelanggaran'])->findOrFail($pelanggaranId);
         $settings = PengaturanSekolah::getAllSettings();
 
         // Hitung total pelanggaran siswa
@@ -39,7 +39,7 @@ class SuratController extends Controller
         $totalPoin = Pelanggaran::where('siswa_id', $pelanggaran->siswa_id)->sum('poin');
 
         // Ambil semua histori pelanggaran siswa (lintas tahun ajaran)
-        $historiPelanggaran = Pelanggaran::with(['jenisPelanggaran.kategori', 'tahunAjaran', 'progresPelanggaran'])
+        $historiPelanggaran = Pelanggaran::with(['jenisPelanggaran', 'tahunAjaran', 'progresPelanggaran'])
             ->where('siswa_id', $pelanggaran->siswa_id)
             ->orderBy('tanggal_pelanggaran', 'asc')
             ->get();

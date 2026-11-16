@@ -116,7 +116,7 @@ class DashboardController extends Controller
         ];
 
         $pelanggaranTerbaru = $siswa ? $siswa->pelanggarans()
-            ->with(['jenisPelanggaran.kategori', 'progresPelanggaran'])
+            ->with(['jenisPelanggaran', 'progresPelanggaran'])
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->orderBy('tanggal_pelanggaran', 'desc')->limit(10)->get() : collect();
 

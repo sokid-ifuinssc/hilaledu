@@ -16,7 +16,7 @@ class ProgresController extends Controller
 
         $query = ProgresPelanggaran::with([
             'pelanggaran.siswa.kelas.jurusan',
-            'pelanggaran.jenisPelanggaran.kategori',
+            'pelanggaran.jenisPelanggaran',
         ])->forKaprog($user->id);
 
         if ($request->filled('status')) {
@@ -47,7 +47,7 @@ class ProgresController extends Controller
     {
         $pelanggaran->load([
             'siswa.kelas.jurusan',
-            'jenisPelanggaran.kategori',
+            'jenisPelanggaran',
             'pencatat',
             'progresPelanggaran',
         ]);

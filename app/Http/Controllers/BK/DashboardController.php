@@ -31,7 +31,7 @@ class DashboardController extends Controller
         ];
 
         // Pelanggaran terbaru
-        $pelanggaranTerbaru = Pelanggaran::with(['siswa.kelas', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+        $pelanggaranTerbaru = Pelanggaran::with(['siswa.kelas', 'jenisPelanggaran', 'progresPelanggaran'])
             ->when($tahunAjaranId, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
             ->orderBy('created_at', 'desc')
             ->limit(10)

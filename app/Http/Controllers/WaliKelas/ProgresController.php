@@ -16,7 +16,7 @@ class ProgresController extends Controller
 
         $query = ProgresPelanggaran::with([
             'pelanggaran.siswa.kelas.jurusan',
-            'pelanggaran.jenisPelanggaran.kategori',
+            'pelanggaran.jenisPelanggaran',
         ])->forWalikelas($user->id)
           ->where('jenis_tindakan', '!=', 'peringatan_lisan');
 
@@ -53,7 +53,7 @@ class ProgresController extends Controller
     {
         $pelanggaran->load([
             'siswa.kelas.jurusan',
-            'jenisPelanggaran.kategori',
+            'jenisPelanggaran',
             'pencatat',
             'progresPelanggaran',
         ]);

@@ -373,6 +373,15 @@
                             <div class="font-extrabold text-slate-900 text-sm leading-snug">
                                 {{ $ev->judul_kegiatan }}
                             </div>
+                            @if($ev->sumber === 'program_kerja_tugas_tambahan')
+                            <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
+                                <i class="bi-card-checklist"></i> Program Kerja Tugas Tambahan
+                            </span>
+                            @elseif($ev->sumber === 'tugas_tambahan')
+                            <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold">
+                                <i class="bi-calendar-star"></i> Agenda Tugas Tambahan
+                            </span>
+                            @endif
                             @if($ev->keterangan)
                             <div class="text-[11px] text-slate-500 mt-0.5">{{ $ev->keterangan }}</div>
                             @endif

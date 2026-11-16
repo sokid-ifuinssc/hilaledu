@@ -29,7 +29,8 @@ class DashboardController extends Controller
 
         // Per jurusan stats
         $jurusanStats = Jurusan::withCount(['siswas' => fn($q) => $q->where('users.is_active', true)])->get()->map(function ($j) use ($tahunAjaranId) {
-            $siswaIds = $j->siswas()->pluck('users.id');
+            $kelasIds = $j->kelas()->pluck('id');
+            $siswaIds = Siswa::whereIn('kelas_id', $kelasIds)->pluck('id');
             $j->total_pelanggaran = Pelanggaran::whereIn('siswa_id', $siswaIds)
                 ->when($tahunAjaranId, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))->count();
             return $j;

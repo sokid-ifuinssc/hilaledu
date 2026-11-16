@@ -75,7 +75,7 @@
     {{-- Info --}}
     <div class="info-box">
         <p><strong>Tanggal Cetak:</strong> {{ now()->translatedFormat('l, d F Y H:i') }}</p>
-        <p><strong>Dicetak oleh:</strong> {{ auth()->user()->nama_lengkap ?? '-' }}</p>
+        <p><strong>Dicetak oleh:</strong> {{ auth()->user()->nama_lengkap ?: auth()->user()->name ?: '-' }}</p>
     </div>
 
     {{-- Statistik Ringkasan --}}

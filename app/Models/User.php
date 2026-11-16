@@ -619,9 +619,9 @@ class User extends Authenticatable
             } elseif ($role === 'guru_bk') {
                 $q->orWhere('tugas_tambahan', 'like', '%Guru BK%');
             } elseif ($role === 'kepala_sekolah') {
-                $q->orWhere('tugas_tambahan', 'like', '%Kepala Sekolah%');
+                $q->orWhere('tugas_tambahan', 'like', '%Kepala Sekolah%')->orWhere('jabatan_utama', 'like', '%Kepala Sekolah%');
             } elseif ($role === 'waka_kesiswaan') {
-                $q->orWhere('tugas_tambahan', 'like', '%Kesiswaan%');
+                $q->orWhere('tugas_tambahan', 'like', '%Kesiswaan%')->orWhere('jabatan_utama', 'like', '%Kesiswaan%');
             }
         });
     }
@@ -992,7 +992,12 @@ class User extends Authenticatable
                             : 'superadmin.dashboard',
             'tendik'     => 'tendik.dashboard',
             'siswa'      => 'siswa.dashboard',
-            default      => 'login',
+            'guru_bk'        => 'bk.dashboard',
+            'kaprog'         => 'kaprog.dashboard',
+            'wali_kelas'     => 'walikelas.dashboard',
+            'kepala_sekolah' => 'kepsek.dashboard',
+            'waka_kesiswaan' => 'waka.dashboard',
+            default          => 'login',
         };
     }
 

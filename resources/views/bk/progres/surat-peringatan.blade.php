@@ -64,7 +64,7 @@
                 <p>{{ $settings['kota_sekolah'] ?? 'Tempat' }}, {{ now()->format('d F Y') }}</p>
                 <p>Guru BK,</p>
                 <div class="h-20"></div>
-                <p class="border-t border-gray-400 pt-1">( {{ auth()->user()->nama_lengkap }} )</p>
+                <p class="border-t border-gray-400 pt-1">( {{ auth()->user()->nama_lengkap ?: auth()->user()->name }} )</p>
             </div>
         </div>
 

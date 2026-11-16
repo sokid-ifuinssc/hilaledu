@@ -30,7 +30,7 @@ class DashboardController extends Controller
             'siswa_bermasalah' => Siswa::whereIn('id', $siswaIds)->where('poin', '<', 70)->count(),
         ];
 
-        $pelanggaranTerbaru = Pelanggaran::with(['siswa.kelas', 'jenisPelanggaran.kategori'])
+        $pelanggaranTerbaru = Pelanggaran::with(['siswa.kelas', 'jenisPelanggaran'])
             ->whereIn('siswa_id', $siswaIds)
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->orderBy('created_at', 'desc')->limit(10)->get();

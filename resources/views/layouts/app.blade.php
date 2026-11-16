@@ -1032,6 +1032,12 @@
                                 <li><a href="{{ route('bk.poin.index') }}" class="{{ request()->routeIs('bk.poin.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Akumulasi Poin Siswa</a></li>
                                 <li><a href="{{ route('bk.jenis-pelanggaran.index') }}" class="{{ request()->routeIs('bk.jenis-pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Data Pelanggaran</a></li>
                                 <li><a href="{{ route('bk.laporan.index') }}" class="{{ request()->routeIs('bk.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled me-1"></i> Laporan Berkala BK</a></li>
+                                @if(auth()->user()->isWakaKesiswaan())
+                                <li><a href="{{ route('waka.progres.index') }}" class="{{ request()->routeIs('waka.progres.*') ? 'active' : '' }}"><i class="bi bi-check2-square me-1" style="color:#f59e0b;"></i> Persetujuan Kesiswaan</a></li>
+                                @endif
+                                @if(auth()->user()->isKepalaSekolah())
+                                <li><a href="{{ route('kepsek.progres.index') }}" class="{{ request()->routeIs('kepsek.progres.*') ? 'active' : '' }}"><i class="bi bi-patch-check me-1" style="color:#38bdf8;"></i> Persetujuan Kepsek</a></li>
+                                @endif
                             </ul>
                         </div>
                     </li>
@@ -1440,6 +1446,12 @@
                                     <li><a href="{{ route('bk.poin.index') }}" class="{{ request()->routeIs('bk.poin.*') ? 'active' : '' }}"><i class="bi bi-award me-1"></i> Akumulasi Poin Siswa</a></li>
                                     <li><a href="{{ route('bk.jenis-pelanggaran.index') }}" class="{{ request()->routeIs('bk.jenis-pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-tags me-1"></i> Data Pelanggaran</a></li>
                                     <li><a href="{{ route('bk.laporan.index') }}" class="{{ request()->routeIs('bk.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled me-1"></i> Laporan Berkala BK</a></li>
+                                    @if(auth()->user()->isWakaKesiswaan())
+                                    <li><a href="{{ route('waka.progres.index') }}" class="{{ request()->routeIs('waka.progres.*') ? 'active' : '' }}"><i class="bi bi-check2-square me-1" style="color:#f59e0b;"></i> Persetujuan Kesiswaan</a></li>
+                                    @endif
+                                    @if(auth()->user()->isKepalaSekolah())
+                                    <li><a href="{{ route('kepsek.progres.index') }}" class="{{ request()->routeIs('kepsek.progres.*') ? 'active' : '' }}"><i class="bi bi-patch-check me-1" style="color:#38bdf8;"></i> Persetujuan Kepsek</a></li>
+                                    @endif
                                 </ul>
                             </div>
                         </li>
@@ -1530,6 +1542,24 @@
                         @endif
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.profile.edit') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.profile.*') ? 'active' : '' }}"><i class="bi bi-person-vcard" style="color:#38bdf8;"></i><span>Profil & Biodata</span></a></li>
                         <li class="sidebar-nav-item"><a href="{{ route('siswa.tagihan.index') }}" class="sidebar-nav-link {{ request()->routeIs('siswa.tagihan.*') ? 'active' : '' }}"><i class="bi bi-receipt" style="color:#f43f5e;"></i><span>Tagihan Saya</span></a></li>
+                    @elseif(in_array(auth()->user()->role, ['guru_bk', 'waka_kesiswaan', 'kepala_sekolah', 'kaprog', 'wali_kelas']))
+                        @if(auth()->user()->role === 'waka_kesiswaan' || auth()->user()->isWakaKesiswaan())
+                            <li class="sidebar-nav-item"><a href="{{ route('waka.progres.index') }}" class="sidebar-nav-link {{ request()->routeIs('waka.progres.*') ? 'active' : '' }}"><i class="bi bi-check2-square" style="color:#f59e0b;"></i><span>Persetujuan Kesiswaan</span></a></li>
+                        @endif
+                        @if(auth()->user()->role === 'kepala_sekolah' || auth()->user()->isKepalaSekolah())
+                            <li class="sidebar-nav-item"><a href="{{ route('kepsek.progres.index') }}" class="sidebar-nav-link {{ request()->routeIs('kepsek.progres.*') ? 'active' : '' }}"><i class="bi bi-patch-check" style="color:#38bdf8;"></i><span>Persetujuan Kepala Sekolah</span></a></li>
+                        @endif
+                        @if(auth()->user()->role === 'kaprog' || auth()->user()->isKaprog())
+                            <li class="sidebar-nav-item"><a href="{{ route('kaprog.progres.index') }}" class="sidebar-nav-link {{ request()->routeIs('kaprog.progres.*') ? 'active' : '' }}"><i class="bi bi-diagram-3" style="color:#8b5cf6;"></i><span>Progres Kasus Jurusan</span></a></li>
+                        @endif
+                        @if(auth()->user()->role === 'wali_kelas' || auth()->user()->isWaliKelas())
+                            <li class="sidebar-nav-item"><a href="{{ route('walikelas.progres.index') }}" class="sidebar-nav-link {{ request()->routeIs('walikelas.progres.*') ? 'active' : '' }}"><i class="bi bi-person-badge" style="color:#6366f1;"></i><span>Progres Kasus Kelas</span></a></li>
+                        @endif
+                        <li class="sidebar-nav-item"><a href="{{ route('bk.dashboard') }}" class="sidebar-nav-link {{ request()->routeIs('bk.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2" style="color:#f87171;"></i><span>Dashboard BK</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('bk.pelanggaran.index') }}" class="sidebar-nav-link {{ request()->routeIs('bk.pelanggaran.*') ? 'active' : '' }}"><i class="bi bi-exclamation-octagon" style="color:#ef4444;"></i><span>Catatan Pelanggaran</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('bk.progres.index') }}" class="sidebar-nav-link {{ request()->routeIs('bk.progres.*') ? 'active' : '' }}"><i class="bi bi-arrow-repeat" style="color:#f59e0b;"></i><span>Progres Kasus & Bimbingan</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('bk.poin.index') }}" class="sidebar-nav-link {{ request()->routeIs('bk.poin.*') ? 'active' : '' }}"><i class="bi bi-award" style="color:#10b981;"></i><span>Akumulasi Poin Siswa</span></a></li>
+                        <li class="sidebar-nav-item"><a href="{{ route('bk.laporan.index') }}" class="sidebar-nav-link {{ request()->routeIs('bk.laporan.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled" style="color:#38bdf8;"></i><span>Laporan Berkala BK</span></a></li>
                     @endif
                 </ul>
 
@@ -1568,6 +1598,14 @@
             <span class="topbar-title">@yield('page-title', 'Dashboard')</span>
         </div>
         <div class="topbar-right">
+            @if(auth()->user()->isSuperAdmin() || session()->has('impersonator_id'))
+                <button type="button" onclick="openImpersonateModal()" class="btn btn-sm d-inline-flex align-items-center gap-1.5"
+                        style="color:#0f172a;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:6px 12px;font-size:0.82rem;font-weight:600;"
+                        title="Lihat aplikasi sebagai user lain untuk cek menu & error">
+                    <i class="bi bi-person-badge" style="color:#d97706;"></i>
+                    <span class="d-none d-md-inline">Lihat Sebagai User</span>
+                </button>
+            @endif
             @if(auth()->user()->role === 'guru')
                 <a href="{{ route('guru.profile.edit') }}" class="btn btn-sm d-inline-flex align-items-center gap-1.5" style="color:var(--text-main);background:#f8fafc;border:1px solid var(--border-color);border-radius:10px;padding:6px 12px;font-size:0.82rem;text-decoration:none;">
                     <i class="bi bi-person-circle" style="color:#10b981;"></i>
@@ -1597,6 +1635,39 @@
 
     <!-- Konten Halaman -->
     <main class="main-content">
+        @if(session('impersonator_id'))
+            @php
+                $impersonatedUser = auth()->user();
+                $impersonatedTugas = is_array($impersonatedUser->tugas_tambahan)
+                    ? implode(', ', array_filter($impersonatedUser->tugas_tambahan))
+                    : ($impersonatedUser->tugas_tambahan ?? '');
+            @endphp
+            <div style="background:linear-gradient(90deg,#78350f,#b45309);color:#fffbeb;padding:10px 20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid #f59e0b;box-shadow:0 4px 12px rgba(180,83,9,0.2);">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:0.84rem;">
+                    <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.16);padding:3px 10px;border-radius:999px;font-weight:700;">
+                        <i class="bi bi-eye-fill"></i> MODE PANTAU SUPERADMIN
+                    </span>
+                    <span>
+                        Sedang melihat sebagai <strong>{{ $impersonatedUser->name }}</strong>
+                        <span style="opacity:0.9;">({{ strtoupper(str_replace('_', ' ', $impersonatedUser->role)) }}{{ $impersonatedUser->admin_role ? ' - ' . strtoupper($impersonatedUser->admin_role) : '' }})</span>
+                        @if($impersonatedTugas)
+                            <span style="opacity:0.85;font-size:0.78rem;">• Tugas: {{ $impersonatedTugas }}</span>
+                        @endif
+                    </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <button type="button" onclick="openImpersonateModal()" class="btn btn-sm" style="background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.35);border-radius:8px;font-size:0.78rem;font-weight:600;padding:5px 12px;">
+                        <i class="bi bi-arrow-left-right me-1"></i> Ganti User
+                    </button>
+                    <form action="{{ route('impersonate.stop') }}" method="POST" class="d-inline m-0">
+                        @csrf
+                        <button type="submit" class="btn btn-sm" style="background:#fff;color:#92400e;border:none;border-radius:8px;font-size:0.78rem;font-weight:700;padding:5px 14px;">
+                            <i class="bi bi-box-arrow-left me-1"></i> Kembali ke Superadmin
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @endif
         <div class="content-area">
             @if(session('success'))
                 <div class="alert-toast">
@@ -1723,6 +1794,126 @@
             setInterval(checkAndRefreshSession, 10 * 60 * 1000);
         })();
     </script>
+
+    @if(auth()->user()->isSuperAdmin() || session()->has('impersonator_id'))
+    <div id="impersonateModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
+        <div style="background:#fff;border-radius:18px;width:100%;max-width:640px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(15,23,42,0.28);overflow:hidden;border:1px solid #e2e8f0;">
+            <div style="padding:16px 20px;background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                <div>
+                    <div style="font-weight:700;font-size:1rem;display:flex;align-items:center;gap:8px;">
+                        <i class="bi bi-eye-fill" style="color:#fbbf24;"></i> Lihat Aplikasi Sebagai User
+                    </div>
+                    <div style="font-size:0.76rem;color:#cbd5e1;margin-top:2px;">
+                        Pilih akun manapun untuk memeriksa menu, hak akses, dan memastikan tidak ada error.
+                    </div>
+                </div>
+                <button type="button" onclick="closeImpersonateModal()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1.1rem;line-height:1;">&times;</button>
+            </div>
+            <div style="padding:14px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;gap:10px;flex-wrap:wrap;">
+                <input type="text" id="impersonateSearchInput" placeholder="Cari nama, username, jabatan..."
+                       style="flex:1;min-width:180px;border:1px solid #cbd5e1;border-radius:10px;padding:8px 12px;font-size:0.86rem;outline:none;">
+                <select id="impersonateRoleFilter" style="border:1px solid #cbd5e1;border-radius:10px;padding:8px 12px;font-size:0.86rem;background:#fff;">
+                    <option value="">Semua Role</option>
+                    <option value="admin">Admin Unit</option>
+                    <option value="guru">Guru</option>
+                    <option value="tendik">Tendik</option>
+                    <option value="siswa">Siswa</option>
+                    <option value="guru_bk">Guru BK</option>
+                    <option value="waka_kesiswaan">Waka Kesiswaan</option>
+                    <option value="kaprog">Kaprog</option>
+                    <option value="wali_kelas">Wali Kelas</option>
+                    <option value="kepala_sekolah">Kepala Sekolah</option>
+                </select>
+            </div>
+            <div id="impersonateUserList" style="padding:12px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;">
+                <div style="text-align:center;padding:30px;color:#64748b;font-size:0.86rem;">Memuat daftar pengguna...</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            let impersonateTimer = null;
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            function escHtml(str) {
+                return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+            }
+
+            window.openImpersonateModal = function() {
+                const modal = document.getElementById('impersonateModal');
+                if (!modal) return;
+                modal.style.display = 'flex';
+                loadImpersonateUsers();
+                setTimeout(() => document.getElementById('impersonateSearchInput')?.focus(), 80);
+            };
+
+            window.closeImpersonateModal = function() {
+                const modal = document.getElementById('impersonateModal');
+                if (modal) modal.style.display = 'none';
+            };
+
+            document.getElementById('impersonateModal')?.addEventListener('click', function(e) {
+                if (e.target === this) closeImpersonateModal();
+            });
+
+            function loadImpersonateUsers() {
+                const q = document.getElementById('impersonateSearchInput')?.value || '';
+                const role = document.getElementById('impersonateRoleFilter')?.value || '';
+                const listEl = document.getElementById('impersonateUserList');
+                if (!listEl) return;
+
+                listEl.innerHTML = '<div style="text-align:center;padding:28px;color:#64748b;font-size:0.85rem;">Mencari pengguna...</div>';
+
+                fetch(`{{ route('impersonate.users') }}?q=${encodeURIComponent(q)}&role=${encodeURIComponent(role)}`, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    const users = data.users || [];
+                    if (!users.length) {
+                        listEl.innerHTML = '<div style="text-align:center;padding:28px;color:#64748b;font-size:0.85rem;">Tidak ada pengguna yang cocok.</div>';
+                        return;
+                    }
+                    listEl.innerHTML = users.map(u => {
+                        const roleText = escHtml((u.role || '').replace(/_/g, ' ').toUpperCase()) + (u.admin_role ? ' (' + escHtml(u.admin_role.toUpperCase()) + ')' : '');
+                        const sub = [u.username ? '@' + escHtml(u.username) : '', u.jabatan ? escHtml(u.jabatan) : '', u.tugas ? 'Tugas: ' + escHtml(u.tugas) : ''].filter(Boolean).join(' • ');
+                        const statusBadge = u.is_active ? '' : '<span style="background:#fee2e2;color:#b91c1c;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:999px;margin-left:6px;">Nonaktif</span>';
+                        const currentBtn = u.is_current
+                            ? '<span style="background:#fef3c7;color:#92400e;font-size:0.75rem;font-weight:700;padding:6px 12px;border-radius:8px;">Aktif Sekarang</span>'
+                            : `<form method="POST" action="${escHtml(u.url)}" style="margin:0;">
+                                   <input type="hidden" name="_token" value="${escHtml(csrfToken)}">
+                                   <button type="submit" style="background:#0f172a;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">
+                                       <i class="bi bi-eye me-1"></i> Lihat
+                                   </button>
+                               </form>`;
+                        return `
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:12px;background:${u.is_current ? '#fffbeb' : '#fff'};">
+                                <div style="min-width:0;">
+                                    <div style="font-weight:600;font-size:0.88rem;color:#0f172a;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
+                                        <span>${escHtml(u.name)}</span>
+                                        <span style="background:#e0f2fe;color:#0369a1;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:999px;">${roleText}</span>
+                                        ${statusBadge}
+                                    </div>
+                                    <div style="font-size:0.76rem;color:#64748b;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub || '-'}</div>
+                                </div>
+                                ${currentBtn}
+                            </div>
+                        `;
+                    }).join('');
+                })
+                .catch(() => {
+                    listEl.innerHTML = '<div style="text-align:center;padding:28px;color:#dc2626;font-size:0.85rem;">Gagal memuat daftar pengguna.</div>';
+                });
+            }
+
+            document.getElementById('impersonateSearchInput')?.addEventListener('input', () => {
+                clearTimeout(impersonateTimer);
+                impersonateTimer = setTimeout(loadImpersonateUsers, 220);
+            });
+            document.getElementById('impersonateRoleFilter')?.addEventListener('change', loadImpersonateUsers);
+        })();
+    </script>
+    @endif
 
     @yield('scripts')
     @stack('scripts')

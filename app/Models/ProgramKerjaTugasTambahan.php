@@ -18,17 +18,28 @@ class ProgramKerjaTugasTambahan extends Model
         'nama_program',
         'tujuan',
         'target_waktu',
+        'tanggal_mulai',
+        'tanggal_selesai',
         'indikator_keberhasilan',
         'anggaran',
         'status',
         'catatan',
+        'kalender_akademik_event_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'anggaran' => 'decimal:2',
+            'anggaran'                   => 'decimal:2',
+            'tanggal_mulai'              => 'date',
+            'tanggal_selesai'            => 'date',
+            'kalender_akademik_event_id' => 'integer',
         ];
+    }
+
+    public function kalenderEvent(): BelongsTo
+    {
+        return $this->belongsTo(KalenderAkademikEvent::class, 'kalender_akademik_event_id');
     }
 
     public function guru(): BelongsTo

@@ -19,7 +19,7 @@ class PelanggaranController extends Controller
         $tahunAjaran = TahunAjaran::aktif();
 
         $pelanggarans = $siswa->pelanggarans()
-            ->with(['jenisPelanggaran.kategori', 'progresPelanggaran'])
+            ->with(['jenisPelanggaran', 'progresPelanggaran'])
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->orderBy('tanggal_pelanggaran', 'desc')->paginate(15);
 
@@ -34,7 +34,7 @@ class PelanggaranController extends Controller
         // Only allow viewing own violations
         if ($pelanggaran->siswa_id !== $siswa->id) { abort(403); }
 
-        $pelanggaran->load(['jenisPelanggaran.kategori', 'progresPelanggaran']);
+        $pelanggaran->load(['jenisPelanggaran', 'progresPelanggaran']);
         return view('siswa.pelanggaran.show', compact('pelanggaran', 'siswa'));
     }
 }

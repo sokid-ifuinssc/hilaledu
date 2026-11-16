@@ -834,6 +834,11 @@ Route::middleware('auth')->group(function () {
 
 // Authenticated routes
 Route::middleware('auth')->group(function () {
+    // Superadmin Impersonation ("Lihat Sebagai User")
+    Route::get('/impersonate/users', [SuperAdminUserController::class, 'impersonateUsers'])->name('impersonate.users');
+    Route::post('/impersonate/stop', [SuperAdminUserController::class, 'impersonateStop'])->name('impersonate.stop');
+    Route::post('/impersonate/{user}', [SuperAdminUserController::class, 'impersonateStart'])->name('impersonate.start');
+
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

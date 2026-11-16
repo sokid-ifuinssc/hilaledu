@@ -18,7 +18,7 @@ class PelanggaranController extends Controller
         $siswaIds = Siswa::whereIn('kelas_id', $kelasIds)->pluck('id');
         $tahunAjaran = TahunAjaran::aktif();
 
-        $query = Pelanggaran::with(['siswa.kelas', 'jenisPelanggaran.kategori', 'progresPelanggaran'])
+        $query = Pelanggaran::with(['siswa.kelas', 'jenisPelanggaran', 'progresPelanggaran'])
             ->whereIn('siswa_id', $siswaIds)
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id));
 
@@ -32,7 +32,7 @@ class PelanggaranController extends Controller
 
     public function show(Pelanggaran $pelanggaran)
     {
-        $pelanggaran->load(['siswa.kelas.jurusan', 'jenisPelanggaran.kategori', 'pencatat', 'progresPelanggaran']);
+        $pelanggaran->load(['siswa.kelas.jurusan', 'jenisPelanggaran', 'pencatat', 'progresPelanggaran']);
         return view('walikelas.pelanggaran.show', compact('pelanggaran'));
     }
 }

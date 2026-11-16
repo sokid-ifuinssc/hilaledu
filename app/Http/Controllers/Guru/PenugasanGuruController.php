@@ -11,6 +11,12 @@ use App\Models\MataPelajaran;
 use App\Models\PerangkatAjar;
 use App\Models\ProgramKerjaTugasTambahan;
 use App\Models\PengaturanSekolah;
+use App\Models\KalenderAkademik;
+use App\Models\KalenderAkademikEvent;
+use Carbon\Carbon;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class PenugasanGuruController extends Controller
 {
@@ -19,6 +25,7 @@ class PenugasanGuruController extends Controller
      */
     public function index(Request $request)
     {
+        $this->ensureProgramKerjaKalenderColumns();
         $user = Auth::user();
         $tab = $request->query('tab', 'mengajar'); // mengajar / tambahan
         $tahunAjaran = PengaturanSekolah::get('tahun_pelajaran', '2026/2027');
@@ -198,6 +205,7 @@ class PenugasanGuruController extends Controller
      */
     public function rencanaProgramKerja(Request $request)
     {
+        $this->ensureProgramKerjaKalenderColumns();
         $user = Auth::user();
         $tahunAjaran = PengaturanSekolah::get('tahun_pelajaran', '2026/2027');
         $semesterAktif = PengaturanSekolah::get('semester', 'Ganjil');
@@ -268,6 +276,8 @@ class PenugasanGuruController extends Controller
      */
     public function storeProgramKerja(Request $request)
     {
+        $this->ensureProgramKerjaKalenderColumns();
+
         $request->validate([
             'tugas_tambahan'        => 'required|string|max:150',
             'nama_program'          => 'required|string|max:255',
@@ -275,32 +285,49 @@ class PenugasanGuruController extends Controller
             'semester'              => 'required|string|max:50',
             'tujuan'                => 'nullable|string',
             'target_waktu'          => 'nullable|string|max:100',
+            'tanggal_mulai'         => 'nullable|date',
+            'tanggal_selesai'       => 'nullable|date|after_or_equal:tanggal_mulai',
             'indikator_keberhasilan'=> 'nullable|string',
             'anggaran'              => 'nullable|numeric|min:0',
         ]);
 
         $user = Auth::user();
+        $tglMulai = $request->input('tanggal_mulai') ?: null;
+        $tglSelesai = $tglMulai ? ($request->input('tanggal_selesai') ?: $tglMulai) : null;
+        $targetWaktu = trim((string) $request->input('target_waktu', ''));
 
-        ProgramKerjaTugasTambahan::create([
+        if ($targetWaktu === '' && $tglMulai) {
+            $start = Carbon::parse($tglMulai);
+            $end = Carbon::parse($tglSelesai);
+            $targetWaktu = $start->isSameDay($end)
+                ? $start->translatedFormat('d M Y')
+                : $start->translatedFormat('d M') . ' - ' . $end->translatedFormat('d M Y');
+        }
+
+        $programKerja = ProgramKerjaTugasTambahan::create([
             'guru_user_id'          => $user->id,
             'tugas_tambahan'        => $request->tugas_tambahan,
             'tahun_ajaran'          => $request->tahun_ajaran,
             'semester'              => $request->semester,
             'nama_program'          => $request->nama_program,
             'tujuan'                => $request->tujuan,
-            'target_waktu'          => $request->target_waktu,
+            'target_waktu'          => $targetWaktu ?: null,
+            'tanggal_mulai'         => $tglMulai,
+            'tanggal_selesai'       => $tglSelesai,
             'indikator_keberhasilan'=> $request->indikator_keberhasilan,
             'anggaran'              => $request->anggaran ?: 0,
             'status'                => 'terencana',
         ]);
 
+        $synced = $this->syncProgramKerjaToKalender($programKerja, $user);
+        $msg = 'Rencana Tugas dan Program Kerja untuk "' . $request->tugas_tambahan . '" berhasil disimpan'
+            . ($synced ? ' dan otomatis ditampilkan di Kalender Akademik!' : '!');
+
         if ($request->input('redirect_to') === 'rencana') {
-            return redirect()->route('guru.program-kerja-tambahan.index')
-                ->with('success', 'Rencana Tugas dan Program Kerja untuk "' . $request->tugas_tambahan . '" berhasil disimpan!');
+            return redirect()->route('guru.program-kerja-tambahan.index')->with('success', $msg);
         }
 
-        return redirect()->back()
-            ->with('success', 'Rencana Tugas dan Program Kerja untuk "' . $request->tugas_tambahan . '" berhasil disimpan!');
+        return redirect()->back()->with('success', $msg);
     }
 
     /**
@@ -308,6 +335,8 @@ class PenugasanGuruController extends Controller
      */
     public function updateProgramKerja(Request $request, ProgramKerjaTugasTambahan $programKerja)
     {
+        $this->ensureProgramKerjaKalenderColumns();
+
         $user = Auth::user();
         if ($programKerja->guru_user_id !== $user->id && !$user->isSuperAdmin()) {
             abort(403);
@@ -320,10 +349,24 @@ class PenugasanGuruController extends Controller
             'semester'              => 'required|string|max:50',
             'tujuan'                => 'nullable|string',
             'target_waktu'          => 'nullable|string|max:100',
+            'tanggal_mulai'         => 'nullable|date',
+            'tanggal_selesai'       => 'nullable|date|after_or_equal:tanggal_mulai',
             'indikator_keberhasilan'=> 'nullable|string',
             'anggaran'              => 'nullable|numeric|min:0',
             'status'                => 'nullable|in:terencana,sedang_berjalan,tercapai,tertunda',
         ]);
+
+        $tglMulai = $request->input('tanggal_mulai') ?: null;
+        $tglSelesai = $tglMulai ? ($request->input('tanggal_selesai') ?: $tglMulai) : null;
+        $targetWaktu = trim((string) $request->input('target_waktu', ''));
+
+        if ($targetWaktu === '' && $tglMulai) {
+            $start = Carbon::parse($tglMulai);
+            $end = Carbon::parse($tglSelesai);
+            $targetWaktu = $start->isSameDay($end)
+                ? $start->translatedFormat('d M Y')
+                : $start->translatedFormat('d M') . ' - ' . $end->translatedFormat('d M Y');
+        }
 
         $programKerja->update([
             'tugas_tambahan'        => $request->tugas_tambahan,
@@ -331,14 +374,19 @@ class PenugasanGuruController extends Controller
             'semester'              => $request->semester,
             'nama_program'          => $request->nama_program,
             'tujuan'                => $request->tujuan,
-            'target_waktu'          => $request->target_waktu,
+            'target_waktu'          => $targetWaktu ?: null,
+            'tanggal_mulai'         => $tglMulai,
+            'tanggal_selesai'       => $tglSelesai,
             'indikator_keberhasilan'=> $request->indikator_keberhasilan,
             'anggaran'              => $request->anggaran ?: 0,
             'status'                => $request->status ?: $programKerja->status,
         ]);
 
-        return redirect()->back()
-            ->with('success', 'Rencana program kerja "' . $programKerja->nama_program . '" berhasil diperbarui.');
+        $synced = $this->syncProgramKerjaToKalender($programKerja, $programKerja->guru ?? $user);
+        $msg = 'Rencana program kerja "' . $programKerja->nama_program . '" berhasil diperbarui'
+            . ($synced ? ' dan disinkronkan ke Kalender Akademik.' : '.');
+
+        return redirect()->back()->with('success', $msg);
     }
 
     /**
@@ -346,15 +394,151 @@ class PenugasanGuruController extends Controller
      */
     public function destroyProgramKerja(ProgramKerjaTugasTambahan $programKerja)
     {
+        $this->ensureProgramKerjaKalenderColumns();
+
         $user = Auth::user();
         if ($programKerja->guru_user_id !== $user->id && !$user->isSuperAdmin()) {
             abort(403);
         }
 
+        if (!empty($programKerja->kalender_akademik_event_id)) {
+            try {
+                KalenderAkademikEvent::where('id', $programKerja->kalender_akademik_event_id)->delete();
+            } catch (\Throwable $e) {
+            }
+        }
+
         $programKerja->delete();
 
         return redirect()->back()
-            ->with('success', 'Rencana program kerja berhasil dihapus.');
+            ->with('success', 'Rencana program kerja dan agenda kalender terkait berhasil dihapus.');
+    }
+
+    private function ensureProgramKerjaKalenderColumns(): void
+    {
+        try {
+            if (!Schema::hasTable('program_kerja_tugas_tambahans')) {
+                return;
+            }
+            Schema::table('program_kerja_tugas_tambahans', function (Blueprint $table) {
+                if (!Schema::hasColumn('program_kerja_tugas_tambahans', 'tanggal_mulai')) {
+                    $table->date('tanggal_mulai')->nullable()->after('target_waktu');
+                }
+                if (!Schema::hasColumn('program_kerja_tugas_tambahans', 'tanggal_selesai')) {
+                    $table->date('tanggal_selesai')->nullable()->after('tanggal_mulai');
+                }
+                if (!Schema::hasColumn('program_kerja_tugas_tambahans', 'kalender_akademik_event_id')) {
+                    $table->unsignedBigInteger('kalender_akademik_event_id')->nullable()->after('catatan');
+                }
+            });
+        } catch (\Throwable $e) {
+        }
+    }
+
+    private function syncProgramKerjaToKalender(ProgramKerjaTugasTambahan $programKerja, $user): bool
+    {
+        try {
+            if (!Schema::hasTable('kalender_akademiks') || !Schema::hasTable('kalender_akademik_events')) {
+                return false;
+            }
+
+            if (empty($programKerja->tanggal_mulai)) {
+                if (!empty($programKerja->kalender_akademik_event_id)) {
+                    KalenderAkademikEvent::where('id', $programKerja->kalender_akademik_event_id)->delete();
+                    $programKerja->update(['kalender_akademik_event_id' => null]);
+                }
+                return false;
+            }
+
+            $tglMulai = $programKerja->tanggal_mulai->format('Y-m-d');
+            $tglSelesai = ($programKerja->tanggal_selesai ?: $programKerja->tanggal_mulai)->format('Y-m-d');
+            $m = (int) date('n', strtotime($tglMulai));
+            $semester = ($m >= 7 && $m <= 12) ? '1' : '2';
+
+            $kalender = KalenderAkademik::where('tahun_ajaran', $programKerja->tahun_ajaran)->first()
+                ?: KalenderAkademik::where('is_aktif', true)->first()
+                ?: KalenderAkademik::first();
+
+            if (!$kalender) {
+                $yearStart = (int) date('Y', strtotime($tglMulai));
+                if ($m < 7) {
+                    $yearStart--;
+                }
+                $taLabel = $programKerja->tahun_ajaran ?: ($yearStart . '/' . ($yearStart + 1));
+                $kalender = KalenderAkademik::create([
+                    'tahun_ajaran'         => $taLabel,
+                    'nama_kalender'        => 'Kalender Akademik ' . $taLabel,
+                    'tanggal_mulai'        => $yearStart . '-07-01',
+                    'tanggal_selesai'      => ($yearStart + 1) . '-06-30',
+                    'tanggal_mulai_smt1'   => $yearStart . '-07-01',
+                    'tanggal_selesai_smt1' => $yearStart . '-12-31',
+                    'tanggal_mulai_smt2'   => ($yearStart + 1) . '-01-01',
+                    'tanggal_selesai_smt2' => ($yearStart + 1) . '-06-30',
+                    'is_aktif'             => true,
+                    'created_by_user_id'   => $user->id ?? auth()->id(),
+                ]);
+            }
+
+            $tugasLower = strtolower((string) $programKerja->tugas_tambahan);
+            $warnaBg = match (true) {
+                str_contains($tugasLower, 'hubin')
+                    || str_contains($tugasLower, 'humas')
+                    || str_contains($tugasLower, 'prakerin')
+                    || str_contains($tugasLower, 'bkk')
+                    || str_contains($tugasLower, 'industri') => 'purple',
+                str_contains($tugasLower, 'kesiswaan')
+                    || str_contains($tugasLower, 'osis')
+                    || str_contains($tugasLower, 'eskul')
+                    || str_contains($tugasLower, 'ekstrakurikuler')
+                    || str_contains($tugasLower, 'bk') => 'emerald',
+                str_contains($tugasLower, 'kurikulum')
+                    || str_contains($tugasLower, 'kaprog')
+                    || str_contains($tugasLower, 'kepala program')
+                    || str_contains($tugasLower, 'perpustakaan')
+                    || str_contains($tugasLower, 'lab') => 'blue',
+                default => 'yellow',
+            };
+
+            $judul = Str::limit('[' . $programKerja->tugas_tambahan . '] ' . $programKerja->nama_program, 250, '...');
+            $pic = $user->name ?? 'Guru';
+            $ketParts = ["Program Kerja {$programKerja->tugas_tambahan} | Pengusul: {$pic}"];
+            if (!empty($programKerja->tujuan)) {
+                $ketParts[] = 'Tujuan: ' . $programKerja->tujuan;
+            }
+            if (!empty($programKerja->indikator_keberhasilan)) {
+                $ketParts[] = 'Output: ' . $programKerja->indikator_keberhasilan;
+            }
+            $keterangan = implode(' | ', $ketParts);
+
+            $event = null;
+            if (!empty($programKerja->kalender_akademik_event_id)) {
+                $event = KalenderAkademikEvent::find($programKerja->kalender_akademik_event_id);
+            }
+
+            $payload = [
+                'kalender_akademik_id' => $kalender->id,
+                'tanggal_mulai'        => $tglMulai,
+                'tanggal_selesai'      => $tglSelesai,
+                'semester'             => (string) $semester,
+                'judul_kegiatan'       => $judul,
+                'kategori'             => 'kegiatan_sekolah',
+                'warna_bg'             => $warnaBg,
+                'keterangan'           => $keterangan,
+                'is_libur'             => false,
+                'sumber'               => 'program_kerja_tugas_tambahan',
+            ];
+
+            if ($event) {
+                $event->update($payload);
+            } else {
+                $event = KalenderAkademikEvent::create($payload);
+                $programKerja->update(['kalender_akademik_event_id' => $event->id]);
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**

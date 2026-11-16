@@ -109,7 +109,7 @@ class PelanggaranController extends Controller
             'bukti' => $buktiPath,
             'poin' => $jenisPelanggaran->poin,
             'dicatat_oleh' => auth()->id(),
-            'tahun_ajaran_id' => $tahunAjaran->id,
+            'tahun_ajaran_id' => $tahunAjaran?->id,
             'status' => $statusPelanggaran,
         ]);
 

@@ -205,6 +205,9 @@
         </div>
     </div>
 
+    <!-- PAPAN MONITORING KEHADIRAN GURU DI KELAS REAL-TIME -->
+    @include('partials.papan_monitoring_kelas')
+
     <!-- FILTER BAR (3 LEVEL: JURUSAN, JENJANG, KELAS) -->
     <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">

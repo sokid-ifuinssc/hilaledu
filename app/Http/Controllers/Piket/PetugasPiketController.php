@@ -49,6 +49,11 @@ class PetugasPiketController extends Controller
 
         $daftarGuru = User::where('role', 'guru')->where('is_active', true)->orderBy('name')->get();
 
+        // Papan Monitoring Kehadiran Guru Di Kelas Real-Time
+        $monitoringPayload = $tanggal === date('Y-m-d')
+            ? app(\App\Services\MonitoringKelasService::class)->getMonitoringKelasData()
+            : app(\App\Services\MonitoringKelasService::class)->getMonitoringKelasData($hari, null, $tanggal);
+
         return view('piket.index', [
             'petugasHariIni'       => $petugasHariIni,
             'notifikasiIzinKeluar' => $notifikasiIzinKeluar,
@@ -58,6 +63,12 @@ class PetugasPiketController extends Controller
             'tanggal'              => $tanggal,
             'daftarGuru'           => $daftarGuru,
             'user'                 => $user,
+            'monitoringKelas'      => $monitoringPayload['monitoringKelas'],
+            'rekapMonitoring'      => $monitoringPayload['rekap'],
+            'hariPantau'           => $monitoringPayload['hariPantau'],
+            'jamPantau'            => $monitoringPayload['jamPantau'],
+            'isSimulasi'           => $monitoringPayload['isSimulasi'],
+            'periodInfo'           => $monitoringPayload['periodInfo'],
         ]);
     }
 

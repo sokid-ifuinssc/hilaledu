@@ -60,6 +60,12 @@ class DashboardController extends Controller
         // Cek apakah Tendik ini bertugas sebagai Petugas Piket hari ini
         $isPetugasPiketHariIni = $user->isPetugasPiket($todayName, $todayDate);
         $piketData = null;
+        $monitoringKelas = collect();
+        $rekapMonitoring = [];
+        $hariPantau = $todayName;
+        $jamPantau = $nowTime;
+        $isSimulasi = false;
+        $periodInfo = [];
 
         if ($isPetugasPiketHariIni || $user->canAccessPiket()) {
             $rekapData = $this->presensiService->getRekapKehadiranDewanGuruHariIni($todayDate);
@@ -76,6 +82,14 @@ class DashboardController extends Controller
                 'petugasHariIni'       => $petugasHariIni,
                 'daftarGuru'           => $daftarGuru,
             ];
+
+            $monitoringPayload = app(\App\Services\MonitoringKelasService::class)->getMonitoringKelasData();
+            $monitoringKelas = $monitoringPayload['monitoringKelas'];
+            $rekapMonitoring = $monitoringPayload['rekap'];
+            $hariPantau      = $monitoringPayload['hariPantau'];
+            $jamPantau       = $monitoringPayload['jamPantau'];
+            $isSimulasi      = $monitoringPayload['isSimulasi'];
+            $periodInfo      = $monitoringPayload['periodInfo'];
         }
 
         return view('tendik.dashboard', compact(
@@ -86,7 +100,13 @@ class DashboardController extends Controller
             'presensiHarianHariIni',
             'kegiatanTerbaru',
             'isPetugasPiketHariIni',
-            'piketData'
+            'piketData',
+            'monitoringKelas',
+            'rekapMonitoring',
+            'hariPantau',
+            'jamPantau',
+            'isSimulasi',
+            'periodInfo'
         ));
     }
 }

@@ -50,6 +50,9 @@
         </div>
     </div>
 
+    {{-- Papan Monitoring Kehadiran Guru Di Kelas Real-Time --}}
+    @include('partials.papan_monitoring_kelas')
+
     {{-- Menu Pintasan --}}
     <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs">
         <h3 class="font-extrabold text-sm text-slate-900 mb-4 flex items-center gap-2">

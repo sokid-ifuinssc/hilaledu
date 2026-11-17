@@ -219,6 +219,9 @@
         </div>
         @endif
     </div>
+
+    <!-- Papan Monitoring Kehadiran Guru Di Kelas Real-Time (Khusus Petugas Piket) -->
+    @include('partials.papan_monitoring_kelas')
     @endif
 
     <!-- 4. Informasi Kegiatan Sekolah -->

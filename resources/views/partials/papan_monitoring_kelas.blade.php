@@ -1,7 +1,22 @@
 @php
+    if (!isset($monitoringKelas) || !isset($rekapMonitoring)) {
+        $__monPayload = app(\App\Services\MonitoringKelasService::class)->getMonitoringKelasData(
+            request()->input('hari'),
+            request()->input('jam'),
+            request()->input('tanggal')
+        );
+        $monitoringKelas = $monitoringKelas ?? $__monPayload['monitoringKelas'];
+        $rekapMonitoring = $rekapMonitoring ?? $__monPayload['rekap'];
+        $hariPantau      = $hariPantau ?? $__monPayload['hariPantau'];
+        $jamPantau       = $jamPantau ?? $__monPayload['jamPantau'];
+        $isSimulasi      = $isSimulasi ?? $__monPayload['isSimulasi'];
+        $periodInfo      = $periodInfo ?? $__monPayload['periodInfo'];
+        $todayDate       = $todayDate ?? ($__monPayload['tanggalPantau'] ?? date('Y-m-d'));
+    }
     $todayDate = $todayDate ?? date('Y-m-d');
     $hariPantau = $hariPantau ?? \App\Models\JadwalPelajaran::getHariIndonesia();
     $jamPantau = $jamPantau ?? now()->format('H:i:s');
+    $isSimulasi = $isSimulasi ?? false;
     $periodInfo = $periodInfo ?? \App\Services\MonitoringKelasService::getCurrentPeriodInfo($hariPantau, $jamPantau);
 @endphp
 

@@ -94,6 +94,15 @@ class KurikulumController extends Controller
         
         $guruList = User::where('role', 'guru')->where('is_active', true)->orderBy('name')->get();
 
+        // Papan Monitoring Kehadiran Guru Di Kelas Real-Time
+        $monitoringPayload = app(\App\Services\MonitoringKelasService::class)->getMonitoringKelasData();
+        $monitoringKelas = $monitoringPayload['monitoringKelas'];
+        $rekapMonitoring = $monitoringPayload['rekap'];
+        $hariPantau      = $monitoringPayload['hariPantau'];
+        $jamPantau       = $monitoringPayload['jamPantau'];
+        $isSimulasi      = $monitoringPayload['isSimulasi'];
+        $periodInfo      = $monitoringPayload['periodInfo'];
+
         return view('admin.kurikulum.index', compact(
             'kurikulums',
             'jurusan',
@@ -110,7 +119,13 @@ class KurikulumController extends Controller
             'jurusans',
             'jenjangList',
             'mapels',
-            'guruList'
+            'guruList',
+            'monitoringKelas',
+            'rekapMonitoring',
+            'hariPantau',
+            'jamPantau',
+            'isSimulasi',
+            'periodInfo'
         ));
     }
 

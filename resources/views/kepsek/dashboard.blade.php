@@ -67,6 +67,9 @@
         </div>
     </div>
 
+    {{-- Papan Monitoring Kehadiran Guru Di Kelas Real-Time --}}
+    @include('partials.papan_monitoring_kelas')
+
     {{-- Dua Kolom: Statistik & Tren --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 

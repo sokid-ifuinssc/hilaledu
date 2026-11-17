@@ -204,6 +204,9 @@
         </div>
     </div>
 
+    <!-- 3.5 Papan Monitoring Kehadiran Guru Di Kelas Real-Time -->
+    @include('partials.papan_monitoring_kelas')
+
     <!-- 4. Papan Monitoring & Tabel Presensi Seluruh Guru -->
     <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
         <!-- Bar Kontrol & Filter -->

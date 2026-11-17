@@ -52,6 +52,27 @@ class DashboardController extends Controller
             ->when($tahunAjaranId, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId))
             ->orderBy('created_at', 'desc')->limit(10)->get();
 
-        return view('kepsek.dashboard', compact('stats', 'jurusanStats', 'chartData', 'pelanggaranTerbaru', 'tahunAjaran'));
+        // Papan Monitoring Kehadiran Guru Di Kelas Real-Time
+        $monitoringPayload = app(\App\Services\MonitoringKelasService::class)->getMonitoringKelasData();
+        $monitoringKelas = $monitoringPayload['monitoringKelas'];
+        $rekapMonitoring = $monitoringPayload['rekap'];
+        $hariPantau      = $monitoringPayload['hariPantau'];
+        $jamPantau       = $monitoringPayload['jamPantau'];
+        $isSimulasi      = $monitoringPayload['isSimulasi'];
+        $periodInfo      = $monitoringPayload['periodInfo'];
+
+        return view('kepsek.dashboard', compact(
+            'stats',
+            'jurusanStats',
+            'chartData',
+            'pelanggaranTerbaru',
+            'tahunAjaran',
+            'monitoringKelas',
+            'rekapMonitoring',
+            'hariPantau',
+            'jamPantau',
+            'isSimulasi',
+            'periodInfo'
+        ));
     }
 }

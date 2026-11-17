@@ -150,6 +150,11 @@
     </div>
     @endif
 
+    <!-- 2.5 Papan Monitoring Kehadiran Guru Di Kelas Real-Time (Kepala Sekolah, Kurikulum, Petugas Piket) -->
+    @if(auth()->user()->isKepalaSekolah() || auth()->user()->isWakaKurikulum() || auth()->user()->hasAdminRole('akademik') || auth()->user()->isPetugasPiket() || auth()->user()->canAccessPiket() || auth()->user()->isSuperAdmin())
+        @include('partials.papan_monitoring_kelas')
+    @endif
+
     <!-- 3. Presensi Harian (Masuk & Pulang) - Tampilan Simpel & Bersih -->
     <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200 shadow-xs space-y-3 sm:space-y-4 max-w-full overflow-hidden">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3 gap-2">

@@ -37,11 +37,14 @@ class RoleGuides
                 'color'       => 'blue',
                 'ringkasan'   => 'Mengelola data dan layanan operasional pada unit spesifik yang ditugaskan (Akademik, BK, Kesiswaan, Prakerin, Keuangan, Koperasi, Payroll, atau Dokumen/Sertifikat).',
                 'tugas_utama' => [
-                    'Admin Akademik: menyusun Kalender Akademik, Plotting Kurikulum, Jadwal Pelajaran, serta memantau Laporan Kehadiran & KBM.',
-                    'Admin BK / Kesiswaan: mengelola master poin pelanggaran, memantau kasus pelanggaran, serta mengelola Ekstrakurikuler.',
-                    'Admin Prakerin: mengelola Kerja Sama DUDI, Data DU/DI, Periode PKL, Penempatan Siswa, dan Laporan Prakerin.',
-                    'Admin Keuangan / Koperasi: menerbitkan tagihan siswa, mencatat pembayaran, dan mengelola transaksi anggota koperasi.',
-                    'Admin Dokumen & Payroll: menerbitkan sertifikat/SKL/ijazah siswa serta menyiapkan periode & slip gaji pegawai.',
+                    ['unit' => 'akademik', 'text' => 'Admin Akademik: menyusun Kalender Akademik, Plotting Kurikulum, Jadwal Pelajaran, serta memantau Laporan Kehadiran & KBM.'],
+                    ['unit' => 'bk', 'text' => 'Admin BK: mengelola master poin pelanggaran, memantau catatan & progres kasus pelanggaran siswa, serta laporan berkala BK.'],
+                    ['unit' => 'kesiswaan', 'text' => 'Admin Kesiswaan: mengelola data ekstrakurikuler, pemetaan siswa, dan monitoring kegiatan mingguan kesiswaan.'],
+                    ['unit' => 'prakerin', 'text' => 'Admin Prakerin: mengelola Kerja Sama DUDI, Data DU/DI, Periode PKL, Penempatan Siswa, dan Laporan Prakerin.'],
+                    ['unit' => 'keuangan', 'text' => 'Admin Keuangan: mengatur master tagihan, menerbitkan tagihan siswa, dan mencatat pembayaran sekolah.'],
+                    ['unit' => 'koperasi', 'text' => 'Admin Koperasi: mengelola keanggotaan serta mencatat transaksi simpan, pinjam, dan kas koperasi.'],
+                    ['unit' => 'dokumen', 'text' => 'Admin Dokumen / Sertifikat: mengunggah atau generate massal sertifikat (Kepesantrenan, Kewirausahaan), SKL, ijazah, serta mengatur akses unduh siswa.'],
+                    ['unit' => 'payroll', 'text' => 'Admin Payroll: mengatur komponen honor & tunjangan, menyiapkan periode penggajian, dan mempublikasikan slip gaji pegawai.'],
                 ],
                 'cara_kerja'  => [
                     'Masuk ke dashboard unit sesuai role admin yang diberikan.',
@@ -159,32 +162,81 @@ class RoleGuides
             return [];
         }
 
-        $keys = [];
         if ($user->isSuperAdmin()) {
-            $keys[] = 'superadmin';
+            return ['superadmin', 'admin', 'kepala_sekolah', 'guru', 'tugas_tambahan', 'tendik', 'siswa'];
         }
-        if ($user->role === 'admin' || !empty($user->admin_roles)) {
-            $keys[] = 'admin';
+
+        if ($user->role === 'siswa') {
+            return ['siswa'];
         }
-        if ($user->isKepalaSekolah() && !$user->isSuperAdmin()) {
-            $keys[] = 'kepala_sekolah';
-        }
+
+        $keys = [];
+        $hasAdmin = ($user->role === 'admin') || !empty($user->admin_roles) || !empty($user->admin_role);
+
         if ($user->role === 'guru') {
             $keys[] = 'guru';
-        }
-        if ($user->role !== 'siswa' && $user->role !== 'superadmin' && $user->hasAnyTugasTambahan()) {
-            $keys[] = 'tugas_tambahan';
-        }
-        if ($user->role === 'tendik') {
+        } elseif ($user->role === 'tendik') {
             $keys[] = 'tendik';
-        }
-        if ($user->role === 'siswa') {
-            $keys[] = 'siswa';
-        }
-        if (in_array($user->role, ['guru_bk', 'waka_kesiswaan', 'kaprog', 'wali_kelas'], true)) {
+        } elseif ($user->role === 'kepala_sekolah') {
+            $keys[] = 'kepala_sekolah';
+        } elseif (in_array($user->role, ['guru_bk', 'waka_kesiswaan', 'kaprog', 'wali_kelas'], true)) {
             $keys[] = 'tugas_tambahan';
         }
 
+        if ($user->role === 'guru' && ($user->hasTugasTambahan('Kepala Sekolah') || $user->hasTugas('Kepala Sekolah'))) {
+            $keys[] = 'kepala_sekolah';
+        }
+
+        if ($user->hasAnyTugasTambahan() && $user->role !== 'kepala_sekolah') {
+            $keys[] = 'tugas_tambahan';
+        }
+
+        if ($hasAdmin) {
+            $keys[] = 'admin';
+        }
+
         return array_values(array_unique($keys));
+    }
+
+    public static function guidesForUser(?User $user): array
+    {
+        $all = self::allGuides();
+        $allowedKeys = self::currentUserRoleKeys($user);
+        $isSuperAdmin = $user && $user->isSuperAdmin();
+        $userAdminRoles = $user ? array_map('strtolower', $user->admin_roles ?? []) : [];
+
+        $filtered = [];
+        foreach ($all as $guide) {
+            if (!in_array($guide['key'], $allowedKeys, true)) {
+                continue;
+            }
+
+            if ($guide['key'] === 'admin') {
+                $tasks = [];
+                foreach ($guide['tugas_utama'] as $item) {
+                    if (is_array($item)) {
+                        if ($isSuperAdmin || empty($userAdminRoles)) {
+                            $tasks[] = $item['text'];
+                        } else {
+                            $unit = $item['unit'];
+                            $matchesDokumen = ($unit === 'dokumen') && count(array_intersect($userAdminRoles, ['dokumen', 'sertifikat_kepesantrenan', 'sertifikat_kewirausahaan', 'skl_ijazah'])) > 0;
+                            if (in_array($unit, $userAdminRoles, true) || $matchesDokumen) {
+                                $tasks[] = $item['text'];
+                            }
+                        }
+                    } else {
+                        $tasks[] = $item;
+                    }
+                }
+                if (empty($tasks)) {
+                    $tasks = array_map(fn($it) => is_array($it) ? $it['text'] : $it, $guide['tugas_utama']);
+                }
+                $guide['tugas_utama'] = $tasks;
+            }
+
+            $filtered[] = $guide;
+        }
+
+        return $filtered;
     }
 }

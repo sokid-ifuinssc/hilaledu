@@ -11,17 +11,16 @@ class MenuWorkflows
         if ($route === 'tentang-aplikasi.index') {
             return [
                 'id'       => 'tentang-aplikasi',
-                'title'    => 'Tentang Aplikasi & Panduan Role HilalEdu',
-                'subtitle' => 'Ringkasan tugas utama dan cara kerja garis besar setiap role pengguna',
+                'title'    => 'Tentang Aplikasi & Panduan Role Anda',
+                'subtitle' => 'Ringkasan tugas utama dan cara kerja garis besar sesuai peran akun yang sedang login',
                 'icon'     => 'bi-info-circle-fill',
                 'color'    => 'sky',
-                'actors'   => 'Seluruh Pengguna (Superadmin, Admin, Kepsek, Guru, Tendik, Siswa)',
+                'actors'   => 'Akun Login Saat Ini',
                 'steps'    => [
-                    ['actor' => 'Pengguna', 'title' => '1. Kenali Peran Anda', 'desc' => 'Bagian atas halaman menyoroti tugas utama dan langkah kerja sesuai role serta tugas tambahan akun Anda.'],
-                    ['actor' => 'Pengguna', 'title' => '2. Pahami Kolaborasi Antar Role', 'desc' => 'Pelajari peran role lainnya agar koordinasi KBM, BK, PKL, keuangan, dan dokumen berjalan lancar.'],
-                    ['actor' => 'Pengguna', 'title' => '3. Buka Peta Alur Sistem', 'desc' => 'Gunakan tautan Peta Alur Sistem HilalEdu atau tombol Alur Kerja di topbar untuk detail teknis tiap menu.'],
+                    ['actor' => 'Pengguna', 'title' => '1. Baca Tugas Pokok Peran Anda', 'desc' => 'Halaman menampilkan panduan tugas utama dan alur kerja sesuai role dan jabatan/admin yang dimiliki akun Anda.'],
+                    ['actor' => 'Pengguna', 'title' => '2. Ikuti Langkah Kerja', 'desc' => 'Jalankan menu harian di sidebar secara berurutan dari langkah awal hingga pelaporan/hasil akhir.'],
                 ],
-                'result' => 'Setiap warga sekolah memahami peran, tugas pokok, dan cara kerja aplikasi HilalEdu secara menyeluruh.',
+                'result' => 'Pengguna memahami secara ringkas tanggung jawab dan alur kerja perannya di HilalEdu.',
             ];
         }
 

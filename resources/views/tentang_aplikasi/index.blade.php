@@ -6,10 +6,10 @@
 @section('content')
 @php
     $user = auth()->user();
-    $guides = \App\Support\RoleGuides::allGuides();
-    $activeKeys = \App\Support\RoleGuides::currentUserRoleKeys($user);
-    $myGuides = collect($guides)->filter(fn($g) => in_array($g['key'], $activeKeys, true));
-    $otherGuides = collect($guides)->reject(fn($g) => in_array($g['key'], $activeKeys, true));
+    $isSuperAdmin = $user->isSuperAdmin();
+    $visibleGuides = collect(\App\Support\RoleGuides::guidesForUser($user));
+    $primaryGuide = $visibleGuides->first();
+    $additionalGuides = $visibleGuides->slice(1);
 
     $colorClasses = [
         'amber'   => ['bg' => 'bg-amber-50', 'border' => 'border-amber-200', 'text' => 'text-amber-800', 'icon' => 'bg-amber-100 text-amber-700'],
@@ -34,23 +34,25 @@
                     <span>Tentang Aplikasi HilalEdu</span>
                 </div>
                 <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
-                    Sistem Informasi Manajemen Sekolah Terpadu — SMK Plus Al Hilal
+                    Sistem Informasi Sekolah Terpadu — SMK Plus Al Hilal
                 </h1>
                 <p class="text-sm text-slate-600 leading-relaxed">
-                    <strong>HilalEdu</strong> mengintegrasikan seluruh aktivitas sekolah dalam satu platform: mulai dari pengelolaan data master & SDM, kurikulum & jadwal, presensi KBM, penanganan disiplin BK, program kerja & kalender akademik, PKL/Prakerin, ekstrakurikuler, keuangan & koperasi, penggajian pegawai, penerbitan sertifikat/ijazah digital, hingga tracer alumni.
+                    <strong>HilalEdu</strong> merupakan portal layanan terpadu SMK Plus Al Hilal untuk memudahkan aktivitas sesuai peran akun Anda secara terstruktur, cepat, dan terdokumentasi.
                 </p>
             </div>
+            @if($isSuperAdmin || $user->role === 'admin' || !empty($user->admin_roles) || $user->isKepalaSekolah())
             <div class="flex flex-wrap items-center gap-2 shrink-0">
                 <a href="{{ route('alur-kerja.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-xs">
                     <i class="bi bi-diagram-3-fill text-emerald-400"></i>
-                    <span>Buka Peta Alur Sistem Lengkap</span>
+                    <span>Buka Peta Alur Sistem</span>
                 </a>
             </div>
+            @endif
         </div>
 
         {{-- Info Akun Pengguna Saat Ini --}}
         <div class="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-            <span class="font-bold text-slate-800">Akun Anda Saat Ini:</span>
+            <span class="font-bold text-slate-800">Akun Anda:</span>
             <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-bold">{{ $user->name }}</span>
             <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold uppercase">
                 Role: {{ str_replace('_', ' ', $user->role) }}
@@ -60,7 +62,7 @@
                     Admin: {{ implode(', ', array_map('ucfirst', $user->admin_roles)) }}
                 </span>
             @endif
-            @if(!empty($tugasList))
+            @if($user->role !== 'siswa' && !empty($tugasList))
                 <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 font-bold">
                     Tugas Tambahan: {{ implode(', ', $tugasList) }}
                 </span>
@@ -68,23 +70,34 @@
         </div>
     </div>
 
-    {{-- Panduan Khusus untuk Peran User yang Sedang Login --}}
-    @if($myGuides->isNotEmpty())
+    {{-- Panduan Utama Role Pengguna --}}
     <div class="space-y-4">
-        <div class="flex items-center justify-between">
-            <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                <i class="bi bi-person-check-fill text-emerald-600"></i>
-                <span>Petunjuk Penggunaan Sesuai Peran Anda</span>
-            </h2>
-            <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                {{ $myGuides->count() }} Peran Aktif
-            </span>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                    <i class="bi bi-person-check-fill text-emerald-600"></i>
+                    <span>{{ $isSuperAdmin ? 'Petunjuk Penggunaan Lengkap (Semua Role Sistem)' : 'Petunjuk Penggunaan & Tugas Anda' }}</span>
+                </h2>
+                <p class="text-xs text-slate-500">
+                    {{ $isSuperAdmin ? 'Sebagai Superadmin, Anda dapat melihat panduan seluruh peran pengguna di HilalEdu.' : 'Ringkasan tugas pokok dan cara kerja garis besar sesuai peran akun Anda.' }}
+                </p>
+            </div>
+
+            @if($isSuperAdmin)
+            <div class="w-full sm:w-64">
+                <input type="text" x-model="filterRole" placeholder="Cari peran (misal: Guru, Siswa, Admin)..." class="form-input text-xs">
+            </div>
+            @endif
         </div>
 
         <div class="space-y-4">
-            @foreach($myGuides as $g)
-                @php $clr = $colorClasses[$g['color']] ?? $colorClasses['emerald']; @endphp
-                <div class="bg-white rounded-2xl border-2 {{ $clr['border'] }} shadow-sm overflow-hidden">
+            @foreach($visibleGuides as $g)
+                @php
+                    $clr = $colorClasses[$g['color']] ?? $colorClasses['emerald'];
+                    $blob = strtolower($g['role_label'] . ' ' . $g['ringkasan'] . ' ' . implode(' ', $g['tugas_utama']));
+                @endphp
+                <div @if($isSuperAdmin) x-show="filterRole === '' || {{ Js::from($blob) }}.includes(filterRole.toLowerCase())" @endif
+                     class="bg-white rounded-2xl border-2 {{ $loop->first ? $clr['border'] : 'border-slate-200' }} shadow-sm overflow-hidden">
                     <div class="p-5 {{ $clr['bg'] }} border-b {{ $clr['border'] }} flex flex-wrap items-center justify-between gap-3">
                         <div class="flex items-center gap-3">
                             <div class="w-11 h-11 rounded-xl {{ $clr['icon'] }} flex items-center justify-center text-xl shrink-0">
@@ -131,67 +144,6 @@
                                     </li>
                                 @endforeach
                             </ol>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-    @endif
-
-    {{-- Panduan Garis Besar Semua Role Lainnya --}}
-    <div class="space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-                <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                    <i class="bi bi-people-fill text-indigo-600"></i>
-                    <span>Panduan Peran Pengguna Lainnya di HilalEdu</span>
-                </h2>
-                <p class="text-xs text-slate-500">Gambaran garis besar tugas dan cara kerja seluruh peran agar kolaborasi antar bagian berjalan selaras.</p>
-            </div>
-            <div class="w-full sm:w-64">
-                <input type="text" x-model="filterRole" placeholder="Cari peran (misal: Guru, Siswa, Admin)..." class="form-input text-xs">
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            @foreach($otherGuides as $g)
-                @php
-                    $clr = $colorClasses[$g['color']] ?? $colorClasses['slate'];
-                    $blob = strtolower($g['role_label'] . ' ' . $g['ringkasan'] . ' ' . implode(' ', $g['tugas_utama']));
-                @endphp
-                <div x-show="filterRole === '' || {{ Js::from($blob) }}.includes(filterRole.toLowerCase())"
-                     class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col justify-between">
-                    <div>
-                        <div class="p-4 {{ $clr['bg'] }} border-b border-slate-100 flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl {{ $clr['icon'] }} flex items-center justify-center text-lg shrink-0">
-                                <i class="bi {{ $g['icon'] }}"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="font-extrabold text-sm text-slate-900">{{ $g['role_label'] }}</h3>
-                                <span class="text-[11px] font-semibold {{ $clr['text'] }}">{{ $g['badge'] }}</span>
-                            </div>
-                        </div>
-                        <div class="p-4 space-y-3 text-xs">
-                            <p class="text-slate-600 leading-relaxed">{{ $g['ringkasan'] }}</p>
-
-                            <div>
-                                <div class="font-extrabold text-slate-800 mb-1.5">Tugas Utama:</div>
-                                <ul class="space-y-1 text-slate-600 list-disc pl-4">
-                                    @foreach($g['tugas_utama'] as $t)
-                                        <li>{{ $t }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-
-                            <div>
-                                <div class="font-extrabold text-slate-800 mb-1.5">Cara Kerja Garis Besar:</div>
-                                <ol class="space-y-1 text-slate-600 list-decimal pl-4">
-                                    @foreach($g['cara_kerja'] as $step)
-                                        <li>{{ $step }}</li>
-                                    @endforeach
-                                </ol>
-                            </div>
                         </div>
                     </div>
                 </div>

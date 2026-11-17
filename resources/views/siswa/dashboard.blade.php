@@ -88,6 +88,61 @@
         </div>
     </div>
 
+    <!-- Tugas Mapel dari Guru Berhalangan Hadir (7 Hari Terakhir) -->
+    @if(isset($tugasMapelTerbaru) && $tugasMapelTerbaru->isNotEmpty())
+    <div class="bg-amber-50/80 rounded-3xl p-5 sm:p-6 border border-amber-200 shadow-xs space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-xs shrink-0">
+                    <i class="bi-journal-bookmark-fill"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm sm:text-base font-black text-amber-950">
+                        Tugas & Materi Mapel (Guru Berhalangan Hadir)
+                    </h2>
+                    <p class="text-xs text-amber-800">
+                        Tugas yang diunggah guru untuk kelas <strong>{{ $kelasNama }}</strong> dalam 7 hari terakhir.
+                    </p>
+                </div>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-white text-amber-800 border border-amber-300 text-xs font-extrabold">
+                {{ $tugasMapelTerbaru->count() }} Tugas Aktif
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @foreach($tugasMapelTerbaru as $tb)
+            <div class="bg-white rounded-2xl p-4 border border-amber-200/80 shadow-2xs flex flex-col justify-between gap-3">
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-2 text-[11px]">
+                        <span class="font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                            {{ \Carbon\Carbon::parse($tb->tanggal)->translatedFormat('d M Y') }}
+                        </span>
+                        <span class="text-slate-500 font-medium">
+                            Guru: <strong>{{ $tb->guru?->name ?? ($tb->pembuat?->name ?? '-') }}</strong>
+                        </span>
+                    </div>
+                    <h4 class="font-extrabold text-slate-900 text-sm">
+                        {{ $tb->jadwal?->mataPelajaran?->nama ?? 'Mata Pelajaran' }}
+                    </h4>
+                    <p class="text-xs text-slate-700 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        {!! nl2br(e($tb->deskripsi_tugas)) !!}
+                    </p>
+                </div>
+                @if($tb->file_lampiran)
+                <div>
+                    <a href="{{ asset('storage/' . $tb->file_lampiran) }}" target="_blank"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-2xs">
+                        <i class="bi-download"></i> Unduh / Lihat File Tugas
+                    </a>
+                </div>
+                @endif
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     <!-- Section Jadwal: Toggle Hari Ini vs Seminggu Penuh -->
     <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-5">
         
@@ -185,6 +240,8 @@
                 @php
                     $cuti = $j->getCutiAktif();
                     $guruAktif = $j->getGuruPengajar();
+                    $absenGuru = $j->absensiGuru->first();
+                    $isGuruBerhalangan = $absenGuru && in_array($absenGuru->status, ['izin', 'sakit', 'tugas_luar'], true);
                     $isRunning = $j->isRunningNow();
                     $presensi = $j->presensi_siswa_hari_ini;
                     $laporan = $j->laporan_hari_ini;
@@ -230,6 +287,14 @@
 
                     <!-- Keterangan Kehadiran Siswa di Hari Itu -->
                     <div class="pt-3 border-t border-slate-200/70 space-y-3">
+                        @if($isGuruBerhalangan)
+                        <div class="px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-xs flex items-center justify-between gap-2">
+                            <span class="font-bold text-blue-900"><i class="bi-info-circle-fill text-blue-600 me-1"></i> Guru Berhalangan Hadir</span>
+                            <span class="px-2 py-0.5 rounded-full bg-white text-blue-800 border border-blue-200 font-bold text-[10px] uppercase">
+                                {{ $absenGuru->status_label }}
+                            </span>
+                        </div>
+                        @endif
                         @php
                             $tugas = $j->tugasKbms->first();
                         @endphp

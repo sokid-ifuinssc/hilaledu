@@ -61,6 +61,7 @@
 @endphp
 <div class="space-y-4" x-data="{ 
     absenModal: false, 
+    absenStatus: 'hadir',
     selectedJadwal: null,
     tugasModal: false,
     selectedTugasJadwal: { id: null, mapel: '', kelas: '', deskripsi: '' },
@@ -490,6 +491,21 @@
                             <span>Presensi Siswa: Hadir {{ $laporan->jumlah_siswa_hadir }}, Tidak Hadir {{ $laporan->jumlah_siswa_tidak_hadir }}</span>
                         </div>
                         @endif
+
+                        @if($tugas)
+                        <div class="pt-1.5 text-[11px] border-t border-amber-200/70 bg-amber-50/70 p-2 rounded-xl space-y-1">
+                            <div class="font-bold text-amber-900 flex items-center gap-1">
+                                <i class="bi-journal-text text-amber-600"></i>
+                                <span>Tugas Siswa Terunggah:</span>
+                            </div>
+                            <p class="text-slate-700 m-0 leading-snug">{{ $tugas->deskripsi_tugas }}</p>
+                            @if($tugas->file_lampiran)
+                            <a href="{{ asset('storage/' . $tugas->file_lampiran) }}" target="_blank" class="inline-flex items-center gap-1 text-[10.5px] font-bold text-indigo-700 hover:underline">
+                                <i class="bi-paperclip"></i> Lihat File Tugas
+                            </a>
+                            @endif
+                        </div>
+                        @endif
                     </div>
                     @endif
                 </div>
@@ -498,7 +514,7 @@
                 <div class="pt-3 border-t {{ $isSudahAbsen ? 'border-emerald-200' : 'border-slate-100' }} space-y-2">
                     @if(!$isSudahAbsen)
                     <button type="button" 
-                            @click="absenModal = true; selectedJadwal = { id: {{ $j->id }}, mapel: '{{ addslashes($j->mataPelajaran->nama ?? 'Mata Pelajaran') }}', kelas: '{{ $j->kelas }}', jam: '{{ substr($j->jam_mulai, 0, 5) }} - {{ substr($j->jam_selesai, 0, 5) }}' }"
+                            @click="absenStatus = 'hadir'; absenModal = true; selectedJadwal = { id: {{ $j->id }}, mapel: '{{ addslashes($j->mataPelajaran->nama ?? 'Mata Pelajaran') }}', kelas: '{{ $j->kelas }}', jam: '{{ substr($j->jam_mulai, 0, 5) }} - {{ substr($j->jam_selesai, 0, 5) }}' }"
                             class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm">
                         <i class="bi-fingerprint text-sm"></i>
                         <span>Klik Absen Kehadiran</span>
@@ -534,7 +550,7 @@
                     </a>
                     @endif
 
-                    @if($statusAbsen !== 'hadir' && $statusAbsen !== 'terlambat')
+                    @if(($statusAbsen !== 'hadir' && $statusAbsen !== 'terlambat') || $tugas || $sumberAbsen === 'harian')
                     <button type="button" 
                             @click="tugasModal = true; selectedTugasJadwal = { id: {{ $j->id }}, mapel: '{{ addslashes($j->mataPelajaran->nama ?? 'Mata Pelajaran') }}', kelas: '{{ $j->kelas }}', deskripsi: '{{ addslashes($tugas->deskripsi_tugas ?? '') }}' }"
                             class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition border border-amber-200">
@@ -765,35 +781,57 @@
                     </label>
                     <div class="grid grid-cols-2 gap-2">
                         <label class="p-2.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-emerald-500 has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50 transition flex items-center gap-2 font-semibold">
-                            <input type="radio" name="status" value="hadir" checked class="text-emerald-600">
+                            <input type="radio" name="status" value="hadir" x-model="absenStatus" class="text-emerald-600">
                             <span>✅ Hadir</span>
                         </label>
                         <label class="p-2.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-blue-500 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 transition flex items-center gap-2 font-semibold">
-                            <input type="radio" name="status" value="izin" class="text-blue-600">
+                            <input type="radio" name="status" value="izin" x-model="absenStatus" class="text-blue-600">
                             <span>📝 Izin</span>
                         </label>
                         <label class="p-2.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-purple-500 has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50 transition flex items-center gap-2 font-semibold">
-                            <input type="radio" name="status" value="sakit" class="text-purple-600">
+                            <input type="radio" name="status" value="sakit" x-model="absenStatus" class="text-purple-600">
                             <span>🏥 Sakit</span>
                         </label>
                         <label class="p-2.5 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-indigo-500 has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50 transition flex items-center gap-2 font-semibold">
-                            <input type="radio" name="status" value="tugas_luar" class="text-indigo-600">
+                            <input type="radio" name="status" value="tugas_luar" x-model="absenStatus" class="text-indigo-600">
                             <span>🚗 Tugas Luar</span>
                         </label>
                     </div>
                 </div>
 
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">
-                        <i class="bi-pencil-square text-emerald-600 me-1"></i>Uraian Kegiatan Pembelajaran (KBM) / Catatan
-                    </label>
-                    <textarea name="catatan" rows="3" placeholder="Tuliskan ringkasan materi/kegiatan yang diajarkan atau keterangan jika izin/sakit/tugas luar..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"></textarea>
-                    <p class="text-[10px] text-slate-400 mt-1">Uraian kegiatan akan otomatis ditampilkan pada kartu jadwal mengajar Anda hari ini.</p>
+                {{-- Upload Tugas Siswa otomatis muncul ketika Guru Berhalangan Hadir (Izin / Sakit / Tugas Luar) --}}
+                <div x-show="['izin', 'sakit', 'tugas_luar'].includes(absenStatus)" x-transition
+                     class="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 space-y-3">
+                    <div class="flex items-center gap-2 text-amber-900 font-black text-xs">
+                        <i class="bi-journal-arrow-up text-amber-600 text-base"></i>
+                        <span>Upload Tugas Siswa (Karena Berhalangan Hadir)</span>
+                    </div>
+                    <p class="text-[11px] text-amber-800 m-0 leading-snug">
+                        Tugas dan file lampiran di bawah akan langsung tampil pada portal kelas siswa yang bersangkutan.
+                    </p>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Instruksi / Deskripsi Tugas</label>
+                        <textarea name="deskripsi_tugas" rows="2" placeholder="Contoh: Kerjakan latihan halaman 24 di buku paket, kumpulkan ke ketua kelas..." class="w-full p-2.5 bg-white border border-amber-300 rounded-xl text-xs focus:ring-2 focus:ring-amber-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Upload File Tugas / Materi (Opsional)</label>
+                        <input type="file" name="file_tugas" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.zip" class="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-amber-600 file:text-white file:font-bold hover:file:bg-amber-700 cursor-pointer">
+                        <p class="text-[10px] text-amber-700 mt-1">Format: PDF, Word, Excel, PowerPoint, Gambar, atau ZIP (maks. 10MB).</p>
+                    </div>
                 </div>
 
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">
-                        <i class="bi-camera text-emerald-600 me-1"></i>Foto Kegiatan / Dokumentasi KBM (Opsional)
+                        <i class="bi-pencil-square text-emerald-600 me-1"></i>
+                        <span x-text="['izin', 'sakit', 'tugas_luar'].includes(absenStatus) ? 'Alasan / Keterangan Berhalangan Hadir' : 'Uraian Kegiatan Pembelajaran (KBM) / Catatan'"></span>
+                    </label>
+                    <textarea name="catatan" rows="2" :placeholder="['izin', 'sakit', 'tugas_luar'].includes(absenStatus) ? 'Tuliskan alasan izin / sakit / tujuan dinas luar...' : 'Tuliskan ringkasan materi/kegiatan yang diajarkan...'" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">
+                        <i class="bi-camera text-emerald-600 me-1"></i>
+                        <span x-text="['izin', 'sakit', 'tugas_luar'].includes(absenStatus) ? 'Bukti / Surat Keterangan Izin/Sakit (Opsional)' : 'Foto Kegiatan / Dokumentasi KBM (Opsional)'"></span>
                     </label>
                     <input type="file" name="foto" accept="image/*,application/pdf" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-bold hover:file:bg-emerald-100 cursor-pointer">
                     <p class="text-[10px] text-slate-400 mt-1">Format gambar JPG, PNG, WEBP atau PDF (maks. 5MB).</p>
@@ -920,8 +958,9 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 mb-1">Lampiran File (Opsional):</label>
-                    <input type="file" name="file_lampiran" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-slate-100 file:text-slate-700">
+                    <label class="block font-bold text-slate-700 mb-1">Upload File Tugas / Materi (Opsional):</label>
+                    <input type="file" name="file_lampiran" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.zip" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-700 file:font-bold">
+                    <p class="text-[10px] text-slate-400 mt-1">Format: PDF, Word, Excel, PPT, Gambar, ZIP (maks. 10MB). Biarkan kosong bila tidak mengganti file.</p>
                 </div>
 
                 <div class="pt-2 flex items-center gap-2">

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\MataPelajaran;
 use App\Models\Siswa;
 use App\Models\Kelas;
+use App\Models\TugasKbm;
 
 class PortalController extends Controller
 {
@@ -52,7 +53,10 @@ class PortalController extends Controller
                 'mataPelajaran',
                 'guru',
                 'tugasKbms' => function ($q) use ($todayDate) {
-                    $q->where('tanggal', $todayDate);
+                    $q->whereDate('tanggal', $todayDate);
+                },
+                'absensiGuru' => function ($q) use ($todayDate) {
+                    $q->whereDate('tanggal', $todayDate);
                 },
                 'laporanKbm' => function ($q) use ($todayDate, $studentUserIds) {
                     $q->where('tanggal_realisasi', $todayDate)
@@ -127,6 +131,13 @@ class PortalController extends Controller
             ->latest()
             ->get();
 
+        $tugasMapelTerbaru = TugasKbm::with(['jadwal.mataPelajaran', 'guru', 'pembuat'])
+            ->whereHas('jadwal', fn($q) => $q->where('kelas', $kelasNama))
+            ->whereDate('tanggal', '>=', now()->subDays(6)->toDateString())
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('siswa.dashboard', compact(
             'user',
             'siswaData',
@@ -142,7 +153,8 @@ class PortalController extends Controller
             'totalIzin',
             'totalAlpa',
             'kegiatans',
-            'keluhanSaya'
+            'keluhanSaya',
+            'tugasMapelTerbaru'
         ));
     }
 

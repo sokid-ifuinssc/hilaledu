@@ -31,6 +31,8 @@ class DashboardController extends Controller
                 $q->where('tanggal', $todayDate);
             }, 'laporanKbm' => function ($q) use ($todayDate) {
                 $q->where('tanggal_realisasi', $todayDate);
+            }, 'tugasKbms' => function ($q) use ($todayDate) {
+                $q->whereDate('tanggal', $todayDate);
             }])
             ->where('guru_user_id', $user->id)
             ->where('hari', $todayName)

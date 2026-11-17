@@ -14,18 +14,27 @@ class TugasKbmController extends Controller
         $request->validate([
             'jadwal_pelajaran_id' => 'required|exists:jadwal_pelajarans,id',
             'tanggal'             => 'required|date',
-            'deskripsi_tugas'     => 'required|string',
-            'file_lampiran'       => 'nullable|file|max:5120', // max 5MB
+            'deskripsi_tugas'     => 'nullable|string|required_without:file_lampiran',
+            'file_lampiran'       => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,webp,zip|max:10240',
         ]);
 
         $user = Auth::user();
+        $jadwal = \App\Models\JadwalPelajaran::with('mataPelajaran')->findOrFail($request->jadwal_pelajaran_id);
 
-        $path = null;
+        $existing = TugasKbm::where('jadwal_pelajaran_id', $request->jadwal_pelajaran_id)
+            ->whereDate('tanggal', $request->tanggal)
+            ->first();
+
+        $path = $existing?->file_lampiran;
         if ($request->hasFile('file_lampiran')) {
             $path = $request->file('file_lampiran')->store('tugas_lampiran', 'public');
         }
 
-        $jadwal = \App\Models\JadwalPelajaran::findOrFail($request->jadwal_pelajaran_id);
+        $deskripsi = trim((string) $request->input('deskripsi_tugas', ''));
+        if ($deskripsi === '') {
+            $mapelNama = $jadwal->mataPelajaran?->nama ?? 'Mata Pelajaran';
+            $deskripsi = "Tugas {$mapelNama}. Silakan unduh dan kerjakan file lampiran tugas yang disediakan guru.";
+        }
 
         TugasKbm::updateOrCreate(
             [
@@ -33,14 +42,14 @@ class TugasKbmController extends Controller
                 'tanggal'             => $request->tanggal,
             ],
             [
-                'guru_user_id'        => $jadwal->guru_user_id,
+                'guru_user_id'        => $jadwal->guru_user_id ?: $user->id,
                 'dibuat_oleh_user_id' => $user->id,
-                'deskripsi_tugas'     => $request->deskripsi_tugas,
+                'deskripsi_tugas'     => $deskripsi,
                 'file_lampiran'       => $path,
             ]
         );
 
-        return back()->with('success', 'Tugas / Instruksi untuk jadwal ini berhasil disimpan.');
+        return back()->with('success', 'Tugas / Instruksi untuk siswa berhasil disimpan dan dapat langsung dilihat siswa.');
     }
 }
 

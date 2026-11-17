@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\AbsensiGuru;
 use App\Models\JadwalPelajaran;
+use App\Models\TugasKbm;
 use App\Models\User;
 use App\Models\PengaturanSekolah;
 use App\Services\RekapKehadiranService;
@@ -74,6 +75,8 @@ class AbsensiGuruController extends Controller
             'catatan'             => 'nullable|string',
             'foto'                => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
             'lampiran'            => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+            'deskripsi_tugas'     => 'nullable|string',
+            'file_tugas'          => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,webp,zip|max:10240',
         ]);
 
         $user = Auth::user();
@@ -114,6 +117,39 @@ class AbsensiGuruController extends Controller
             'lampiran_bukti'      => $lampiranPath,
         ]);
 
+        // Jika guru berhalangan hadir (izin/sakit/tugas_luar) & mengupload tugas/instruksi, simpan ke TugasKbm agar siswa dapat melihatnya
+        $tugasTersimpan = false;
+        if (in_array($eval['status'], ['izin', 'sakit', 'tugas_luar'], true) && ($request->filled('deskripsi_tugas') || $request->hasFile('file_tugas'))) {
+            $existingTugas = TugasKbm::where('jadwal_pelajaran_id', $jadwal->id)
+                ->whereDate('tanggal', $today)
+                ->first();
+
+            $fileTugasPath = $existingTugas?->file_lampiran;
+            if ($request->hasFile('file_tugas')) {
+                $fileTugasPath = $request->file('file_tugas')->store('tugas_lampiran', 'public');
+            }
+
+            $mapelNama = $jadwal->mataPelajaran?->nama ?? 'Mata Pelajaran';
+            $deskripsiTugas = trim((string) $request->input('deskripsi_tugas', ''));
+            if ($deskripsiTugas === '') {
+                $deskripsiTugas = "Tugas {$mapelNama} (Guru {$absen->status_label}). Silakan unduh dan kerjakan file lampiran tugas berikut.";
+            }
+
+            TugasKbm::updateOrCreate(
+                [
+                    'jadwal_pelajaran_id' => $jadwal->id,
+                    'tanggal'             => $today,
+                ],
+                [
+                    'guru_user_id'        => $jadwal->guru_user_id ?: $user->id,
+                    'dibuat_oleh_user_id' => $user->id,
+                    'deskripsi_tugas'     => $deskripsiTugas,
+                    'file_lampiran'       => $fileTugasPath,
+                ]
+            );
+            $tugasTersimpan = true;
+        }
+
         // Sinkronisasi otomatis ke Presensi Harian Guru:
         try {
             $harianService = app(\App\Services\PresensiHarianService::class);
@@ -134,6 +170,9 @@ class AbsensiGuruController extends Controller
         } catch (\Throwable $e) {}
 
         $msg = "Presensi berhasil dicatat sebagai '{$absen->status_label}'!";
+        if ($tugasTersimpan) {
+            $msg .= ' Tugas siswa untuk kelas ini juga berhasil diunggah dan dapat langsung dilihat siswa.';
+        }
         if ($absen->status === 'terlambat') {
             return back()->with('warning', $msg . " ({$absen->catatan})");
         }

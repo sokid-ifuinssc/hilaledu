@@ -11,6 +11,7 @@ use App\Models\LaporanKbmPresensi;
 use App\Models\KeluhanKbm;
 use App\Models\KegiatanSekolah;
 use App\Models\Kelas;
+use App\Models\TugasKbm;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -40,7 +41,12 @@ class DashboardController extends Controller
             $siswa?->user_id,
         ])));
 
-        $jadwalHariIni = JadwalPelajaran::with(['mataPelajaran', 'guru'])
+        $jadwalHariIni = JadwalPelajaran::with([
+                'mataPelajaran',
+                'guru',
+                'tugasKbms' => fn($q) => $q->whereDate('tanggal', $todayDate),
+                'absensiGuru' => fn($q) => $q->whereDate('tanggal', $todayDate),
+            ])
             ->where('hari', $todayName)
             ->where('kelas', $kelasNama)
             ->orderBy('jam_mulai')
@@ -120,6 +126,13 @@ class DashboardController extends Controller
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->orderBy('tanggal_pelanggaran', 'desc')->limit(10)->get() : collect();
 
+        $tugasMapelTerbaru = TugasKbm::with(['jadwal.mataPelajaran', 'guru', 'pembuat'])
+            ->whereHas('jadwal', fn($q) => $q->where('kelas', $kelasNama))
+            ->whereDate('tanggal', '>=', now()->subDays(6)->toDateString())
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('siswa.dashboard', compact(
             'user',
             'siswa',
@@ -138,7 +151,8 @@ class DashboardController extends Controller
             'kegiatans',
             'keluhanSaya',
             'stats',
-            'pelanggaranTerbaru'
+            'pelanggaranTerbaru',
+            'tugasMapelTerbaru'
         ));
     }
 }

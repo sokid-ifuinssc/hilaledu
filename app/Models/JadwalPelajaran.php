@@ -296,7 +296,10 @@ class JadwalPelajaran extends Model
      */
     public function getTugasHariIniAttribute(): ?TugasKbm
     {
+        if ($this->relationLoaded('tugasKbms')) {
+            return $this->tugasKbms->first();
+        }
         $today = date('Y-m-d');
-        return $this->tugasKbms()->where('tanggal', $today)->first();
+        return $this->tugasKbms()->whereDate('tanggal', $today)->first();
     }
 }

@@ -96,6 +96,8 @@ class SiswaEkstrakurikulerController extends Controller
             ->orderBy('nama')
             ->get();
 
+        $pendaftaranDibuka = PengaturanSekolah::get('eskul_pendaftaran_dibuka', '1') === '1';
+
         return view('siswa.ekstrakurikuler.index', compact(
             'keanggotaans',
             'semuaEskuls',
@@ -106,7 +108,8 @@ class SiswaEkstrakurikulerController extends Controller
             'eskulDiketuai',
             'hariIni',
             'ta',
-            'sem'
+            'sem',
+            'pendaftaranDibuka'
         ));
     }
 
@@ -115,6 +118,10 @@ class SiswaEkstrakurikulerController extends Controller
      */
     public function join(Ekstrakurikuler $ekstrakurikuler)
     {
+        if (PengaturanSekolah::get('eskul_pendaftaran_dibuka', '1') !== '1') {
+            return back()->with('error', 'Pendaftaran dan pemilihan ekstrakurikuler sedang DITUTUP oleh Pembina OSIS / Kesiswaan.');
+        }
+
         $user = auth()->user();
         $ta = PengaturanSekolah::getActiveTahunAjaran();
         $sem = PengaturanSekolah::getActiveSemester();
@@ -144,6 +151,10 @@ class SiswaEkstrakurikulerController extends Controller
      */
     public function leave(Ekstrakurikuler $ekstrakurikuler)
     {
+        if (PengaturanSekolah::get('eskul_pendaftaran_dibuka', '1') !== '1') {
+            return back()->with('error', 'Pembatalan / pindah ekstrakurikuler sedang DITUTUP oleh Pembina OSIS / Kesiswaan untuk menjaga konsistensi data KBM.');
+        }
+
         $user = auth()->user();
         $ta = PengaturanSekolah::getActiveTahunAjaran();
         $sem = PengaturanSekolah::getActiveSemester();

@@ -52,8 +52,9 @@ class GuruEkstrakurikulerController extends Controller
 
         $ta = PengaturanSekolah::getActiveTahunAjaran();
         $sem = PengaturanSekolah::getActiveSemester();
+        $pendaftaranDibuka = PengaturanSekolah::get('eskul_pendaftaran_dibuka', '1') === '1';
 
-        return view('guru.ekstrakurikuler.index', compact('eskuls', 'ta', 'sem', 'isKoordinator'));
+        return view('guru.ekstrakurikuler.index', compact('eskuls', 'ta', 'sem', 'isKoordinator', 'pendaftaranDibuka'));
     }
 
     /**

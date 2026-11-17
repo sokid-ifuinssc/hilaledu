@@ -58,6 +58,7 @@ class EkstrakurikulerController extends Controller
         $totalEskulAktif = Ekstrakurikuler::where('is_aktif', true)->count();
         $totalSiswaEskul = AnggotaEkstrakurikuler::where('status', 'aktif')->distinct('siswa_id')->count('siswa_id');
         $totalKegiatanMingguIni = LaporanKegiatanEskul::whereBetween('tanggal_kegiatan', [now()->startOfWeek(), now()->endOfWeek()])->count();
+        $pendaftaranDibuka = PengaturanSekolah::get('eskul_pendaftaran_dibuka', '1') === '1';
 
         return view('admin.ekstrakurikuler.index', compact(
             'eskuls',
@@ -66,8 +67,31 @@ class EkstrakurikulerController extends Controller
             'activeSem',
             'totalEskulAktif',
             'totalSiswaEskul',
-            'totalKegiatanMingguIni'
+            'totalKegiatanMingguIni',
+            'pendaftaranDibuka'
         ));
+    }
+
+    /**
+     * Buka atau tutup menu pemilihan / pendaftaran ekstrakurikuler oleh siswa (Pembina OSIS / Kesiswaan / Superadmin)
+     */
+    public function togglePendaftaran(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->isSuperAdmin() && !$user->isPembinaOsis() && !$user->isWakaKesiswaan() && !$user->hasAdminRole('kesiswaan'))) {
+            abort(403, 'Hanya Pembina OSIS, Waka Kesiswaan, atau Admin yang berwenang mengatur status pendaftaran eskul.');
+        }
+
+        $current = PengaturanSekolah::get('eskul_pendaftaran_dibuka', '1') === '1';
+        $next = $request->has('status') ? ($request->input('status') === '1' ? '1' : '0') : ($current ? '0' : '1');
+
+        PengaturanSekolah::set('eskul_pendaftaran_dibuka', $next, 'Status Buka/Tutup Pendaftaran Ekstrakurikuler Siswa');
+
+        $msg = $next === '1'
+            ? 'Pendaftaran & pemilihan ekstrakurikuler oleh siswa sekarang DIBUKA.'
+            : 'Pendaftaran & pembatalan ekstrakurikuler oleh siswa sekarang DITUTUP agar data peserta selama KBM tetap konsisten.';
+
+        return back()->with('success', $msg);
     }
 
     /**

@@ -126,8 +126,14 @@ class DashboardController extends Controller
             ->when($tahunAjaran, fn($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
             ->orderBy('tanggal_pelanggaran', 'desc')->limit(10)->get() : collect();
 
+        $kelasCandidates = array_values(array_unique(array_filter([
+            $kelasNama,
+            $siswa?->kelas?->nama,
+            $siswa?->kelas?->nama_kelas,
+        ])));
+
         $tugasMapelTerbaru = TugasKbm::with(['jadwal.mataPelajaran', 'guru', 'pembuat'])
-            ->whereHas('jadwal', fn($q) => $q->where('kelas', $kelasNama))
+            ->whereHas('jadwal', fn($q) => $q->whereIn('kelas', $kelasCandidates))
             ->whereDate('tanggal', '>=', now()->subDays(6)->toDateString())
             ->orderBy('tanggal', 'desc')
             ->orderBy('created_at', 'desc')

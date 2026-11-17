@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\TugasKbm;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class TugasKbmController extends Controller
 {
@@ -50,6 +51,33 @@ class TugasKbmController extends Controller
         );
 
         return back()->with('success', 'Tugas / Instruksi untuk siswa berhasil disimpan dan dapat langsung dilihat siswa.');
+    }
+
+    public function lampiran(TugasKbm $tugas)
+    {
+        if (empty($tugas->file_lampiran) || !Storage::disk('public')->exists($tugas->file_lampiran)) {
+            abort(404, 'File lampiran tugas tidak ditemukan.');
+        }
+
+        $user = Auth::user();
+        $tugas->loadMissing('jadwal');
+
+        if ($user->role === 'siswa') {
+            $siswa = \App\Models\Siswa::with('kelas')->where('user_id', $user->id)->first();
+            $kelasUser = $user->kelas_id ? \App\Models\Kelas::find($user->kelas_id) : null;
+            $kelasCandidates = array_values(array_unique(array_filter([
+                $siswa?->kelas?->nama_kelas,
+                $siswa?->kelas?->nama,
+                $kelasUser?->nama_kelas,
+                $kelasUser?->nama,
+            ])));
+            if (!empty($kelasCandidates) && $tugas->jadwal && !in_array($tugas->jadwal->kelas, $kelasCandidates, true)) {
+                abort(403, 'Lampiran tugas ini bukan untuk kelas Anda.');
+            }
+        }
+
+        $fullPath = Storage::disk('public')->path($tugas->file_lampiran);
+        return response()->file($fullPath);
     }
 }
 

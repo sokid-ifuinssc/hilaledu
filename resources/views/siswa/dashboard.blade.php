@@ -131,7 +131,7 @@
                 </div>
                 @if($tb->file_lampiran)
                 <div>
-                    <a href="{{ asset('storage/' . $tb->file_lampiran) }}" target="_blank"
+                    <a href="{{ route('tugas-kbm.lampiran', $tb) }}" target="_blank"
                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-2xs">
                         <i class="bi-download"></i> Unduh / Lihat File Tugas
                     </a>
@@ -307,7 +307,7 @@
                             <p class="text-slate-800 italic">"{!! nl2br(e($tugas->deskripsi_tugas)) !!}"</p>
                             @if($tugas->file_lampiran)
                             <div class="mt-2 pt-2 border-t border-amber-200/50">
-                                <a href="{{ asset('storage/' . $tugas->file_lampiran) }}" target="_blank" class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-100 hover:bg-indigo-200 px-2.5 py-1 rounded-lg transition">
+                                <a href="{{ route('tugas-kbm.lampiran', $tugas) }}" target="_blank" class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-100 hover:bg-indigo-200 px-2.5 py-1 rounded-lg transition">
                                     <i class="bi-paperclip"></i> Lihat Lampiran File
                                 </a>
                             </div>

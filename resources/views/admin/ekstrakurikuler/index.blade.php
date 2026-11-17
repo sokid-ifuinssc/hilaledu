@@ -89,6 +89,53 @@
     </div>
 @endif
 
+@php
+    $userRoleControl = Auth::user()->role ?? '';
+    $canTogglePendaftaran = in_array($userRoleControl, ['admin', 'superadmin', 'waka_kesiswaan', 'pembina_osis'])
+        || (method_exists(Auth::user(), 'hasAdditionalDuty') && Auth::user()->hasAdditionalDuty(['pembina_osis', 'waka_kesiswaan', 'kesiswaan']));
+@endphp
+
+@if($canTogglePendaftaran)
+<div style="background:{{ ($pendaftaranDibuka ?? true) ? 'rgba(46,204,113,0.08)' : 'rgba(243,156,18,0.1)' }};border:1px solid {{ ($pendaftaranDibuka ?? true) ? 'rgba(46,204,113,0.28)' : 'rgba(243,156,18,0.35)' }};border-radius:14px;padding:14px 18px;margin-bottom:18px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;">
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;background:{{ ($pendaftaranDibuka ?? true) ? 'rgba(46,204,113,0.18)' : 'rgba(243,156,18,0.2)' }};color:{{ ($pendaftaranDibuka ?? true) ? '#2ecc71' : '#f39c12' }};">
+            <i class="bi {{ ($pendaftaranDibuka ?? true) ? 'bi-unlock-fill' : 'bi-lock-fill' }}"></i>
+        </div>
+        <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:0.9rem;font-weight:700;">
+                <span>Kontrol Pendaftaran Eskul oleh Siswa</span>
+                @if($pendaftaranDibuka ?? true)
+                    <span style="font-size:0.72rem;padding:2px 10px;border-radius:999px;background:rgba(46,204,113,0.2);color:#2ecc71;font-weight:700;">DIBUKA</span>
+                @else
+                    <span style="font-size:0.72rem;padding:2px 10px;border-radius:999px;background:rgba(231,76,60,0.2);color:#e74c3c;font-weight:700;">DITUTUP / TERKUNCI</span>
+                @endif
+            </div>
+            <div style="font-size:0.78rem;opacity:0.82;margin-top:3px;max-width:680px;">
+                @if($pendaftaranDibuka ?? true)
+                    Siswa saat ini bisa memilih maupun membatalkan eskul dari portal siswa. Tutup pendaftaran saat KBM berjalan agar data keanggotaan tetap konsisten.
+                @else
+                    Pilihan daftar &amp; batal ikut eskul pada portal siswa sedang ditutup oleh Pembina OSIS/Kesiswaan untuk menjaga konsistensi data.
+                @endif
+            </div>
+        </div>
+    </div>
+    <form action="{{ route('admin.ekstrakurikuler.toggle-pendaftaran') }}" method="POST">
+        @csrf
+        @if($pendaftaranDibuka ?? true)
+            <button type="submit" onclick="return confirm('Tutup pendaftaran ekstrakurikuler siswa? Siswa tidak akan dapat memilih atau membatalkan eskul secara mandiri.');"
+                    style="background:#e74c3c;color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                <i class="bi bi-lock-fill"></i> Tutup Pendaftaran Siswa
+            </button>
+        @else
+            <button type="submit" onclick="return confirm('Buka kembali pendaftaran ekstrakurikuler siswa?');"
+                    style="background:#27ae60;color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                <i class="bi bi-unlock-fill"></i> Buka Pendaftaran Siswa
+            </button>
+        @endif
+    </form>
+</div>
+@endif
+
 <div class="master-layout">
     {{-- SISI KIRI: TABEL DATA EKSTRAKURIKULER --}}
     <div class="section-card">

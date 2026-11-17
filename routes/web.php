@@ -854,6 +854,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Lampiran Tugas KBM (aman meski tanpa symlink public/storage)
+    Route::get('/tugas-kbm/{tugas}/lampiran', [\App\Http\Controllers\Guru\TugasKbmController::class, 'lampiran'])->name('tugas-kbm.lampiran');
+
     // Notifications
     Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifikasi.index');
     Route::post('/notifikasi/{notifikasi}/read', [NotificationController::class, 'markAsRead'])->name('notifikasi.read');
@@ -864,6 +867,7 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::prefix('admin/ekstrakurikuler')->name('admin.ekstrakurikuler.')->middleware('role:admin,superadmin,waka_kesiswaan,pembina_osis')->group(function () {
         Route::get('/', [EkstrakurikulerController::class, 'index'])->name('index');
+        Route::post('/toggle-pendaftaran', [EkstrakurikulerController::class, 'togglePendaftaran'])->name('toggle-pendaftaran');
         Route::post('/', [EkstrakurikulerController::class, 'store'])->name('store');
         Route::get('/monitoring-mingguan', [EkstrakurikulerController::class, 'monitoringMingguan'])->name('monitoring');
         Route::get('/rekap-kelas', [EkstrakurikulerController::class, 'rekapPerKelas'])->name('rekap-kelas');

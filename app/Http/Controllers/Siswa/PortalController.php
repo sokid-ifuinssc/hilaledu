@@ -131,8 +131,14 @@ class PortalController extends Controller
             ->latest()
             ->get();
 
+        $kelasCandidates = array_values(array_unique(array_filter([
+            $kelasNama,
+            $siswaData?->kelas?->nama,
+            $siswaData?->kelas?->nama_kelas,
+        ])));
+
         $tugasMapelTerbaru = TugasKbm::with(['jadwal.mataPelajaran', 'guru', 'pembuat'])
-            ->whereHas('jadwal', fn($q) => $q->where('kelas', $kelasNama))
+            ->whereHas('jadwal', fn($q) => $q->whereIn('kelas', $kelasCandidates))
             ->whereDate('tanggal', '>=', now()->subDays(6)->toDateString())
             ->orderBy('tanggal', 'desc')
             ->orderBy('created_at', 'desc')
@@ -263,6 +269,41 @@ class PortalController extends Controller
             $waliKelas = User::find($kelasModel->wali_kelas_id);
         }
 
+        // Ambil tugas KBM aktif dari guru berhalangan hadir dalam 7 hari terakhir untuk kelas siswa ini
+        $dayMap = [
+            0 => 'Minggu',
+            1 => 'Senin',
+            2 => 'Selasa',
+            3 => 'Rabu',
+            4 => 'Kamis',
+            5 => 'Jumat',
+            6 => 'Sabtu',
+        ];
+        $hariIni = $dayMap[now()->dayOfWeek] ?? 'Senin';
+        $tanggalHariIni = now()->toDateString();
+
+        $kelasCandidates = array_values(array_unique(array_filter([
+            $kelasNama,
+            $kelasModel?->nama,
+            $kelasModel?->nama_kelas,
+        ])));
+
+        $tugasMapelTerbaru = TugasKbm::with(['jadwal.mataPelajaran', 'guru'])
+            ->where('status', 'aktif')
+            ->where('tanggal', '>=', now()->subDays(7)->toDateString())
+            ->whereHas('jadwal', function ($q) use ($kelasCandidates, $tahunAjaran, $semester) {
+                $q->whereIn('kelas', $kelasCandidates)
+                    ->where('tahun_ajaran', $tahunAjaran)
+                    ->where('semester', $semester);
+            })
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $tugasHariIniByJadwal = $tugasMapelTerbaru
+            ->filter(fn ($t) => $t->tanggal && $t->tanggal->format('Y-m-d') === $tanggalHariIni)
+            ->keyBy('jadwal_pelajaran_id');
+
         return view('siswa.jadwal', compact(
             'user',
             'siswaData',
@@ -273,7 +314,10 @@ class PortalController extends Controller
             'ringkasanMapel',
             'totalJp',
             'tahunAjaran',
-            'semester'
+            'semester',
+            'tugasMapelTerbaru',
+            'tugasHariIniByJadwal',
+            'hariIni'
         ));
     }
 

@@ -67,6 +67,59 @@
         </div>
     </div>
 
+    <!-- Daftar Tugas Terbaru Dari Guru Berhalangan Hadir -->
+    @if(isset($tugasMapelTerbaru) && $tugasMapelTerbaru->count() > 0)
+    <div class="bg-gradient-to-br from-amber-50 via-white to-orange-50/40 rounded-3xl border-2 border-amber-200 p-5 sm:p-6 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-xs shrink-0">
+                    <i class="bi bi-journal-bookmark-fill"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-900">Tugas Belajar Dari Guru Berhalangan Hadir</h3>
+                    <p class="text-[11px] text-amber-800 font-medium">
+                        Instruksi dan lampiran tugas yang dititipkan guru mapel untuk kelas {{ $kelasNama }} (7 hari terakhir)
+                    </p>
+                </div>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-extrabold self-start sm:self-auto">
+                {{ $tugasMapelTerbaru->count() }} Tugas Aktif
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            @foreach($tugasMapelTerbaru as $tb)
+            <div class="bg-white rounded-2xl p-4 border border-amber-200/80 shadow-2xs flex flex-col justify-between gap-2.5">
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">
+                            {{ $tb->tanggal ? \Carbon\Carbon::parse($tb->tanggal)->translatedFormat('l, d M Y') : '' }}
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-semibold">
+                            Guru: {{ $tb->guru?->name ?? 'Guru Pengampu' }}
+                        </span>
+                    </div>
+                    <h4 class="font-extrabold text-slate-900 text-sm">
+                        {{ $tb->jadwal?->mataPelajaran?->nama ?? 'Mata Pelajaran' }}
+                    </h4>
+                    <p class="text-xs text-slate-700 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        {!! nl2br(e($tb->deskripsi_tugas)) !!}
+                    </p>
+                </div>
+                @if($tb->file_lampiran)
+                <div>
+                    <a href="{{ route('tugas-kbm.lampiran', $tb) }}" target="_blank"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-2xs">
+                        <i class="bi bi-download"></i> Unduh / Lihat File Tugas
+                    </a>
+                </div>
+                @endif
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     <!-- View Toggle Tab -->
     <div class="flex items-center justify-between gap-4 border-b border-slate-200 pb-3">
         <div class="flex items-center gap-2">
@@ -170,6 +223,28 @@
                                     </span>
                                     @endif
                                 </div>
+
+                                @php
+                                    $tugasHariIniSlot = (isset($hariIni) && $hari === $hariIni && isset($tugasHariIniByJadwal))
+                                        ? ($tugasHariIniByJadwal[$j->id] ?? null)
+                                        : null;
+                                @endphp
+                                @if($tugasHariIniSlot)
+                                <div class="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs">
+                                    <div class="font-bold text-amber-900 flex items-center gap-1.5 text-[10px] uppercase tracking-wider mb-1">
+                                        <i class="bi bi-journal-text text-amber-600"></i>
+                                        <span>Tugas Hari Ini Dari Guru:</span>
+                                    </div>
+                                    <p class="text-slate-700 leading-snug">{!! nl2br(e($tugasHariIniSlot->deskripsi_tugas)) !!}</p>
+                                    @if($tugasHariIniSlot->file_lampiran)
+                                    <div class="mt-1.5">
+                                        <a href="{{ route('tugas-kbm.lampiran', $tugasHariIniSlot) }}" target="_blank" class="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-100 hover:bg-indigo-200 px-2 py-0.5 rounded-md transition">
+                                            <i class="bi bi-paperclip"></i> Unduh Lampiran Tugas
+                                        </a>
+                                    </div>
+                                    @endif
+                                </div>
+                                @endif
                             </div>
 
                             <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black shrink-0">

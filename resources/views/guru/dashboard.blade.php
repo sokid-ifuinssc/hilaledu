@@ -500,7 +500,7 @@
                             </div>
                             <p class="text-slate-700 m-0 leading-snug">{{ $tugas->deskripsi_tugas }}</p>
                             @if($tugas->file_lampiran)
-                            <a href="{{ asset('storage/' . $tugas->file_lampiran) }}" target="_blank" class="inline-flex items-center gap-1 text-[10.5px] font-bold text-indigo-700 hover:underline">
+                            <a href="{{ route('tugas-kbm.lampiran', $tugas) }}" target="_blank" class="inline-flex items-center gap-1 text-[10.5px] font-bold text-indigo-700 hover:underline">
                                 <i class="bi-paperclip"></i> Lihat File Tugas
                             </a>
                             @endif

@@ -31,6 +31,34 @@
         </div>
     @endif
 
+    <!-- Banner Status Buka/Tutup Pendaftaran Eskul oleh Pembina OSIS -->
+    @if(!($pendaftaranDibuka ?? true))
+        <div class="bg-gradient-to-r from-amber-50 via-orange-50 to-rose-50 border border-amber-300 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-amber-950 shadow-sm">
+            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl shrink-0 shadow-sm shadow-amber-200">
+                <i class="bi bi-lock-fill"></i>
+            </div>
+            <div class="text-xs leading-relaxed">
+                <h3 class="font-bold text-sm text-amber-950 flex items-center gap-2 flex-wrap">
+                    <span>Pendaftaran &amp; Perubahan Ekstrakurikuler Sedang Ditutup</span>
+                    <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-bold uppercase tracking-wider">Terkunci Pembina OSIS</span>
+                </h3>
+                <p class="text-amber-900/90 mt-1">
+                    Pembina OSIS telah mengunci pendaftaran ekstrakurikuler selama KBM berjalan agar data keanggotaan tetap konsisten. Anda sementara tidak dapat memilih eskul baru maupun membatalkan eskul yang sudah diikuti. Hubungi Pembina OSIS atau Pembina Eskul jika membutuhkan penyesuaian data.
+                </p>
+            </div>
+        </div>
+    @else
+        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 text-emerald-900 shadow-sm">
+            <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg shrink-0">
+                <i class="bi bi-unlock-fill"></i>
+            </div>
+            <div class="text-xs leading-relaxed">
+                <span class="font-bold text-emerald-950">Pendaftaran Ekstrakurikuler Sedang Dibuka</span>
+                <span class="text-emerald-800/90 block sm:inline sm:ml-1">— Silakan pilih ekstrakurikuler sesuai minat dan bakat Anda sebelum ditutup oleh Pembina OSIS.</span>
+            </div>
+        </div>
+    @endif
+
     <!-- Banner Integrasi Mapel TWP & Project Pancasila -->
     <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-slate-50 border border-blue-200/80 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-blue-900 shadow-sm">
         <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl shrink-0 shadow-sm shadow-blue-200">
@@ -116,14 +144,21 @@
                             </button>
                         </form>
                         <!-- Keluar Eskul Button -->
-                        <form action="{{ route('siswa.ekstrakurikuler.leave', $eskul->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan keikutsertaan dari ekstrakurikuler {{ $eskul->nama }}?');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition">
-                                <i class="bi bi-box-arrow-right"></i>
-                                Keluar
-                            </button>
-                        </form>
+                        @if($pendaftaranDibuka ?? true)
+                            <form action="{{ route('siswa.ekstrakurikuler.leave', $eskul->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan keikutsertaan dari ekstrakurikuler {{ $eskul->nama }}?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition">
+                                    <i class="bi bi-box-arrow-right"></i>
+                                    Keluar
+                                </button>
+                            </form>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200" title="Pendaftaran dikunci oleh Pembina OSIS">
+                                <i class="bi bi-lock-fill"></i>
+                                Terkunci
+                            </span>
+                        @endif
                     </div>
                 </div>
 
@@ -309,15 +344,21 @@
                                 <span class="text-xs text-emerald-700 font-semibold">
                                     <i class="bi bi-check-all"></i> Anggota Aktif
                                 </span>
-                                <form action="{{ route('siswa.ekstrakurikuler.leave', $item->id) }}" method="POST" onsubmit="return confirm('Yakin ingin membatalkan keikutsertaan dari {{ $item->nama }}?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline">
-                                        Batal Ikut
-                                    </button>
-                                </form>
+                                @if($pendaftaranDibuka ?? true)
+                                    <form action="{{ route('siswa.ekstrakurikuler.leave', $item->id) }}" method="POST" onsubmit="return confirm('Yakin ingin membatalkan keikutsertaan dari {{ $item->nama }}?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline">
+                                            Batal Ikut
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                                        <i class="bi bi-lock-fill"></i> Terkunci
+                                    </span>
+                                @endif
                             </div>
-                        @else
+                        @elseif($pendaftaranDibuka ?? true)
                             <form action="{{ route('siswa.ekstrakurikuler.join', $item->id) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition">
@@ -325,6 +366,11 @@
                                     Pilih & Ikuti Eskul Ini
                                 </button>
                             </form>
+                        @else
+                            <button type="button" disabled class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed">
+                                <i class="bi bi-lock-fill"></i>
+                                Pendaftaran Ditutup oleh Pembina OSIS
+                            </button>
                         @endif
                     </div>
                 </div>

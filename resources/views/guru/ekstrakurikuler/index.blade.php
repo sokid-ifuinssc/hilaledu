@@ -40,6 +40,52 @@
             Sebagai Waka Kesiswaan atau Pembina OSIS, Anda memiliki kewenangan penuh untuk menginput atau menambahkan siswa ke seluruh ekstrakurikuler sekolah (sama seperti yang dapat dilakukan oleh pembina eskul), menunjuk ketua eskul, melihat absensi serta memantau keterlaksanaan kegiatan.
         </div>
     </div>
+
+    <!-- Kontrol Buka / Tutup Pendaftaran Eskul oleh Siswa -->
+    <div class="bg-white border {{ ($pendaftaranDibuka ?? true) ? 'border-emerald-200' : 'border-amber-300' }} rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-start gap-3.5">
+            <div class="w-11 h-11 rounded-xl {{ ($pendaftaranDibuka ?? true) ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }} flex items-center justify-center shrink-0 text-xl">
+                <i class="bi {{ ($pendaftaranDibuka ?? true) ? 'bi-unlock-fill' : 'bi-lock-fill' }}"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-sm font-bold text-slate-900">Kontrol Pendaftaran Ekstrakurikuler Siswa</h3>
+                    @if($pendaftaranDibuka ?? true)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                            <i class="bi bi-check-circle-fill"></i> Pendaftaran Dibuka
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">
+                            <i class="bi bi-lock-fill"></i> Pendaftaran Ditutup / Terkunci
+                        </span>
+                    @endif
+                </div>
+                <p class="text-xs text-slate-600 mt-1 leading-relaxed max-w-2xl">
+                    @if($pendaftaranDibuka ?? true)
+                        Siswa saat ini dapat memilih dan membatalkan keikutsertaan ekstrakurikuler secara mandiri di halaman Siswa. Tutup pendaftaran setelah KBM berjalan agar data anggota tetap konsisten.
+                    @else
+                        Pendaftaran mandiri dan pembatalan eskul pada halaman Siswa saat ini <strong>dikunci</strong> agar data keanggotaan tidak berubah selama KBM berjalan. Buka kembali jika ada masa pemilihan eskul baru.
+                    @endif
+                </p>
+            </div>
+        </div>
+        <form action="{{ route('admin.ekstrakurikuler.toggle-pendaftaran') }}" method="POST" class="shrink-0">
+            @csrf
+            @if($pendaftaranDibuka ?? true)
+                <button type="submit" onclick="return confirm('Tutup pendaftaran ekstrakurikuler siswa? Siswa tidak akan dapat memilih atau membatalkan eskul secara mandiri.');"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition">
+                    <i class="bi bi-lock-fill"></i>
+                    Tutup Pendaftaran Siswa
+                </button>
+            @else
+                <button type="submit" onclick="return confirm('Buka kembali pendaftaran ekstrakurikuler siswa?');"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition">
+                    <i class="bi bi-unlock-fill"></i>
+                    Buka Pendaftaran Siswa
+                </button>
+            @endif
+        </form>
+    </div>
     @else
     <!-- Alert Informasi Tugas Pembina -->
     <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-4 flex items-start gap-3">

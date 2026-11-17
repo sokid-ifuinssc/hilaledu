@@ -846,6 +846,12 @@
                             <span>Peta Alur Sistem HilalEdu</span>
                         </a>
                     </li>
+                    <li class="sidebar-nav-item">
+                        <a href="{{ route('tentang-aplikasi.index') }}" class="sidebar-nav-link {{ request()->routeIs('tentang-aplikasi.*') ? 'active' : '' }}">
+                            <i class="bi bi-info-circle-fill" style="color:#38bdf8;"></i>
+                            <span>Tentang Aplikasi</span>
+                        </a>
+                    </li>
                 </ul>
 
                 {{-- ============================================================ --}}
@@ -1366,6 +1372,12 @@
                             <span>Peta Alur Sistem HilalEdu</span>
                         </a>
                     </li>
+                    <li class="sidebar-nav-item">
+                        <a href="{{ route('tentang-aplikasi.index') }}" class="sidebar-nav-link {{ request()->routeIs('tentang-aplikasi.*') ? 'active' : '' }}">
+                            <i class="bi bi-info-circle-fill" style="color:#38bdf8;"></i>
+                            <span>Tentang Aplikasi</span>
+                        </a>
+                    </li>
 
                     @if(auth()->user()->role === 'guru')
                         @php
@@ -1709,7 +1721,7 @@
                 </div>
             @endif
 
-            @include('components.workflow-guide', ['showInline' => !request()->routeIs('alur-kerja.index')])
+            @include('components.workflow-guide', ['showInline' => !request()->routeIs('alur-kerja.index') && !request()->routeIs('tentang-aplikasi.*')])
 
             @yield('content')
         </div>

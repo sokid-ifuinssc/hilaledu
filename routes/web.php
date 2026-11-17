@@ -839,6 +839,11 @@ Route::middleware('auth')->group(function () {
         return view('alur_kerja.index');
     })->name('alur-kerja.index');
 
+    // Menu Tentang Aplikasi & Petunjuk Penggunaan Semua Role
+    Route::get('/tentang-aplikasi', function () {
+        return view('tentang_aplikasi.index');
+    })->name('tentang-aplikasi.index');
+
     // Superadmin Impersonation ("Lihat Sebagai User")
     Route::get('/impersonate/users', [SuperAdminUserController::class, 'impersonateUsers'])->name('impersonate.users');
     Route::post('/impersonate/stop', [SuperAdminUserController::class, 'impersonateStop'])->name('impersonate.stop');

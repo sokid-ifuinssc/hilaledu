@@ -8,6 +8,23 @@ class MenuWorkflows
     {
         $route = (string) $routeName;
 
+        if ($route === 'tentang-aplikasi.index') {
+            return [
+                'id'       => 'tentang-aplikasi',
+                'title'    => 'Tentang Aplikasi & Panduan Role HilalEdu',
+                'subtitle' => 'Ringkasan tugas utama dan cara kerja garis besar setiap role pengguna',
+                'icon'     => 'bi-info-circle-fill',
+                'color'    => 'sky',
+                'actors'   => 'Seluruh Pengguna (Superadmin, Admin, Kepsek, Guru, Tendik, Siswa)',
+                'steps'    => [
+                    ['actor' => 'Pengguna', 'title' => '1. Kenali Peran Anda', 'desc' => 'Bagian atas halaman menyoroti tugas utama dan langkah kerja sesuai role serta tugas tambahan akun Anda.'],
+                    ['actor' => 'Pengguna', 'title' => '2. Pahami Kolaborasi Antar Role', 'desc' => 'Pelajari peran role lainnya agar koordinasi KBM, BK, PKL, keuangan, dan dokumen berjalan lancar.'],
+                    ['actor' => 'Pengguna', 'title' => '3. Buka Peta Alur Sistem', 'desc' => 'Gunakan tautan Peta Alur Sistem HilalEdu atau tombol Alur Kerja di topbar untuk detail teknis tiap menu.'],
+                ],
+                'result' => 'Setiap warga sekolah memahami peran, tugas pokok, dan cara kerja aplikasi HilalEdu secara menyeluruh.',
+            ];
+        }
+
         foreach (self::allModules() as $module) {
             foreach ($module['patterns'] as $pattern) {
                 if ($route !== '' && \Illuminate\Support\Str::is($pattern, $route)) {
